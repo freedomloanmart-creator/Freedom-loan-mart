@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLM Store Panel - 25KM Radius</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{background:#f1f5f9}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:#0f172a;color:#cbd5e1}
+.sidebar .logo{padding:16px;border-bottom:1px solid #1e293b}
+.sidebar a{display:block;padding:8px 12px;margin:3px 10px;border-radius:8px;color:#94a3b8;text-decoration:none;font-size:12px;cursor:pointer}
+.sidebar a.active,.sidebar a:hover{background:#1e293b;color:#fff}
+.main{margin-left:240px;padding:16px}
+.card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px}
+.btn{padding:6px 12px;border-radius:6px;border:0;font-weight:600;cursor:pointer;font-size:11px}
+.btn-blue{background:#2563eb;color:#fff}
+.btn-green{background:#059669;color:#fff}
+</style>
+</head>
+<body>
+<div class="sidebar">
+<div class="logo"><div style="font-weight:800;color:#fff">KPHB STORE</div><div style="font-size:9px;color:#10b981">STORE PANEL • 25KM Radius</div><div style="font-size:10px;color:#64748b">9876543210 • 500072</div></div>
+<a class="active" onclick="show('dash')">📊 Dashboard</a>
+<a onclick="show('storeW')">💳 Store Withdrawals (20% + Limited)</a>
+<a onclick="show('roi')">🛒 ROI Redemptions (1000+)</a>
+<a onclick="show('loan')">💰 Loan 20% Purchase</a>
+<a onclick="show('pickup')">📦 Pickup Management</a>
+<a onclick="show('users')">👥 Users in 25KM</a>
+<a onclick="show('kits')">📦 Sample Kits</a>
+<a onclick="show('daily')">📈 Daily Matching 25 Cap</a>
+<a onclick="location.href='./login.html'" style="color:#f87171;margin-top:20px">Logout</a>
+</div>
+<div class="main">
+<div id="p-dash"><h2>KPHB Store Dashboard</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px"><div class="card">Today Store Withdrawals<br><b>5</b> (200/500/1000/3000/5000 only)</div><div class="card">Pending Pickups<br><b>3</b></div><div class="card">Users in 25KM<br><b>15</b></div><div class="card">20% Income Today<br><b>Rs.2,400</b></div></div></div>
+<div id="p-storeW" style="display:none"><h2>Store Withdrawals - 20% Deduction + Limited Amounts + Once Per Day</h2><div class="card"><div style="font-size:11px">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction | Once per day per user | Remaining stays in wallet | Full loan amount withdrawable</div><div style="margin-top:8px;font-size:11px">FL597130 - Request: Rs.5000 - Deduction 20% = Rs.1000 - Net Rs.4000 - Remaining Wallet Rs.1200 - Status: Pending - <button class="btn btn-blue">Approve</button> <button class="btn btn-green">Mark Paid</button></div></div></div>
+<div id="p-roi" style="display:none"><h2>ROI Redemptions - Min 1000 for Store Redeem</h2><div class="card" style="font-size:11px">FL597130 - ROI 1200 - Product: Alkaline Jar - Rs.1000 - Status: Pending - Mark Delivered</div></div>
+<div id="p-loan" style="display:none"><h2>Loan Withdrawals - Cumulative 20% Purchase</h2><div class="card" style="font-size:11px">FL597130 - Pair Income Withdrawn:400 + Loan Withdrawn:1000 = Total:1400 - Required 20%:280 - Already Purchased:100 - Remaining:180 - Inka 180 ki konnali - Purchase at store to unlock next portal, monthly rotation - <button class="btn btn-blue">Add Purchase</button> <button class="btn btn-green">Unlock Portal</button></div></div>
+<div id="p-pickup" style="display:none"><h2>Pickup Management - Store Pickup / Pin Point / Courier</h2><div class="card" style="font-size:11px">Order #K001 - FL597130 - Alkaline Jar Kit - Store Pickup - Pending - Mark Ready / Picked Up<br>Order #K002 - FL597131 - Business Kit - Pin Point Pickup - Address: Kukatpally - Pending</div></div>
+<div id="p-users" style="display:none"><h2>Users in 25KM Radius</h2><div class="card"><input placeholder="Pincode 500008" value="500008" style="height:32px;border:1px solid #e2e8f0;border-radius:6px;padding:0 8px"> <button class="btn btn-blue">Find</button><div style="margin-top:8px;font-size:11px">FL597130 - 2.1KM - Wallet Rs.6200 - Last Withdrawal 2 days ago<br>FL597131 - 3.4KM - Wallet Rs.4500<br>... 15 users within 25KM of KPHB Store</div></div></div>
+<div id="p-kits" style="display:none"><h2>Sample Kits - Stock</h2><div class="card" style="font-size:11px">Alkaline Jar Kit - Rs.1000 - Stock 50 - Sold 12<br>Business Starter Kit - Rs.2500 - Stock 30<br>Premium Kit - Rs.5000 - Stock 20</div></div>
+<div id="p-daily" style="display:none"><h2>Daily Matching - 25 Pairs Cap</h2><div class="card" style="font-size:11px">FL597130 - Today Left 27 Right 30 - Counted 25 pairs = Rs.5000 (max) - Carry Forward Left 2 Right 5 to next day - Previous + new joins logic</div></div>
+</div>
+<script>
+function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';}
+</script>
+</body>
+</html>

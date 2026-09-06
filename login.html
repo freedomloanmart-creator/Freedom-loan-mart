@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLM User Login - Freedom Loan Mart</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,Arial}
+body{background:#0f172a;color:#e2e8f0;min-height:100vh}
+.card{background:#1e293b;border:1px solid #334155;border-radius:16px}
+.btn{height:44px;border-radius:12px;border:0;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-blue{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.btn-green{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+.input{width:100%;height:44px;background:#0f172a;border:1px solid #334155;border-radius:12px;padding:0 14px;color:#e2e8f0;outline:none}
+.input:focus{border-color:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.15)}
+.badge{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700}
+.badge-left{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.badge-right{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.3)}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:768px){.grid4{grid-template-columns:repeat(4,1fr)}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+<div id="loginView" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div class="card" style="width:100%;max-width:420px;padding:24px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:28px">💰</div>
+      <h1 style="font-size:20px;margin-top:8px">Freedom Loan Mart</h1>
+      <p style="font-size:13px;color:#94a3b8;margin-top:4px">User Login Panel</p>
+    </div>
+    <label style="font-size:11px;color:#94a3b8;letter-spacing:.5px">FL ID / MOBILE</label>
+    <input id="loginId" class="input" placeholder="FL100001 or 9876543210" style="margin:8px 0 14px">
+    <label style="font-size:11px;color:#94a3b8;letter-spacing:.5px">PASSWORD</label>
+    <input id="loginPass" type="password" class="input" placeholder="••••••••" style="margin:8px 0 14px">
+    <div id="err" style="color:#f87171;font-size:12px;margin-bottom:10px;display:none"></div>
+    <button id="loginBtn" class="btn btn-blue" style="width:100%">Login to Dashboard</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <button onclick="fillDemo('FL102458','demo123')" class="btn" style="background:#0f172a;border:1px solid #334155;font-size:12px">Demo: FL102458</button>
+      <button onclick="fillDemo('FL100001','admin123')" class="btn" style="background:#0f172a;border:1px solid #334155;font-size:12px">Demo: Admin</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">
+      No account? <a href="./" style="color:#60a5fa;text-decoration:none">Register here</a> | <a href="./?admin=1" style="color:#94a3b8">Admin</a>
+    </div>
+  </div>
+</div>
+
+<div id="dashView" style="display:none;padding:16px;max-width:1100px;margin:0 auto">
+  <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+    <div>
+      <div style="font-size:13px;color:#94a3b8">Welcome back,</div>
+      <div style="font-size:18px;font-weight:700"><span id="uName">User</span> <span id="uFl" style="font-size:12px;color:#60a5fa;font-weight:600"></span></div>
+      <div style="font-size:11px;color:#64748b;margin-top:2px">Sponsor: <span id="uSponsor">-</span> | Side: <span id="uSide"></span></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="copyRef()" class="btn" style="background:#0f172a;border:1px solid #334155;font-size:12px;padding:0 14px">📋 Copy Referral</button>
+      <button onclick="logout()" class="btn" style="background:#dc2626;color:#fff;font-size:12px;padding:0 16px">Logout</button>
+    </div>
+  </div>
+
+  <div class="grid4" style="margin-bottom:16px">
+    <div class="card" style="padding:14px">
+      <div style="font-size:11px;color:#94a3b8">MY IDENTITY</div>
+      <div style="margin-top:6px;font-size:14px;font-weight:600" id="cardFl">FL-</div>
+      <div style="font-size:11px;color:#64748b" id="cardSponsor">Sponsor: -</div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-size:11px;color:#94a3b8">DIRECT TEAM</div>
+      <div style="font-size:24px;font-weight:800;margin-top:4px" id="cardDirect">0</div>
+      <div style="font-size:11px;color:#10b981">● Active</div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-size:11px;color:#94a3b8">LEFT / RIGHT</div>
+      <div style="display:flex;gap:16px;margin-top:6px"><div><div style="font-size:20px;font-weight:800" id="cardLeft">0</div><div style="font-size:10px;color:#60a5fa">LEFT</div></div><div><div style="font-size:20px;font-weight:800" id="cardRight">0</div><div style="font-size:10px;color:#c084fc">RIGHT</div></div></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-size:11px;color:#94a3b8">WALLET</div>
+      <div style="font-size:20px;font-weight:800;margin-top:4px" id="cardWallet">₹0</div>
+      <div style="font-size:11px;color:#64748b">Total: <span id="cardIncome">₹0</span></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr;gap:16px">
+    <div style="display:grid;grid-template-columns:1fr;gap:16px" id="mainGrid">
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">🔗 Your Referral Links - Left & Right</div>
+        <div style="display:grid;gap:10px">
+          <div>
+            <div style="font-size:11px;color:#60a5fa;font-weight:700;margin-bottom:4px">⬅️ LEFT SIDE LINK</div>
+            <div style="display:flex;gap:8px">
+              <input id="refLinkLeft" class="input" readonly style="font-size:11px">
+              <button onclick="copyLeft()" class="btn btn-blue" style="padding:0 12px;font-size:11px">Copy Left</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#c084fc;font-weight:700;margin-bottom:4px">➡️ RIGHT SIDE LINK</div>
+            <div style="display:flex;gap:8px">
+              <input id="refLinkRight" class="input" readonly style="font-size:11px">
+              <button onclick="copyRight()" class="btn" style="background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;padding:0 12px;font-size:11px;display:flex;align-items:center;justify-content:center;border:0;border-radius:12px;font-weight:600;cursor:pointer">Copy Right</button>
+            </div>
+          </div>
+          <div style="font-size:10px;color:#64748b;background:#0f172a;padding:8px 10px;border-radius:8px;border:1px solid #1e293b">💡 Left link tho join ayithe vaallu nee Left team lo, Right link tho join ayithe Right team lo add avtharu. Binary income Left:Right match ayithe vastundi!</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px">👥 My Team</div>
+        <div style="overflow:auto">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead><tr style="color:#94a3b8;text-align:left;border-bottom:1px solid #334155"><th style="padding:8px">FL ID</th><th style="padding:8px">Name</th><th style="padding:8px">Side</th><th style="padding:8px">Date</th></tr></thead>
+            <tbody id="teamBody"><tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b">No team yet - Share referral link!</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:600">💳 Withdrawal</div>
+          <div style="font-size:11px;color:#94a3b8;margin:4px 0 12px">Min ₹500 • TDS 5% • UPI instant</div>
+          <input id="wdAmt" class="input" placeholder="Amount ₹" style="margin-bottom:8px">
+          <input id="wdUpi" class="input" placeholder="yourname@upi" style="margin-bottom:10px">
+          <button onclick="withdraw()" class="btn btn-green" style="width:100%">Withdraw Now</button>
+        </div>
+        <div class="card" style="padding:16px;background:linear-gradient(135deg,#2563eb,#4f46e5);border-color:#3b82f6">
+          <div style="font-size:13px;font-weight:600;color:#fff">💬 Need Help?</div>
+          <div style="font-size:11px;color:#dbeafe;margin:6px 0 12px">Support 10AM-7PM IST - WhatsApp instant reply</div>
+          <a id="waLink" target="_blank" class="btn" style="background:#fff;color:#0f172a;width:100%;text-decoration:none">WhatsApp Support</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:20px;font-size:11px;color:#475569">© 2024 Freedom Loan Mart • Binary Plan • v2.1</div>
+</div>
+
+<script>
+const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuampuYm9pZCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzYzNDIwODQyLCJleHAiOjIwNzg5OTY4NDJ9.F8u4bW3z5k3c6p5c3v5b5c3v5b5c3v5b5c3v5';
+let supabaseClient;
+try{supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){console.log('supabase not loaded')}
+
+const demoUsers=[
+{flId:'FL102458',name:'Ravi Kumar',sponsorId:'FL100001',side:'Right',mobile:'9876543210',password:'demo123',directCount:8,leftCount:24,rightCount:31,wallet:2450,totalIncome:18750,team:[
+{flId:'FL102459',name:'Arjun Reddy',side:'Left',date:'2024-11-15'},{flId:'FL102462',name:'Priya Sharma',side:'Right',date:'2024-11-18'}]},
+{flId:'FL100001',name:'Admin Demo',sponsorId:'FL000000',side:'Left',mobile:'9999999999',password:'admin123',directCount:156,leftCount:342,rightCount:398,wallet:12450,totalIncome:89500,team:[]}
+];
+
+function fillDemo(id,pass){document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;}
+
+function toast(msg){let t=document.createElement('div');t.className='toast';t.innerText=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+
+async function trySupabaseLogin(id){
+  if(!supabaseClient) return null;
+  try{
+    // try users table
+    let q = supabaseClient.from('users').select('*');
+    // search by fl_id or mobile
+    const {data,error} = await q.or(`fl_id.eq.${id},mobile.eq.${id}`).limit(1);
+    if(data && data.length>0) return data[0];
+  }catch(e){console.log(e)}
+  return null;
+}
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const id=document.getElementById('loginId').value.trim();
+  const pass=document.getElementById('loginPass').value.trim();
+  const err=document.getElementById('err');
+  if(!id||!pass){err.style.display='block';err.innerText='Enter FL ID and Password';return;}
+  err.style.display='none';
+  document.getElementById('loginBtn').innerText='Logging...';
+  
+  // Try supabase first
+  let user=null;
+  const sbUser = await trySupabaseLogin(id.toUpperCase());
+  if(sbUser){
+    // supabase user structure might have different fields - map
+    user={
+      flId: sbUser.fl_id || sbUser.flId || id.toUpperCase(),
+      name: sbUser.full_name || sbUser.name || 'User',
+      sponsorId: sbUser.sponsor_id || sbUser.sponsorId || 'FL000001',
+      side: (sbUser.side || 'Left'),
+      mobile: sbUser.mobile || id,
+      password: sbUser.password || pass, // if password not stored, allow login
+      directCount: 0, leftCount: 0, rightCount: 0,
+      wallet: sbUser.wallet || 0, totalIncome: 0, team:[]
+    };
+    // simple password check if password field exists
+    if(sbUser.password && sbUser.password!==pass){err.style.display='block';err.innerText='Wrong password';document.getElementById('loginBtn').innerText='Login to Dashboard';return;}
+  } else {
+    // fallback demo
+    const clean=id.toUpperCase();
+    user=demoUsers.find(u=>u.flId===clean || u.mobile===id);
+    if(!user){err.style.display='block';err.innerText='No account found. Use demo FL102458 / demo123 or your registered FL ID';document.getElementById('loginBtn').innerText='Login to Dashboard';return;}
+    if(user.password!==pass){err.style.display='block';err.innerText='Wrong password. Try demo123';document.getElementById('loginBtn').innerText='Login to Dashboard';return;}
+  }
+  
+  localStorage.setItem('flm_session',JSON.stringify(user));
+  showDashboard(user);
+  document.getElementById('loginBtn').innerText='Login to Dashboard';
+});
+
+function showDashboard(u){
+  document.getElementById('loginView').style.display='none';
+  document.getElementById('dashView').style.display='block';
+  document.getElementById('uName').innerText=u.name;
+  document.getElementById('uFl').innerText='('+u.flId+')';
+  document.getElementById('uSponsor').innerText=u.sponsorId;
+  document.getElementById('uSide').innerHTML='<span class="badge '+(u.side==='Left'?'badge-left':'badge-right')+'">'+u.side+'</span>';
+  document.getElementById('cardFl').innerText=u.flId;
+  document.getElementById('cardSponsor').innerText='Sponsor: '+u.sponsorId;
+  document.getElementById('cardDirect').innerText=u.directCount;
+  document.getElementById('cardLeft').innerText=u.leftCount;
+  document.getElementById('cardRight').innerText=u.rightCount;
+  document.getElementById('cardWallet').innerText='₹'+u.wallet.toLocaleString();
+  document.getElementById('cardIncome').innerText='₹'+(u.totalIncome||0).toLocaleString();
+  const base='https://freedomloanmart-creator.github.io/Freedom-loan-mart/';
+  const refLeft=base+'?ref='+u.flId+'&side=left';
+  const refRight=base+'?ref='+u.flId+'&side=right';
+  document.getElementById('refLinkLeft').value=refLeft;
+  document.getElementById('refLinkRight').value=refRight;
+  // keep old ref for backwards
+  if(document.getElementById('refLink')) document.getElementById('refLink').value=refLeft;
+
+  document.getElementById('waLink').href='https://wa.me/918309091326?text=Hi%20Support,%20My%20FL%20ID%20is%20'+u.flId+'%20-%20'+encodeURIComponent(u.name);
+  const tbody=document.getElementById('teamBody');
+  if(u.team && u.team.length>0){
+    tbody.innerHTML=u.team.map(m=>`<tr style="border-bottom:1px solid #1e293b"><td style="padding:8px;color:#60a5fa">${m.flId}</td><td style="padding:8px">${m.name}</td><td style="padding:8px"><span class="badge ${m.side==='Left'?'badge-left':'badge-right'}">${m.side}</span></td><td style="padding:8px;color:#64748b">${m.date}</td></tr>`).join('');
+  } else {
+    tbody.innerHTML='<tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b">No team yet - Share referral link to start!</td></tr>';
+  }
+  toast('Welcome '+u.name+'!');
+}
+
+function logout(){localStorage.removeItem('flm_session');location.reload();}
+function copyRef(){const v=document.getElementById('refLinkLeft').value;navigator.clipboard.writeText(v).then(()=>toast('Left link copied!'));}
+function copyLeft(){const v=document.getElementById('refLinkLeft').value;navigator.clipboard.writeText(v).then(()=>toast('⬅️ Left link copied!'));}
+function copyRight(){const v=document.getElementById('refLinkRight').value;navigator.clipboard.writeText(v).then(()=>toast('➡️ Right link copied!'));}
+
+function withdraw(){
+  const amt=document.getElementById('wdAmt').value;
+  const upi=document.getElementById('wdUpi').value;
+  if(!amt || Number(amt)<500){toast('Min withdrawal ₹500');return;}
+  if(!upi.includes('@')){toast('Enter valid UPI ID');return;}
+  toast('Withdrawal request ₹'+amt+' submitted! 2-24hrs processing');
+  document.getElementById('wdAmt').value='';
+}
+
+(function(){
+  const sess=localStorage.getItem('flm_session');
+  if(sess){try{const u=JSON.parse(sess);showDashboard(u);}catch(e){}}
+})();
+</script>
+</body>
+</html>

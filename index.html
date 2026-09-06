@@ -1,327 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Freedom Loan Mart</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freedom Loans Mart - User Dashboard | FLM</title>
+<meta name="description" content="Freedom Loans Mart - Member Dashboard - Binary MLM with Store Integration">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;font-family:system-ui,Arial}body{margin:0;background:#f5f7fb;padding:12px}
-.card{max-width:440px;margin:10px auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-h2{text-align:center;color:#1a237e;margin:0 0 4px}
-.tabs{display:flex;gap:8px;margin:14px 0}
-.tab{flex:1;padding:12px;border-radius:12px;border:2px solid #e0e0e0;background:#fff;text-align:center;font-weight:bold;cursor:pointer;font-size:12px}
-.tab.active{background:#1a237e;color:#fff;border-color:#1a237e}
-.tab.green.active{background:#2e7d32;border-color:#2e7d32}
-input,select{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;margin:7px 0;font-size:15px;background:#fff}
-.btn{width:100%;padding:14px;border:0;border-radius:12px;background:#1a237e;color:#fff;font-weight:bold;font-size:16px;cursor:pointer;margin-top:12px}
-.btn:disabled{opacity:.5}
-.success{background:#e8f5e9;color:#1b5e20;padding:16px;border-radius:12px;margin-top:14px;display:none;line-height:1.5;font-size:14px;word-break:break-word}
-.error{background:#fbe9e7;color:#c62828;padding:12px;border-radius:10px;margin-top:10px;display:none;font-size:12px;word-break:break-all}
-.info{background:#e8f5e9;border:1px solid #a5d6a7;padding:10px;border-radius:10px;font-size:11px;color:#2e7d32;margin-bottom:12px}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;padding:20px}
-.modal.show{display:flex}
-.modal-box{background:#fff;border-radius:20px;max-width:380px;width:100%;padding:24px;text-align:center}
-.qr-wrap{background:#fff;padding:12px;border:2px dashed #1a237e;border-radius:16px;margin:12px auto;width:fit-content}
-.qr-wrap img{width:240px;height:240px;display:block}
-.warning{background:#fff3e0;border:1px solid #ffcc80;padding:10px;border-radius:10px;font-size:12px;color:#e65100;margin:10px 0}
-.side-wrap{display:flex;gap:8px;margin:7px 0}
-.side-btn{flex:1;padding:12px;border:2px solid #ddd;border-radius:10px;background:#fff;font-weight:bold;cursor:pointer;text-align:center}
-.side-btn.active{border-color:#1a237e;background:#eef2ff;color:#1a237e}
-/* Admin Styles */
-.admin-body{background:#0f172a;color:#fff}
-.admin-card{max-width:1100px;margin:20px auto;background:#1e293b;padding:20px;border-radius:16px}
-.admin-tabs{display:flex;gap:8px;overflow:auto;padding-bottom:8px}
-.admin-tab{padding:10px 18px;border-radius:20px;background:#334155;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:bold}
-.admin-tab.active{background:#2563eb}
-.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0}
-.stat-box{background:#334155;padding:16px;border-radius:12px;text-align:center}
-.stat-box b{font-size:22px;display:block}
-.table-wrap{overflow:auto;max-height:70vh}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th,td{padding:10px 8px;border-bottom:1px solid #334155;text-align:left}
-th{background:#0f172a;position:sticky;top:0}
-.badge{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:bold}
-.badge-pending{background:#f59e0b;color:#000}
-.badge-active{background:#16a34a}
-.badge-used{background:#64748b}
-.search{width:100%;padding:12px;border-radius:10px;border:0;background:#334155;color:#fff;margin:10px 0}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{background:#f1f5f9;color:#0f172a}
+.sidebar{position:fixed;left:0;top:0;width:260px;height:100vh;background:#0f172a;color:#cbd5e1;overflow-y:auto;z-index:20}
+.sidebar .logo{padding:20px;border-bottom:1px solid #1e293b}
+.sidebar a{display:flex;gap:10px;padding:10px 12px;border-radius:8px;color:#94a3b8;text-decoration:none;font-size:13px;margin:4px 12px;cursor:pointer}
+.sidebar a.active,.sidebar a:hover{background:#1e293b;color:#fff}
+.main{margin-left:260px;padding:16px}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);margin-bottom:12px}
+.dark{background:#1e293b;color:#e2e8f0;border-radius:12px;padding:14px}
+.grad{border-radius:12px;padding:14px;color:#fff}
+.grad-blue{background:linear-gradient(135deg,#2563eb,#0e7490)}
+.grad-purple{background:linear-gradient(135deg,#7c3aed,#2563eb)}
+.btn{padding:8px 14px;border-radius:8px;border:0;font-weight:600;cursor:pointer;font-size:12px}
+.btn-blue{background:#2563eb;color:#fff}
+.btn-green{background:#059669;color:#fff}
+.input{width:100%;height:40px;border:1px solid #e2e8f0;border-radius:8px;padding:0 12px}
+.badge{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.sidebar{transform:translateX(-100%)}.main{margin-left:0}.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+.info{background:#dbeafe;border:1px solid #93c5fd;padding:8px;border-radius:8px;font-size:11px;color:#1e40af;margin:6px 0}
 </style>
 </head>
-<body id="body">
-
-<!-- USER SITE -->
-<div id="userSite">
-<div class="card">
-<h2>💰 Freedom Loan Mart</h2>
-<div style="text-align:center;color:#666;font-size:11px;margin-bottom:10px">Left/Right + Secure UTR Verification</div>
-<div class="info">
-✅ UPI: <code>helpswtechnologies@ptyes</code> | Admin: ?admin<br>
-Tokens: FLTKN1001-1005 active ✅
+<body>
+<div class="sidebar">
+<div class="logo"><div style="font-weight:800;color:#fff">freedom<br><span style="color:#60a5fa">LOANS MART</span></div><div style="font-size:10px;color:#64748b;margin-top:4px">FLM Project • Live</div></div>
+<a class="active" onclick="show('dashboard')">📊 Dashboard</a>
+<a onclick="show('invite')">🔗 Invite Links</a>
+<a onclick="show('downline')">🌳 Downline</a>
+<a onclick="show('wallets')">💼 Wallets</a>
+<a onclick="show('loans')">💰 Loans</a>
+<a onclick="show('rewards')">🏆 Rewards</a>
+<a onclick="show('withdraw')">💳 Withdrawals</a>
+<a onclick="show('store')">📍 Store Locator</a>
+<a onclick="show('support')">💬 Support</a>
+<a onclick="show('kit')">📦 Sample Kit</a>
+<a onclick="location.href='./login.html'" style="color:#f87171;margin-top:20px">🚪 Logout</a>
 </div>
-<div class="tabs">
-<div id="tabPay" class="tab active" onclick="switchTab('pay')">💸 Pay & Join</div>
-<div id="tabToken" class="tab green" onclick="switchTab('token')">🎟️ Token</div>
+<div class="main">
+<div id="p-dashboard">
+<div class="grad grad-blue" style="display:flex;justify-content:space-between"><div><div style="font-size:11px;opacity:.8">MEMBER DASHBOARD</div><div style="font-weight:800">Freedom Loans Mart FL597130 • Active</div><div style="font-size:11px;margin-top:4px">Matching: Rs.200/pair | Max 25 pairs/day = Rs.5000 | Store: 25KM Radius</div></div><div><button class="btn" style="background:#fff;color:#2563eb" onclick="show('invite')">Invite Members</button></div></div>
+<div class="card" style="background:#e0f2fe;display:flex;justify-content:space-between"><span style="font-size:12px"><b>MATCHING BONUS:</b> Rs.200 per left and right pair | Daily Cap 25 pairs</span><span style="font-size:11px;color:#0369a1" onclick="show('downline')">Check Network</span></div>
+<div class="grid2"><div class="card"><b>Profile</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Member ID</div><div style="font-weight:700">FL597130</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Joined</div><div style="font-weight:700">05 Sep 2026</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Activation</div><div style="font-weight:700">05 Sep 2026</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Sponsored by</div><div style="font-weight:700">Platform Admin</div></div></div></div><div class="card"><div style="display:flex;justify-content:space-between"><b>Place a Member</b><span style="color:#2563eb;font-size:11px" onclick="show('invite')">All Links</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#dbeafe;padding:10px;border-radius:8px"><div style="font-size:10px">Left side</div><div style="font-weight:700;font-size:12px">Open Placement</div><button class="btn btn-blue" style="width:100%;margin-top:6px" onclick="copyL()">Copy Left</button></div><div style="background:#d1fae5;padding:10px;border-radius:8px"><div style="font-size:10px">Right side</div><div style="font-weight:700;font-size:12px">Open Placement</div><button class="btn btn-green" style="width:100%;margin-top:6px" onclick="copyR()">Copy Right</button></div></div></div></div>
+<div class="grad grad-purple" style="margin-top:12px;display:flex;justify-content:space-between"><span>Earnings and Wallets</span><span style="font-size:11px" onclick="show('wallets')">Open Wallet</span></div>
+<div class="grid4" style="margin-top:10px"><div class="dark"><div style="font-size:11px">Main Wallet</div><div style="font-size:18px;font-weight:800">Rs.6,200.00</div><div style="font-size:10px;color:#94a3b8">Available</div></div><div class="dark"><div style="font-size:11px">ROI Credits</div><div style="font-size:18px;font-weight:800">1,200.00</div><div style="font-size:10px;color:#94a3b8">Min 1000 for store redeem</div></div><div class="dark"><div style="font-size:11px">Matching Income</div><div style="font-size:18px;font-weight:800">Rs.5,500.00</div><div style="font-size:10px;color:#94a3b8">5000+ or 40:40 = Store Withdraw</div></div><div class="dark"><div style="font-size:11px">Pending Withdrawal</div><div style="font-size:18px;font-weight:800">Rs.0.00</div><div style="font-size:10px;color:#94a3b8">Under review</div></div></div>
+<div class="grid2" style="margin-top:12px"><div class="card"><b>Daily Matching - 25 Pairs Cap (Important)</b><div class="info">Max 25 pairs/day = Rs.5000. Ex: Left 27 + Right 30 joins today → Only 25 counted = Rs.5000. Carry: Left 2, Right 5 to next day.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><input id="dl" class="input" type="number" value="27" placeholder="Left today"><input id="dr" class="input" type="number" value="30" placeholder="Right today"></div><button class="btn btn-blue" style="margin-top:6px" onclick="calcD()">Calculate</button><div id="dRes" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px;font-size:11px"></div></div><div class="card"><b>3 Wallets Logic</b><div class="info"><b>ROI:</b> >=1000 store redeem product<br><b>Matching:</b> >=5000 or 40:40 store withdraw (20% deduction, amounts 200/500/1000/3000/5000 only, once/day)<br><b>Loans:</b> Pair 400 + Loan 1000 = Total 1400, Required 20% = 280, Already 100, Remaining 180 → Purchase at store to unlock next portal, monthly rotation</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px"><input id="pw" class="input" type="number" value="400" placeholder="Pair withdrawn"><input id="lw" class="input" type="number" value="1000" placeholder="Loan withdrawn"><input id="ap" class="input" type="number" value="100" placeholder="Already purchased"></div><button class="btn btn-blue" style="margin-top:6px" onclick="calcL()">Calculate 20%</button><div id="lRes" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px;font-size:11px"></div></div></div>
 </div>
-<input id="name" placeholder="Full Name *" />
-<input id="mobile" placeholder="Mobile Number *" type="tel" maxlength="10" />
-<input id="password" placeholder="Password *" type="password" />
-<input id="sponsor" placeholder="Sponsor FL ID" value="FL000001" />
-<label style="font-size:12px;font-weight:bold;color:#333;margin-top:8px;display:block">Select Side *</label>
-<div class="side-wrap">
-<div id="sideLeft" class="side-btn active" onclick="selectSide('left')">⬅️ Left</div>
-<div id="sideRight" class="side-btn" onclick="selectSide('right')">➡️ Right</div>
+<div id="p-invite" style="display:none"><h2>Invite Members</h2><div class="card"><b>Left Referral Link</b><div style="display:flex;gap:6px;margin-top:6px"><input class="input" id="leftLink" value="https://freedomloans.in/register?side=left&sponsor=FL597130" readonly><button class="btn btn-blue" onclick="copyL()">Copy</button></div></div><div class="card"><b>Right Referral Link</b><div style="display:flex;gap:6px;margin-top:6px"><input class="input" id="rightLink" value="https://freedomloans.in/register?side=right&sponsor=FL597130" readonly><button class="btn btn-blue" onclick="copyR()">Copy</button></div></div><div class="card"><b>After 80:80 Rule:</b> For every loan and reward after 80:80 pairs, need 2 new referrals OR 2 plan renewals via referral link.</div></div>
+<div id="p-wallets" style="display:none"><h2>Wallets - 3 Types</h2><div class="card">ROI Wallet: Min 1000 for store product purchase<br>Matching Wallet: 5000+ or 40:40 → Store withdrawal with 20% deduction, amounts 200/500/1000/3000/5000 only, once per day<br>Loans Wallet: Cumulative 20% purchase logic - Total till date 20% must be purchased at store</div></div>
+<div id="p-withdraw" style="display:none"><h2>Withdrawals</h2><div class="card"><b>Store Withdrawal - Limited Amounts</b><div class="info">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction at store | Once per day | Remaining stays in wallet | Full loan amount withdrawable</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="selA(200)">Rs.200</button><button class="btn" onclick="selA(500)">Rs.500</button><button class="btn" onclick="selA(1000)">Rs.1000</button><button class="btn" onclick="selA(3000)">Rs.3000</button><button class="btn btn-blue" onclick="selA(5000)">Rs.5000</button></div><div id="wCalc" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:8px;font-size:12px">Select amount</div></div></div>
+<div id="p-store" style="display:none"><h2>Store Locator - 25KM Radius</h2><div class="card"><div style="display:flex;gap:6px"><input id="sp" class="input" placeholder="Pincode 500008" value="500008"><button class="btn btn-blue" onclick="findS()">Find Stores (25KM)</button></div><div id="sRes" style="margin-top:10px"></div></div></div>
+<div id="p-support" style="display:none"><h2>Support - WhatsApp & Web Connect</h2><div class="card"><b>WhatsApp Bot:</b> Hi → 4 buttons: Withdrawal Issue, Joining Issue, Product Store, Nearest Store<br><a href="https://wa.me/918309091326?text=Hi%20Support%20FL597130" target="_blank"><button class="btn btn-green" style="margin-top:8px">Chat on WhatsApp 8309091326</button></a></div></div>
+<div id="p-loans" style="display:none"><h2>Loans - 16 Levels</h2><div class="card"><div class="info">Remaining Logic: Loan1:1 pair, Loan2:4 total Remaining 3 (4-1), Loan3:12 total Remaining 8 (12-4), etc. Full amount withdrawable.</div><div id="loansG" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px"></div></div></div>
+<div id="p-rewards" style="display:none"><h2>Rewards - 13 Rewards</h2><div id="rewardsG" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div></div>
+<div id="p-downline" style="display:none"><h2>Downline - Binary Tree</h2><div class="card">YOU - FL597130<br>LEFT Open | RIGHT Open<br>Matching History: Date, Left Tokens, Right Tokens, Pairs, Carry L/R, Income</div></div>
+<div id="p-kit" style="display:none"><h2>Sample Kit - Send Kit</h2><div class="card">Kit 1: Alkaline Jar Sample Kit Rs.1000 Stock 50<br>Kit 2: Business Starter Kit Rs.2500 Stock 30<br>Kit 3: Premium Kit Rs.5000 Stock 20<br><button class="btn btn-blue" style="margin-top:8px">Buy Kit - Store Pickup / Courier / Pin Point</button></div></div>
 </div>
-<input type="hidden" id="side" value="left" />
-<div id="tokenBox" style="display:none">
-<input id="tokenInput" placeholder="Token Code FLTKN1001" style="border:2px solid #2e7d32;background:#f1f8e9" />
-</div>
-<button id="mainBtn" class="btn">💸 Rs.2000 Pay & Join</button>
-<div id="success" class="success"></div>
-<div id="error" class="error"></div>
-<div style="text-align:center;margin-top:12px"><a href="?admin=1" style="font-size:11px;color:#64748b">🔐 Admin Login</a></div>
-</div>
-
-<div id="qrModal" class="modal">
-<div class="modal-box">
-<h3 style="margin:0;color:#1a237e">Scan & Pay Rs.2000</h3>
-<div class="qr-wrap"><img id="qrImg" src="" /></div>
-<div style="font-weight:bold;font-size:12px;background:#eef2ff;padding:8px;border-radius:8px">helpswtechnologies@ptyes</div>
-<a id="upiLink" href="#" style="display:inline-block;margin-top:8px;background:#eef2ff;padding:8px 14px;border-radius:20px;text-decoration:none;font-size:12px">📱 UPI App Open</a>
-<div class="warning">Pay chesaka UTR enter cheyali!</div>
-<button id="paidBtn" class="btn" style="background:#2e7d32;margin-top:8px">✅ I Paid - Enter UTR</button>
-<button id="cancelBtn" class="btn" style="background:#fff;color:#1a237e;border:2px solid #1a237e">Cancel</button>
-</div>
-</div>
-
-<div id="utrModal" class="modal">
-<div class="modal-box">
-<h3 style="margin:0;color:#e65100">🔒 Payment Verification</h3>
-<input id="utrInput" placeholder="UTR / Transaction ID *" style="border:2px solid #e65100" />
-<input id="utrAmount" placeholder="Amount - 2000" value="2000" type="number" />
-<div class="warning">Fake UTR veste BLOCK!</div>
-<button id="submitUtrBtn" class="btn" style="background:#e65100">🔒 Submit for Verification</button>
-<button id="backQrBtn" class="btn" style="background:#fff;color:#666;border:1px solid #ddd">← Back</button>
-</div>
-</div>
-</div>
-
-<!-- ADMIN SITE - Hidden by default, shows when ?admin -->
-<div id="adminSite" style="display:none">
-<div style="max-width:1100px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center">
-<h2 style="margin:0;color:#fff">💰 FLM Admin Panel</h2>
-<div><a href="?" style="background:#334155;color:#fff;padding:8px 14px;border-radius:10px;text-decoration:none;font-size:12px">← User Site</a> <button class="btn" style="width:auto;padding:8px 16px;background:#dc2626" onclick="adminLogout()">Logout</button></div>
-</div>
-<div id="adminLogin" class="card" style="max-width:400px;text-align:center">
-<h3>🔐 Admin Login</h3>
-<input id="adminPass" type="password" placeholder="Password - 8309091326" />
-<button class="btn" style="background:#2563eb" onclick="adminLogin()">Login</button>
-<p id="adminLoginError" style="color:#f87171;display:none"></p>
-</div>
-<div id="adminDashboard" class="admin-card" style="display:none">
-<div class="stat">
-<div class="stat-box"><b id="totalUsers">-</b><span style="font-size:11px;color:#94a3b8">Total Users</span></div>
-<div class="stat-box"><b id="pendingCount" style="color:#f59e0b">-</b><span style="font-size:11px;color:#94a3b8">Pending</span></div>
-<div class="stat-box"><b id="activeTokens">-</b><span style="font-size:11px;color:#94a3b8">Active Tokens</span></div>
-<div class="stat-box"><b id="usedTokens">-</b><span style="font-size:11px;color:#94a3b8">Used Tokens</span></div>
-</div>
-<div class="admin-tabs">
-<div class="admin-tab active" id="aTabPending" onclick="aSwitchTab('pending')">⏳ Pending</div>
-<div class="admin-tab" id="aTabUsers" onclick="aSwitchTab('users')">👥 Users</div>
-<div class="admin-tab" id="aTabTokens" onclick="aSwitchTab('tokens')">🎟️ Tokens</div>
-</div>
-<input id="searchInput" class="search" placeholder="Search mobile, FL ID, UTR..." onkeyup="filterTable()" />
-<div class="table-wrap">
-<table><thead id="tableHead"></thead><tbody id="tableBody"><tr><td>Loading...</td></tr></tbody></table>
-</div>
-</div>
-</div>
-
 <script>
-const SUPABASE_URL = "https://izmkjarrksemenjzboid.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo";
-const CLIENT_UPI_ID = "helpswtechnologies@ptyes";
-const ADMIN_WA = "918309091326";
-const ADMIN_PASS = "8309091326";
-
-// Check if admin mode
-const urlParams = new URLSearchParams(window.location.search);
-if(urlParams.has('admin')){
-  document.getElementById('userSite').style.display='none';
-  document.getElementById('adminSite').style.display='block';
-  document.getElementById('body').className='admin-body';
-  document.getElementById('body').style.background='#0f172a';
-  if(localStorage.getItem('flm_admin')){ document.getElementById('adminLogin').style.display='none'; document.getElementById('adminDashboard').style.display='block'; loadDashboard(); }
-}
-
-let currentTab='pay', pending=null, selectedSide='left';
-function selectSide(side){ selectedSide=side; document.getElementById('side').value=side; document.getElementById('sideLeft').classList.toggle('active', side==='left'); document.getElementById('sideRight').classList.toggle('active', side==='right'); }
-function switchTab(t){ currentTab=t; document.getElementById('tabPay').classList.toggle('active',t==='pay'); document.getElementById('tabToken').classList.toggle('active',t==='token'); document.getElementById('tokenBox').style.display=t==='token'?'block':'none'; const b=document.getElementById('mainBtn'); b.textContent=t==='token'?'🎟️ Token tho Register':'💸 Rs.2000 Pay & Join'; b.style.background=t==='token'?'#2e7d32':'#1a237e'; }
-function showError(m){ document.getElementById('error').textContent=m; document.getElementById('error').style.display='block'; document.getElementById('success').style.display='none'; }
-function showSuccess(h){ document.getElementById('success').innerHTML=h; document.getElementById('success').style.display='block'; document.getElementById('error').style.display='none'; }
-
-document.getElementById('mainBtn').addEventListener('click', async ()=>{
-  const name=document.getElementById('name').value.trim();
-  const mobile=document.getElementById('mobile').value.trim();
-  const password=document.getElementById('password').value.trim();
-  const sponsor=document.getElementById('sponsor').value.trim()||"FL000001";
-  const side=document.getElementById('side').value;
-  const tokenCode=document.getElementById('tokenInput').value.trim();
-  if(!name||!mobile||!password){ showError("Name, Mobile, Password required!"); return; }
-  if(!/^[6-9]\d{9}$/.test(mobile)){ showError("Valid 10 digit mobile!"); return; }
-  pending={name,mobile,password,sponsor,side,tokenCode};
-  if(currentTab==='token'){
-    if(!tokenCode){ showError("Token enter chey!"); return; }
-    await doRegister(true, null);
-  } else {
-    const upiStr=`upi://pay?pa=${CLIENT_UPI_ID}&pn=Freedom%20Loan%20Mart&am=2000&cu=INR&tn=FL_${mobile}`;
-    document.getElementById('qrImg').src=`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiStr)}`;
-    document.getElementById('upiLink').href=upiStr;
-    document.getElementById('qrModal').classList.add('show');
-  }
-});
-document.getElementById('cancelBtn').onclick=()=>document.getElementById('qrModal').classList.remove('show');
-document.getElementById('paidBtn').onclick=()=>{ document.getElementById('qrModal').classList.remove('show'); document.getElementById('utrModal').classList.add('show'); };
-document.getElementById('backQrBtn').onclick=()=>{ document.getElementById('utrModal').classList.remove('show'); document.getElementById('qrModal').classList.add('show'); };
-document.getElementById('submitUtrBtn').addEventListener('click', async ()=>{
-  const utr=document.getElementById('utrInput').value.trim();
-  const amt=document.getElementById('utrAmount').value.trim();
-  if(!utr || utr.length<6){ showError("UTR enter chey!"); return; }
-  if(!amt || parseInt(amt)<2000){ showError("Amount 2000!"); return; }
-  document.getElementById('utrModal').classList.remove('show');
-  await doRegister(false, {utr:utr, amount:amt});
-});
-
-async function doRegister(isToken, payInfo){
-  const btn=document.getElementById('mainBtn');
-  btn.textContent="⏳ Saving..."; btn.disabled=true;
-  try{
-    if(isToken){
-      const cr=await fetch(`${SUPABASE_URL}/rest/v1/tokens?token_code=eq.${pending.tokenCode}&select=*`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}});
-      const txt=await cr.text();
-      if(!cr.ok) throw new Error("Token check fail: "+txt);
-      const arr=JSON.parse(txt);
-      if(arr.length===0) throw new Error("Invalid Token!");
-      if(arr[0].status==='used') throw new Error("Token already used!");
-    }
-    const fl_id="FL"+Math.floor(100000+Math.random()*900000);
-    const payload={fl_id: fl_id, name: pending.name, mobile: pending.mobile, password: pending.password, sponsor_id: pending.sponsor, side: pending.side};
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/users`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Prefer":"return=representation"},body:JSON.stringify(payload)});
-    const resTxt=await res.text();
-    if(!res.ok){ if(resTxt.includes("duplicate")) throw new Error("Mobile already registered!"); throw new Error(resTxt); }
-    if(isToken){
-      await fetch(`${SUPABASE_URL}/rest/v1/tokens?token_code=eq.${pending.tokenCode}`,{method:"PATCH",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({status:"used"})});
-      const waLink=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`✅ TOKEN: FL ID:${fl_id} Mobile:${pending.mobile} Token:${pending.tokenCode} Side:${pending.side}`)}`;
-      showSuccess(`✅ ACTIVE! FL ID: <b>${fl_id}</b><br/>Side: <b>${pending.side.toUpperCase()}</b><br/><br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:20px;text-decoration:none">📱 WhatsApp Admin</a>`);
-    } else {
-      const pendingToken="PENDING_"+fl_id+"_"+payInfo.utr;
-      await fetch(`${SUPABASE_URL}/rest/v1/tokens`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({token_code:pendingToken, status:"pending_verification", fl_id:fl_id, mobile:pending.mobile})});
-      const waText=`🔶 PAYMENT VERIFY:\nFL:${fl_id}\nName:${pending.name}\nMobile:${pending.mobile}\nSide:${pending.side}\nUTR:${payInfo.utr}\nAmt:${payInfo.amount}`;
-      const waLink=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(waText)}`;
-      showSuccess(`⏳ PENDING! FL ID: <b>${fl_id}</b><br/>Side: ${pending.side.toUpperCase()}<br/>UTR: ${payInfo.utr}<br/>Admin 2h lo verify chestadu!<br/><br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:30px;text-decoration:none;font-weight:bold">📱 Send UTR to Admin</a>`);
-    }
-    btn.textContent="✅ Done"; btn.disabled=true;
-  }catch(e){ showError("Error: "+e.message); } finally { if(btn.textContent.includes("Saving")){ btn.textContent=currentTab==='token'?'🎟️ Token tho Register':'💸 Rs.2000 Pay & Join'; btn.disabled=false; } }
-}
-
-// ADMIN FUNCTIONS
-function adminLogin(){
-  const p=document.getElementById('adminPass').value;
-  if(p===ADMIN_PASS || p==="admin123" || p==="flm123"){
-    localStorage.setItem('flm_admin','1');
-    document.getElementById('adminLogin').style.display='none';
-    document.getElementById('adminDashboard').style.display='block';
-    loadDashboard();
-  } else {
-    document.getElementById('adminLoginError').textContent='Wrong password! 8309091326';
-    document.getElementById('adminLoginError').style.display='block';
-  }
-}
-function adminLogout(){ localStorage.removeItem('flm_admin'); location.href='?'; }
-
-let allData={}, usersCache=[], aCurrentTab='pending';
-async function loadDashboard(){
-  try{
-    const [usersRes, tokensRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/users?select=*&order=created_at.desc`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}}),
-      fetch(`${SUPABASE_URL}/rest/v1/tokens?select=*&order=created_at.desc`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}})
-    ]);
-    const users = await usersRes.json();
-    const tokens = await tokensRes.json();
-    usersCache=users;
-    document.getElementById('totalUsers').textContent=users.length;
-    document.getElementById('pendingCount').textContent=tokens.filter(t=>t.status==='pending_verification').length;
-    document.getElementById('activeTokens').textContent=tokens.filter(t=>t.status==='active').length;
-    document.getElementById('usedTokens').textContent=tokens.filter(t=>t.status==='used').length;
-    allData={users, tokens};
-    aShowTab('pending');
-  }catch(e){ alert("Load error: "+e.message); }
-}
-function aSwitchTab(tab){
-  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('aTab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
-  aCurrentTab=tab;
-  aShowTab(tab);
-}
-function aShowTab(tab){
-  const head=document.getElementById('tableHead');
-  const body=document.getElementById('tableBody');
-  let rows=[];
-  if(tab==='pending'){
-    head.innerHTML=`<tr><th>Date</th><th>FL ID</th><th>Name/Mobile</th><th>UTR</th><th>Sponsor/Side</th><th>Action</th></tr>`;
-    const pending = allData.tokens.filter(t=>t.status==='pending_verification');
-    if(pending.length===0){ body.innerHTML=`<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px">✅ No pending payments!</td></tr>`; return; }
-    pending.forEach(t=>{
-      const user = usersCache.find(u=>u.fl_id===t.fl_id || u.mobile===t.mobile);
-      const utr = t.token_code.replace('PENDING_','').split('_').pop();
-      const fl_id = t.fl_id;
-      rows.push(`<tr>
-        <td>${new Date(t.created_at||Date.now()).toLocaleDateString()}</td>
-        <td><b>${fl_id||'-'}</b></td>
-        <td>${user?.name||'-'}<br><span style="color:#94a3b8">${t.mobile||user?.mobile||'-'}</span></td>
-        <td><span style="background:#334155;padding:4px 8px;border-radius:6px;font-size:11px">${utr}</span></td>
-        <td>${user?.sponsor_id||'-'}<br>${user?.side||''}</td>
-        <td><button class="btn" style="padding:6px 12px;width:auto;font-size:11px;background:#16a34a" onclick="approveToken('${t.token_code}','${fl_id}')">✅ Approve</button><br><button class="btn" style="padding:6px 12px;width:auto;font-size:11px;background:#dc2626;margin-top:4px" onclick="rejectToken('${t.token_code}','${fl_id}')">❌ Reject</button></td>
-      </tr>`);
-    });
-  } else if(tab==='users'){
-    head.innerHTML=`<tr><th>Date</th><th>FL ID</th><th>Name</th><th>Mobile</th><th>Side/Sponsor</th><th>Password</th></tr>`;
-    allData.users.forEach(u=>{
-      rows.push(`<tr><td>${u.created_at?new Date(u.created_at).toLocaleDateString():'-'}</td><td><b>${u.fl_id}</b></td><td>${u.name}</td><td>${u.mobile}</td><td>${u.side||'-'} / ${u.sponsor_id||'-'}</td><td style="color:#94a3b8">${u.password||'-'}</td></tr>`);
-    });
-  } else {
-    head.innerHTML=`<tr><th>Date</th><th>Token</th><th>FL ID</th><th>Mobile</th><th>Status</th><th>Action</th></tr>`;
-    allData.tokens.forEach(t=>{
-      let badge=`<span class="badge badge-${t.status==='active'?'active':t.status==='pending_verification'?'pending':t.status==='used'?'used':'rejected'}">${t.status}</span>`;
-      rows.push(`<tr><td>${t.created_at?new Date(t.created_at).toLocaleDateString():'-'}</td><td style="font-family:monospace;font-size:10px">${t.token_code.substring(0,25)}</td><td>${t.fl_id||'-'}</td><td>${t.mobile||'-'}</td><td>${badge}</td><td>${t.status==='pending_verification'?`<button class="btn" style="padding:4px 8px;width:auto;font-size:10px;background:#16a34a" onclick="approveToken('${t.token_code}','${t.fl_id}')">Approve</button>`:''}</td></tr>`);
-    });
-  }
-  body.innerHTML=rows.join('')||`<tr><td colspan="6">No data</td></tr>`;
-}
-function filterTable(){
-  const q=document.getElementById('searchInput').value.toLowerCase();
-  document.querySelectorAll('#tableBody tr').forEach(tr=>{ tr.style.display=tr.textContent.toLowerCase().includes(q)?'':'none'; });
-}
-async function approveToken(tokenCode, flId){
-  if(!confirm(`Approve ${flId} ? Payment verified?`)) return;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/tokens?token_code=eq.${encodeURIComponent(tokenCode)}`,{method:"PATCH",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({status:"active"})});
-    if(!res.ok){ const t=await res.text(); throw new Error(t); }
-    alert(`✅ Approved ${flId}!`);
-    const newTok="FLTKN"+Math.floor(100000+Math.random()*900000);
-    await fetch(`${SUPABASE_URL}/rest/v1/tokens`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({token_code:newTok, status:"active", fl_id:flId})});
-    loadDashboard();
-  }catch(e){ alert("Error: "+e.message); }
-}
-async function rejectToken(tokenCode, flId){
-  if(!confirm(`Reject ${flId} ?`)) return;
-  try{
-    await fetch(`${SUPABASE_URL}/rest/v1/tokens?token_code=eq.${encodeURIComponent(tokenCode)}`,{method:"PATCH",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({status:"rejected"})});
-    if(confirm(`Delete user ${flId} also?`)){
-      await fetch(`${SUPABASE_URL}/rest/v1/users?fl_id=eq.${flId}`,{method:"DELETE",headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}});
-    }
-    alert(`❌ Rejected ${flId}`);
-    loadDashboard();
-  }catch(e){ alert("Error: "+e.message); }
-}
+function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';}
+function copyL(){navigator.clipboard.writeText(document.getElementById('leftLink').value);alert('Left link copied!');}
+function copyR(){navigator.clipboard.writeText(document.getElementById('rightLink').value);alert('Right link copied!');}
+function calcD(){let l=parseInt(document.getElementById('dl').value)||0;let r=parseInt(document.getElementById('dr').value)||0;let c=Math.min(l,r,25);let inc=c*200;let lc=l-c;let rc=r-c;document.getElementById('dRes').innerHTML=`Pairs Counted: ${c} (capped at 25)<br>Income: Rs.${inc} (25x200 max Rs.5000)<br>Left Carry: ${lc} | Right Carry: ${rc} → Next day`;}
+function calcL(){let p=parseInt(document.getElementById('pw').value)||0;let l=parseInt(document.getElementById('lw').value)||0;let a=parseInt(document.getElementById('ap').value)||0;let total=p+l;let req=total*0.2;let rem=req-a;if(rem<0)rem=0;document.getElementById('lRes').innerHTML=`Total Till Date: Rs.${total} (${p}+${l})<br>Required 20%: Rs.${req}<br>Already Purchased: Rs.${a}<br>Remaining: Rs.${rem} → Inka ${rem} ki konnali, appude next portal unlock, monthly rotation`;}
+function selA(amt){let ded=amt*0.2;let net=amt-ded;let rem=6200-amt;document.getElementById('wCalc').innerHTML=`Selected: Rs.${amt}<br>Deduction 20%: Rs.${ded}<br>Net to User: Rs.${net}<br>Remaining in Wallet: Rs.${rem}<br>Once per day only`;}
+function findS(){let pin=document.getElementById('sp').value;let stores=[{n:'KPHB Store',a:'KPHB Road, Hyderabad',m:'9876543210',d:'2.1KM'},{n:'Ameerpet Store',a:'Ameerpet, Hyderabad',m:'9123456780',d:'5.4KM'},{n:'Secunderabad Store',a:'Secunderabad',m:'9988776655',d:'8.9KM'}];document.getElementById('sRes').innerHTML=stores.map(s=>`<div style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px"><b>${s.n} - ${s.d}</b> - Within 25KM ✅<br>${s.a} - ${s.m} <button class="btn btn-blue" style="font-size:10px">Call</button> <button class="btn" style="background:#fff;border:1px solid #e2e8f0;font-size:10px">Map</button></div>`).join('');}
+const loans=[{no:1,amt:1000,pairs:1},{no:2,amt:2000,pairs:4},{no:3,amt:4000,pairs:12},{no:4,amt:8000,pairs:40},{no:5,amt:16000,pairs:80},{no:6,amt:30000,pairs:160},{no:7,amt:60000,pairs:320},{no:8,amt:120000,pairs:640},{no:9,amt:250000,pairs:1280},{no:10,amt:500000,pairs:2600},{no:11,amt:1000000,pairs:5500},{no:12,amt:2000000,pairs:11000},{no:13,amt:4000000,pairs:23000},{no:14,amt:8000000,pairs:46000},{no:15,amt:15000000,pairs:100000},{no:16,amt:30000000,pairs:200000}];
+let prev=0;document.getElementById('loansG').innerHTML=loans.map(l=>{let rem=l.pairs-prev;let h=`<div class="card" style="background:#1e293b;color:#fff"><div style="font-size:11px">Loan ${l.no} <span style="float:right;background:#334155;padding:2px 6px;border-radius:999px">Locked</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Total:${l.pairs} | Prev:${prev} | Rem:${rem} pairs</div><div style="font-size:9px;margin-top:4px">Full amount withdrawable</div></div>`;prev=l.pairs;return h;}).join('');
+const rewards=[{n:'Alkaline Jar',p:40},{n:'Goa tour',p:80},{n:'Bangkok tour',p:160},{n:'Malaysia Tour',p:320},{n:'Dubai Tour',p:640},{n:'Sri Lanka Cruise',p:1280},{n:'Car Fund 3L',p:2600},{n:'Gold 4L',p:5500},{n:'Europe Trip',p:11000},{n:'DTCP Plot',p:23000},{n:'20L Open Plot',p:46000},{n:'2BHK Flat',p:100000},{n:'Jaguar/Benz 1Cr',p:200000}];
+document.getElementById('rewardsG').innerHTML=rewards.map(r=>`<div class="card"><div style="height:80px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</div><b style="font-size:12px">${r.n}</b><div style="font-size:10px">${r.p} pairs - LOCKED</div></div>`).join('');
+calcD();calcL();
 </script>
 </body>
 </html>

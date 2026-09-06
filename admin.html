@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLM Admin Panel - Super Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+body{background:#f1f5f9}
+.sidebar{position:fixed;left:0;top:0;width:260px;height:100vh;background:#0f172a;color:#cbd5e1;overflow-y:auto}
+.sidebar .logo{padding:16px;border-bottom:1px solid #1e293b}
+.sidebar a{display:block;padding:9px 12px;margin:3px 10px;border-radius:8px;color:#94a3b8;text-decoration:none;font-size:12px;cursor:pointer}
+.sidebar a.active,.sidebar a:hover{background:#1e293b;color:#fff}
+.main{margin-left:260px;padding:16px}
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,0.06)}
+.btn{padding:6px 12px;border-radius:6px;border:0;font-weight:600;cursor:pointer;font-size:11px}
+.btn-blue{background:#2563eb;color:#fff}
+.input{width:100%;height:36px;border:1px solid #e2e8f0;border-radius:6px;padding:0 10px;font-size:12px}
+.badge{padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<div class="sidebar">
+<div class="logo"><div style="font-weight:800;color:#fff">FLM ADMIN</div><div style="font-size:9px;color:#f87171">SUPER ADMIN • FULL ACCESS</div></div>
+<a class="active" onclick="show('dash')">📊 Dashboard</a>
+<a onclick="show('admins')">👑 Admin Management</a>
+<a onclick="show('users')">👥 Users</a>
+<a onclick="show('wallets')">💼 Wallets (3)</a>
+<a onclick="show('daily')">📈 Daily Matching 25 Cap</a>
+<a onclick="show('stores')">🏪 Stores (25KM)</a>
+<a onclick="show('storeW')">💳 Store Withdrawals</a>
+<a onclick="show('loans')">💰 Loans</a>
+<a onclick="show('rewards')">🏆 Rewards</a>
+<a onclick="show('kits')">📦 Sample Kits</a>
+<a onclick="show('support')">💬 Support Tickets</a>
+<a onclick="show('settings')">⚙️ Settings</a>
+<a onclick="location.href='./login.html'" style="color:#f87171;margin-top:20px">Logout</a>
+</div>
+<div class="main">
+<div id="p-dash"><h2>Super Admin Dashboard</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px"><div class="card">Total Members<br><b>1,254</b></div><div class="card">Total Stores<br><b>12</b></div><div class="card">Pending Store Withdrawals<br><b>8</b> (200/500/1000/3000/5000 only, 20% deduction)</div><div class="card">Today Pairs (Max 25/user)<br><b>342 pairs = Rs.68,400</b></div></div></div>
+<div id="p-admins" style="display:none"><h2>Admin Management - Create Test Admin with Permissions</h2><div class="card"><b>Create New Admin (Test Admin)</b><div class="grid2" style="margin-top:8px"><input class="input" placeholder="Name" id="an"><input class="input" placeholder="Email" id="ae"><input class="input" placeholder="Mobile" id="am"><input class="input" placeholder="Password" id="apw" type="password"></div><div style="margin-top:8px"><b>Permissions:</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px"><label><input type="checkbox" checked> View Users</label><label><input type="checkbox" checked> Approve Store Withdrawals (200/500/1000/3000/5000 + 20%)</label><label><input type="checkbox" checked> Manage Sample Kits</label><label><input type="checkbox"> View Wallets</label><label><input type="checkbox"> Approve Normal Withdrawals</label><label><input type="checkbox"> Manage Stores</label><label><input type="checkbox"> Manage Loans</label><label><input type="checkbox"> Manage Rewards</label><label><input type="checkbox"> Manage Support Tickets</label><label><input type="checkbox"> View Reports</label></div></div><button class="btn btn-blue" style="margin-top:10px" onclick="createAdmin()">Create Test Admin & Activate</button><div style="font-size:10px;color:#64748b;margin-top:4px">Super Admin activates test admin, then that admin logs in to admin panel with given permissions only</div></div><div class="card"><b>Admin List</b><div style="font-size:11px;margin-top:6px"><div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr;gap:6px;background:#f8fafc;padding:6px;border-radius:6px"><span>Name/Email</span><span>Permissions</span><span>Status</span><span>Actions</span></div><div id="adminList" style="margin-top:6px"></div></div></div></div>
+<div id="p-kits" style="display:none"><h2>Sample Kits - Product Uploading</h2><div class="card"><b>Add New Kit</b><div class="grid2" style="margin-top:8px"><input class="input" placeholder="Kit Name e.g. Alkaline Jar Sample Kit"><input class="input" placeholder="Price e.g. 1000"><input class="input" placeholder="Products e.g. Alkaline Jar x1 + Brochure x2"><input class="input" placeholder="Stock e.g. 50"></div><button class="btn btn-blue" style="margin-top:8px">Upload Kit</button></div><div class="card"><b>Kit List</b><div style="font-size:11px">Kit 1: Alkaline Jar Sample Kit - Rs.1000 - Stock 50 - Active<br>Kit 2: Business Starter Kit - Rs.2500 - Stock 30<br>Kit 3: Premium Kit - Rs.5000 - Stock 20</div></div><div class="card"><b>Kit Orders (User Panel → Send Kit)</b><div style="font-size:11px">Order #K001 - FL597130 - Alkaline Jar Kit - Rs.1000 - Pending - Store: KPHB Store - Mark Shipped/Delivered</div></div></div>
+<div id="p-storeW" style="display:none"><h2>Store Withdrawals - 20% Deduction + Limited Amounts</h2><div class="card"><div style="font-size:11px">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction at store | Once per day | Remaining stays in wallet | Full loan amount withdrawable</div><div style="margin-top:8px;font-size:11px">FL597130 - Rs.5000 - Deduction 20% = Rs.1000 - Net Rs.4000 - Remaining Rs.1200 - Store: KPHB - Status: Pending - Approve/Reject</div></div></div>
+<div id="p-daily" style="display:none"><h2>Daily Matching - 25 Pairs Cap</h2><div class="card"><div style="font-size:11px"><b>Rule:</b> Max 25 pairs/day = Rs.5000 max per user. Ex: Left 27 + Right 30 joins today → Only 25 counted = Rs.5000. Carry: Left 2, Right 5 to next day. Previous members + new joins.</div><div style="margin-top:8px;font-size:11px">FL597130 - Date: 2026-09-06 - Left New:27 Right New:30 - Prev Left Carry:0 Prev Right Carry:0 - Counted:25 - Income:5000 - New Carry L:2 R:5</div></div></div>
+<div id="p-users" style="display:none"><h2>Users - Left/Right + Carry</h2><div class="card" style="font-size:11px">FL597130 - Left 25 Right 30 Total Pairs 85 Left Carry 2 Right Carry 5 Team 55 - Daily Today 25 pairs Rs.5000</div></div>
+<div id="p-wallets" style="display:none"><h2>Wallets - 3 Types</h2><div class="card" style="font-size:11px">ROI >=1000 Store Redeem<br>Matching >=5000 or 40:40 Store Withdrawal (20% deduction, 200/500/1000/3000/5000 only, once/day)<br>Loans Cumulative: Pair 400 + Loan 1000 = Total 1400 Required 20% = 280 Already 100 Remaining 180</div></div>
+<div id="p-stores" style="display:none"><h2>Stores - 25KM Radius</h2><div class="card">KPHB Store - 9876543210 - 500072 - Users in 25KM: 15 - Withdrawals: 12<br>Ameerpet Store - 9123456780 - 500016 - Users: 22<br>Secunderabad Store - 9988776655 - 500003 - Users: 18</div></div>
+<div id="p-loans" style="display:none"><h2>Loans - Remaining Logic</h2><div class="card" style="font-size:11px">Loan1:1 pair Total 1 Prev 0 Rem 1<br>Loan2:4 total Prev 1 Rem 3<br>Loan3:12 total Prev 4 Rem 8<br>... Loan16:200000 pairs - Full amount withdrawable</div></div>
+<div id="p-rewards" style="display:none"><h2>Rewards - After 80:80 Need 2 Referrals</h2><div class="card" style="font-size:11px">Alkaline Jar 40 pairs to Jaguar 1Cr 200000 pairs - After 80:80 need 2 new referrals or 2 plan renewals via referral link for next loan/reward</div></div>
+<div id="p-support" style="display:none"><h2>Support Tickets</h2><div class="card">Ticket #FL123 - FL597130 - Withdrawal Issue - Pending - 2 hours response</div></div>
+<div id="p-settings" style="display:none"><h2>Settings - Super Admin Only</h2><div class="card">Pair Value: Rs.200<br>Daily Cap: 25 pairs = Rs.5000<br>Store Radius: 25KM<br>Store Amounts: 200,500,1000,3000,5000<br>Store Deduction: 20%<br>After 80:80 Referrals: 2<br>Loan Purchase %: 20%<br>ROI Min: 1000<br>Matching Eligible: 5000 or 40:40<br>Once Per Day: True</div></div>
+</div>
+<script>
+function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';}
+let admins=[{name:'Test Admin1',email:'testadmin1@freedomloans.in',perms:'View Users, Approve Store Withdrawals, Manage Kits',status:'Active'},{name:'Test Admin2',email:'testadmin2@freedomloans.in',perms:'View Users, View Wallets, Support Tickets',status:'Active'}];
+function renderAdmins(){document.getElementById('adminList').innerHTML=admins.map(a=>`<div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr;gap:6px;padding:6px;border-bottom:1px solid #f1f5f9"><span>${a.name}<br><span style="color:#64748b">${a.email}</span></span><span>${a.perms}</span><span><span class="badge" style="background:#dcfce7;color:#166534">${a.status}</span></span><span><button class="btn" style="background:#f1f5f9">Edit</button></span></div>`).join('');}
+function createAdmin(){let n=document.getElementById('an').value||'Test Admin';let e=document.getElementById('ae').value||'test'+(admins.length+1)+'@freedomloans.in';admins.push({name:n,email:e,perms:'Custom Permissions',status:'Active'});renderAdmins();alert('Test Admin Created & Activated! Email: '+e+' / Password: test123 - This admin can now login to admin panel with given permissions');}
+renderAdmins();
+</script>
+</body>
+</html>
