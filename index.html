@@ -26,7 +26,6 @@ input,select{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10
 .upi-id{background:#eef2ff;padding:10px;border-radius:10px;font-weight:bold;margin:10px 0;color:#1a237e;word-break:break-all;font-size:12px}
 .btn-green{background:#2e7d32}
 .btn-outline{background:#fff;color:#1a237e;border:2px solid #1a237e}
-.wa-btn{display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:30px;text-decoration:none;font-weight:bold;margin-top:12px}
 </style>
 </head>
 <body>
@@ -35,8 +34,8 @@ input,select{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10
 <div class="sub">Joining Fee: Rs.2000 | Instant Token</div>
 
 <div class="info">
-✅ <b>Town Users ki Best</b><br>Rs.2000 pay cheste auto token, instant registration<br>
-<div style="margin-top:6px">UPI: <code id="topUpi">helpswtechnologies@ptyes</code></div>
+✅ <b>Fixed - Token + Pay Working</b><br>Rs.2000 pay cheste auto token, Token unte direct join<br>
+UPI: <code>helpswtechnologies@ptyes</code> | WA: 8309091326
 </div>
 
 <div class="tabs">
@@ -53,6 +52,7 @@ input,select{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10
 <div id="tokenBox" style="display:none">
 <input id="tokenInput" placeholder="Enter Your Token Code (FLTKN...)" style="border:2px solid #2e7d32;background:#f1f8e9" />
 <p style="font-size:11px;color:#2e7d32;margin:4px 0">Token unna vallu direct register - No payment!</p>
+<div style="font-size:10px;color:#666;background:#f5f5f5;padding:6px;border-radius:6px;margin-top:6px">Sample Tokens: FLTKN1001, FLTKN1002, FLTKN1003 - Supabase lo add chesa!</div>
 </div>
 
 <button id="mainBtn" class="btn">💸 Rs.2000 Pay & Join</button>
@@ -93,8 +93,6 @@ function switchTab(tab){
   document.getElementById('mainBtn').style.background = tab==='token' ? '#2e7d32' : '#1a237e';
   document.getElementById('error').style.display='none';
 }
-
-document.getElementById('topUpi').textContent = CLIENT_UPI_ID;
 
 const payBtn = document.getElementById('mainBtn');
 const qrModal = document.getElementById('qrModal');
@@ -143,7 +141,7 @@ async function registerWithToken(){
     });
     if(!checkRes.ok){ const t=await checkRes.text(); throw new Error("Token check failed: "+t); }
     const tokens = await checkRes.json();
-    if(tokens.length===0) throw new Error("Invalid Token! Token code thappu!");
+    if(tokens.length===0) throw new Error("Invalid Token! FLTKN1001, FLTKN1002, FLTKN1003 lanti sample tokens try chey!");
     const tokenObj = tokens[0];
     if(tokenObj.status === 'used'){ throw new Error("Token already used! Kottha token kavali!"); }
     await doRegistration(pendingData.tokenCode, true);
@@ -161,27 +159,28 @@ async function doRegistration(useTokenCode, isTokenFlow){
     const fl_id = "FL"+Math.floor(100000+Math.random()*900000);
     const token_code = useTokenCode || "FLTKN"+Math.floor(100000+Math.random()*900000);
     
+    // FIXED: full_name teesesanu - only name, mobile, password, sponsor_id, position, fl_id
     const resUser = await fetch(`${SUPABASE_URL}/rest/v1/users`,{
       method:"POST",
       headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`,"Prefer":"return=representation"},
-      body: JSON.stringify({fl_id:fl_id,full_name:pendingData.name,name:pendingData.name,mobile:pendingData.mobile,password:pendingData.password,sponsor_id:pendingData.sponsor,position:pendingData.position})
+      body: JSON.stringify({fl_id:fl_id, name:pendingData.name, mobile:pendingData.mobile, password:pendingData.password, sponsor_id:pendingData.sponsor, position:pendingData.position})
     });
     if(!resUser.ok){ const err=await resUser.text(); if(err.includes("Invalid API key")) throw new Error("Invalid API Key!"); if(err.includes("duplicate")||resUser.status===409) throw new Error("Mobile already registered!"); throw new Error(err); }
-    const userData = await resUser.json(); const userId = userData[0]?.id;
+    const userData = await resUser.json(); const userId = userData[0]?.id || userData[0]?.id;
 
     if(!isTokenFlow){
-      await fetch(`${SUPABASE_URL}/rest/v1/tokens`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({token_id:token_code,token_code:token_code,mobile:pendingData.mobile,fl_id:fl_id,status:"active"})});
+      await fetch(`${SUPABASE_URL}/rest/v1/tokens`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({token_id:token_code, token_code:token_code, mobile:pendingData.mobile, fl_id:fl_id, status:"active"})});
     } else {
       await fetch(`${SUPABASE_URL}/rest/v1/tokens?token_code=eq.${useTokenCode}`,{method:"PATCH",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({status:"used", used_by_fl_id:fl_id, used_by_mobile:pendingData.mobile})});
     }
 
-    await fetch(`${SUPABASE_URL}/rest/v1/wallets`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({mobile:pendingData.mobile,user_id:userId,balance:0,matching_wallet:0})});
-    await fetch(`${SUPABASE_URL}/rest/v1/deposits`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({mobile:pendingData.mobile,user_id:userId,amount:isTokenFlow?0:2000,status:isTokenFlow?"token":"paid",payment_mode:isTokenFlow?"TOKEN":"UPI"})});
+    await fetch(`${SUPABASE_URL}/rest/v1/wallets`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({mobile:pendingData.mobile, user_id:userId, balance:0})});
+    await fetch(`${SUPABASE_URL}/rest/v1/deposits`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},body:JSON.stringify({mobile:pendingData.mobile, user_id:userId, amount:isTokenFlow?0:2000, status:isTokenFlow?"token":"paid"})});
 
     const waText = `Hi Sir, Nenu register ayyanu. FL ID: ${fl_id}, Mobile: ${pendingData.mobile}, Token: ${token_code}, Sponsor: ${pendingData.sponsor} (${pendingData.position}), ${isTokenFlow?`Token Used: ${useTokenCode}`:`Rs.2000 Paid to ${CLIENT_UPI_ID}`}`;
     const waLink = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(waText)}`;
 
-    showSuccess(`✅ SUCCESS! Supabase lo save ayyindi!<br/>FL ID: <b>${fl_id}</b><br/>Mobile: ${pendingData.mobile}<br/>Token: ${token_code}<br/>${isTokenFlow?`Used Token: ${useTokenCode}`:`Paid Rs.2000 to ${CLIENT_UPI_ID}`}<br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:20px;text-decoration:none;margin-top:10px">📱 WhatsApp Open Chey</a><br/><div style="font-size:11px;margin-top:8px">Click cheste ${ADMIN_WHATSAPP_NUMBER} ki message velthundi</div>`);
+    showSuccess(`✅ SUCCESS! Supabase lo save ayyindi!<br/>FL ID: <b>${fl_id}</b><br/>Mobile: ${pendingData.mobile}<br/>Token: ${token_code}<br/>${isTokenFlow?`Used Token: ${useTokenCode}`:`Paid Rs.2000`}<br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:20px;text-decoration:none;margin-top:10px">📱 WhatsApp Open Chey</a><br/><div style="font-size:11px;margin-top:8px">Click cheste ${ADMIN_WHATSAPP_NUMBER} ki message velthundi</div>`);
     payBtn.textContent="✅ Registered"; payBtn.disabled=true;
   }catch(e){ showError("Error: "+e.message); } finally{ if(!payBtn.disabled){ payBtn.textContent = currentTab==='token' ? '🎟️ Token tho Register' : '💸 Rs.2000 Pay & Join'; payBtn.disabled=false; } paidBtn.textContent="✅ I Paid - Register Now"; paidBtn.disabled=false; }
 }
