@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freedom Loan Mart - Register</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+<div class="max-w-md mx-auto bg-white min-h-screen p-4">
+  <div class="text-center py-4">
+    <h1 class="text-2xl font-bold text-green-700">Freedom Loan Mart</h1>
+    <p class="text-xs text-gray-500">Town ki Easy - Rs.2000 tho Join</p>
+  </div>
+
+  <div class="flex gap-2 mb-4">
+    <button id="btn-deposit" onclick="setType('deposit')" class="flex-1 py-3 rounded-xl font-bold bg-green-600 text-white">💰 Rs.2000 Pay & Join</button>
+    <button id="btn-token" onclick="setType('token')" class="flex-1 py-3 rounded-xl font-bold bg-white border">🎟️ Token</button>
+  </div>
+
+  <div id="deposit-info" class="bg-green-50 p-3 rounded-xl mb-3 border border-green-200">
+    <p class="text-sm font-bold text-green-800">✅ Town Users ki Best</p>
+    <p class="text-xs text-green-700">Rs.2000 pay cheste auto token, instant registration</p>
+    <p class="text-xs mt-2 font-mono bg-white p-2 rounded">UPI ID: freedomloan@upi</p>
+  </div>
+
+  <div id="token-div" class="hidden">
+    <input id="tokenCode" placeholder="FLTKNxxxxxx" class="w-full border p-3 rounded-xl mb-3">
+  </div>
+
+  <input id="name" placeholder="Full Name" class="w-full border p-3 rounded-xl mb-3">
+  <input id="mobile" placeholder="Mobile (10 digits)" class="w-full border p-3 rounded-xl mb-3">
+  <input id="password" type="password" placeholder="Password" class="w-full border p-3 rounded-xl mb-3">
+  <input id="sponsor" value="FL000001" placeholder="Sponsor ID" class="w-full border p-3 rounded-xl mb-3">
+  
+  <div class="flex gap-4 mb-4">
+    <label><input type="radio" name="pos" value="left" checked> Left</label>
+    <label><input type="radio" name="pos" value="right"> Right</label>
+  </div>
+
+  <button onclick="register()" id="regBtn" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg">Pay Rs.2000 & Register</button>
+  
+  <div id="msg" class="mt-4 p-3 rounded-xl text-sm hidden"></div>
+
+  <div class="mt-6 p-3 bg-gray-100 rounded-xl text-xs">
+    <p><b>Mobile lo test:</b> Ee page ni direct ga open chesi register cheyochu. Supabase ki connect avthundi.</p>
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://izmkjarrksemenjzxboid.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+let joinType = 'deposit';
+
+function setType(t){
+  joinType = t;
+  document.getElementById('btn-deposit').className = t==='deposit' ? 'flex-1 py-3 rounded-xl font-bold bg-green-600 text-white' : 'flex-1 py-3 rounded-xl font-bold bg-white border';
+  document.getElementById('btn-token').className = t==='token' ? 'flex-1 py-3 rounded-xl font-bold bg-green-600 text-white' : 'flex-1 py-3 rounded-xl font-bold bg-white border';
+  document.getElementById('token-div').classList.toggle('hidden', t!=='token');
+  document.getElementById('deposit-info').classList.toggle('hidden', t!=='deposit');
+  document.getElementById('regBtn').innerText = t==='deposit' ? 'Pay Rs.2000 & Register' : 'Register with Token';
+}
+
+async function register(){
+  const btn = document.getElementById('regBtn');
+  const msg = document.getElementById('msg');
+  btn.innerText = 'Processing...'; btn.disabled = true;
+  try{
+    let tokenCode = document.getElementById('tokenCode').value;
+    if(joinType==='deposit'){
+      tokenCode = 'FLTKN' + Math.floor(100000+Math.random()*900000);
+      const {error: tokErr} = await supa.from('tokens').insert({token_code: tokenCode, generated_by: '98e205a0-fe4c-4125-97df-9c6e1545ac78', status: 'unused', token_price: 2000, payment_mode: 'deposit'});
+      if(tokErr) throw tokErr;
+    }
+    if(!tokenCode) throw new Error('Token missing');
+    
+    const {data: tokCheck} = await supa.from('tokens').select('*').eq('token_code', tokenCode).eq('status','unused').single();
+    if(!tokCheck) throw new Error('Token invalid or used');
+
+    const flId = 'FL' + Math.floor(100000+Math.random()*900000);
+    const {data: user, error} = await supa.from('users').insert({
+      fl_id: flId,
+      name: document.getElementById('name').value,
+      mobile: document.getElementById('mobile').value,
+      password: document.getElementById('password').value,
+      sponsor_id: document.getElementById('sponsor').value,
+      payment_type: joinType,
+      payment_status: 'completed',
+      deposit_amount: joinType==='deposit'?2000:0
+    }).select().single();
+    if(error) throw error;
+
+    await supa.from('tokens').update({status:'used', used_by: user.id}).eq('token_code', tokenCode);
+    await supa.from('wallets').insert({user_id: user.id, matching_wallet: 0});
+    if(joinType==='deposit'){
+      await supa.from('deposits').insert({user_id: user.id, amount: 2000, payment_mode: 'UPI', status: 'completed'});
+    }
+
+    msg.classList.remove('hidden');
+    msg.className = 'mt-4 p-3 rounded-xl text-sm bg-green-100 text-green-800';
+    msg.innerHTML = `✅ SUCCESS!<br>Your FL ID: <b>${flId}</b><br>Mobile: ${user.mobile}<br>Token: ${tokenCode}<br><br>Login cheyochu!`;
+  }catch(e){
+    msg.classList.remove('hidden');
+    msg.className = 'mt-4 p-3 rounded-xl text-sm bg-red-100 text-red-800';
+    msg.innerText = '❌ Error: ' + e.message;
+  }
+  btn.innerText = joinType==='deposit' ? 'Pay Rs.2000 & Register' : 'Register with Token'; btn.disabled = false;
+}
+</script>
+</body>
+</html>
