@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Freedom Loan Mart - ULTRA MINIMAL FIX</title>
+<title>Freedom Loan Mart - Secure Pay</title>
 <style>
 *{box-sizing:border-box;font-family:system-ui,Arial}body{margin:0;background:#f5f7fb;padding:12px}
 .card{max-width:440px;margin:10px auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-h2{text-align:center;color:#1a237e;margin:0 0 4px} .sub{text-align:center;color:#666;font-size:13px;margin-bottom:12px}
+h2{text-align:center;color:#1a237e;margin:0 0 4px}
 .tabs{display:flex;gap:8px;margin:14px 0}
 .tab{flex:1;padding:12px;border-radius:12px;border:2px solid #e0e0e0;background:#fff;text-align:center;font-weight:bold;cursor:pointer;font-size:12px}
 .tab.active{background:#1a237e;color:#fff;border-color:#1a237e}
@@ -14,53 +14,72 @@ h2{text-align:center;color:#1a237e;margin:0 0 4px} .sub{text-align:center;color:
 input{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;margin:7px 0;font-size:15px}
 .btn{width:100%;padding:14px;border:0;border-radius:12px;background:#1a237e;color:#fff;font-weight:bold;font-size:16px;cursor:pointer;margin-top:12px}
 .btn:disabled{opacity:.5}
-.success{background:#e8f5e9;color:#1b5e20;padding:16px;border-radius:12px;margin-top:14px;display:none;line-height:1.6;font-size:14px;word-break:break-word}
+.success{background:#e8f5e9;color:#1b5e20;padding:16px;border-radius:12px;margin-top:14px;display:none;line-height:1.5;font-size:14px;word-break:break-word}
 .error{background:#fbe9e7;color:#c62828;padding:12px;border-radius:10px;margin-top:10px;display:none;font-size:12px;word-break:break-all}
 .info{background:#e8f5e9;border:1px solid #a5d6a7;padding:10px;border-radius:10px;font-size:11px;color:#2e7d32;margin-bottom:12px}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;padding:20px}
 .modal.show{display:flex}
-.modal-box{background:#fff;border-radius:20px;max-width:360px;width:100%;padding:24px;text-align:center}
-.qr-wrap{background:#fff;padding:12px;border:2px dashed #1a237e;border-radius:16px;margin:16px auto;width:fit-content}
+.modal-box{background:#fff;border-radius:20px;max-width:380px;width:100%;padding:24px;text-align:center;animation:pop .2s}
+@keyframes pop{from{transform:scale(.9)}to{transform:scale(1)}}
+.qr-wrap{background:#fff;padding:12px;border:2px dashed #1a237e;border-radius:16px;margin:12px auto;width:fit-content}
 .qr-wrap img{width:240px;height:240px;display:block}
+.warning{background:#fff3e0;border:1px solid #ffcc80;padding:10px;border-radius:10px;font-size:12px;color:#e65100;margin:10px 0}
 </style>
 </head>
 <body>
 <div class="card">
 <h2>💰 Freedom Loan Mart</h2>
-<div class="sub">MINIMAL FIX - 4 Columns Only</div>
+<div style="text-align:center;color:#666;font-size:12px;margin-bottom:10px">Joining Fee: Rs.2000 | Secure Payment</div>
 <div class="info">
-✅ This version uses ONLY: fl_id, name, mobile, password, sponsor_id<br>
-UPI: helpswtechnologies@ptyes | WA: 918309091326<br>
-Tokens: FLTKN1001-1005 ✅ Ready
+✅ Token unte instant active | Pay cheste admin verification tarvata active<br>
+UPI: <code>helpswtechnologies@ptyes</code> | WA: 918309091326
 </div>
 <div class="tabs">
-<div id="tabPay" class="tab active" onclick="switchTab('pay')">💸 Pay & Join</div>
+<div id="tabPay" class="tab active" onclick="switchTab('pay')">💸 Rs.2000 Pay & Join</div>
 <div id="tabToken" class="tab green" onclick="switchTab('token')">🎟️ Token</div>
 </div>
-
 <input id="name" placeholder="Full Name *" />
 <input id="mobile" placeholder="Mobile Number *" type="tel" maxlength="10" />
 <input id="password" placeholder="Password *" type="password" />
 <input id="sponsor" placeholder="Sponsor FL ID" value="FL000001" />
-
 <div id="tokenBox" style="display:none">
 <input id="tokenInput" placeholder="Token Code FLTKN1001" style="border:2px solid #2e7d32;background:#f1f8e9" />
 </div>
-
 <button id="mainBtn" class="btn">💸 Rs.2000 Pay & Join</button>
 <div id="success" class="success"></div>
 <div id="error" class="error"></div>
-<div id="debug" style="font-size:9px;color:#aaa;margin-top:8px;word-break:break-all"></div>
 </div>
 
+<!-- QR MODAL -->
 <div id="qrModal" class="modal">
 <div class="modal-box">
-<h3>Scan & Pay Rs.2000</h3>
+<h3 style="margin:0;color:#1a237e">Scan & Pay Rs.2000</h3>
+<p style="font-size:12px;color:#666">GPay/PhonePe/Paytm lo scan chey</p>
 <div class="qr-wrap"><img id="qrImg" src="" /></div>
-<div id="upiDisplay" style="font-weight:bold;font-size:12px"></div>
-<a id="upiLink" href="#" style="display:inline-block;background:#eef2ff;padding:10px 16px;border-radius:20px;text-decoration:none;font-size:12px">📱 Click to Pay</a>
-<button id="paidBtn" class="btn" style="background:#2e7d32;margin-top:12px">✅ I Paid - Register</button>
+<div style="font-weight:bold;font-size:12px;background:#eef2ff;padding:8px;border-radius:8px">helpswtechnologies@ptyes</div>
+<a id="upiLink" href="#" style="display:inline-block;margin-top:8px;background:#eef2ff;padding:8px 14px;border-radius:20px;text-decoration:none;font-size:12px">📱 UPI App Open Chey</a>
+<div class="warning">⚠️ Pay chesaka UTR / Transaction ID copy chesi kindha pettali!</div>
+<button id="paidBtn" class="btn" style="background:#2e7d32;margin-top:8px">✅ I Paid - Next</button>
 <button id="cancelBtn" class="btn" style="background:#fff;color:#1a237e;border:2px solid #1a237e">Cancel</button>
+</div>
+</div>
+
+<!-- UTR MODAL - NEW SECURE STEP -->
+<div id="utrModal" class="modal">
+<div class="modal-box">
+<h3 style="margin:0;color:#e65100">🔒 Payment Verification</h3>
+<p style="font-size:12px;color:#666;margin:8px 0">GPay/PhonePe lo payment history lo UTR Number untundi - 12 digits. Adi enter chey!</p>
+<div style="background:#fff3e0;padding:12px;border-radius:10px;text-align:left;font-size:11px;margin:10px 0">
+<b>UTR yela dorukuthundi?</b><br>
+1. GPay -> Activity -> Payment -> UPI Transaction ID<br>
+2. PhonePe -> History -> Transaction Details<br>
+3. 12 digit number copy chey
+</div>
+<input id="utrInput" placeholder="UTR / Transaction ID (12 digits) *" style="border:2px solid #e65100" />
+<input id="utrAmount" placeholder="Pay Chesina Amount - 2000" value="2000" type="number" />
+<div class="warning">⚠️ Fake UTR veste account block avthundi! Admin 2 hours lo verify chestadu!</div>
+<button id="submitUtrBtn" class="btn" style="background:#e65100">🔒 Submit for Verification</button>
+<button id="backQrBtn" class="btn" style="background:#fff;color:#666;border:1px solid #ddd">← Back</button>
 </div>
 </div>
 
@@ -86,46 +105,57 @@ document.getElementById('mainBtn').addEventListener('click', async ()=>{
   pending={name,mobile,password,sponsor,tokenCode};
 
   if(currentTab==='token'){
-    if(!tokenCode){ showError("Token enter chey FLTKN1001"); return; }
-    await doRegister(true);
+    if(!tokenCode){ showError("Token enter chey!"); return; }
+    await doRegister(true, null);
   } else {
     const upiStr=`upi://pay?pa=${CLIENT_UPI_ID}&pn=Freedom%20Loan%20Mart&am=2000&cu=INR&tn=FL_${mobile}`;
     document.getElementById('qrImg').src=`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiStr)}`;
-    document.getElementById('upiDisplay').textContent=CLIENT_UPI_ID;
     document.getElementById('upiLink').href=upiStr;
     document.getElementById('qrModal').classList.add('show');
   }
 });
 
 document.getElementById('cancelBtn').onclick=()=>document.getElementById('qrModal').classList.remove('show');
-document.getElementById('paidBtn').onclick=async()=>{ document.getElementById('qrModal').classList.remove('show'); await doRegister(false); };
+document.getElementById('paidBtn').onclick=()=>{
+  document.getElementById('qrModal').classList.remove('show');
+  document.getElementById('utrModal').classList.add('show');
+};
+document.getElementById('backQrBtn').onclick=()=>{
+  document.getElementById('utrModal').classList.remove('show');
+  document.getElementById('qrModal').classList.add('show');
+};
 
-async function doRegister(isToken){
+document.getElementById('submitUtrBtn').addEventListener('click', async ()=>{
+  const utr=document.getElementById('utrInput').value.trim();
+  const amt=document.getElementById('utrAmount').value.trim();
+  if(!utr || utr.length<6){ showError("UTR / Transaction ID enter chey! Minimum 6 characters!"); return; }
+  if(!amt || parseInt(amt)<2000){ showError("Amount Rs.2000 enter chey!"); return; }
+  document.getElementById('utrModal').classList.remove('show');
+  await doRegister(false, {utr:utr, amount:amt});
+});
+
+async function doRegister(isToken, payInfo){
   const btn=document.getElementById('mainBtn');
   btn.textContent="⏳ Saving..."; btn.disabled=true;
-  document.getElementById('debug').textContent="Checking token if needed...";
   try{
     if(isToken){
       const cr=await fetch(`${SUPABASE_URL}/rest/v1/tokens?token_code=eq.${pending.tokenCode}&select=*`,{headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`}});
       const txt=await cr.text();
-      document.getElementById('debug').textContent="Token check: "+txt.slice(0,150);
       if(!cr.ok) throw new Error("Token check fail: "+txt);
       const arr=JSON.parse(txt);
-      if(arr.length===0) throw new Error("Invalid Token! FLTKN1001 try chey!");
-      if(arr[0].status==='used') throw new Error("Token already used! FLTKN1002 try chey!");
+      if(arr.length===0) throw new Error("Invalid Token!");
+      if(arr[0].status==='used') throw new Error("Token already used!");
     }
 
     const fl_id="FL"+Math.floor(100000+Math.random()*900000);
     const payload={fl_id:fl_id, name:pending.name, mobile:pending.mobile, password:pending.password, sponsor_id:pending.sponsor};
-    document.getElementById('debug').textContent="Inserting: "+JSON.stringify(payload);
-
+    
     const res=await fetch(`${SUPABASE_URL}/rest/v1/users`,{
       method:"POST",
       headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`,"Prefer":"return=representation"},
       body:JSON.stringify(payload)
     });
     const resTxt=await res.text();
-    document.getElementById('debug').textContent="Users response: "+resTxt.slice(0,200);
     if(!res.ok){
       if(resTxt.includes("duplicate")) throw new Error("Mobile already registered!");
       throw new Error(resTxt);
@@ -137,19 +167,24 @@ async function doRegister(isToken){
         headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},
         body:JSON.stringify({status:"used"})
       });
+      const waLink=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`✅ TOKEN REGISTER: FL ID:${fl_id} Mobile:${pending.mobile} Token:${pending.tokenCode} Sponsor:${pending.sponsor}`)}`;
+      showSuccess(`✅ <b>ACTIVE!</b> Token tho instant active!<br/>FL ID: <b>${fl_id}</b><br/>Mobile: ${pending.mobile}<br/>Token: ${pending.tokenCode}<br/><br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:20px;text-decoration:none">📱 WhatsApp Admin</a>`);
     } else {
-      const newTok="FLTKN"+Math.floor(100000+Math.random()*900000);
+      // SAVE UTR INFO IN TOKEN TABLE AS PENDING VERIFICATION
+      const pendingToken="PENDING_"+fl_id+"_"+payInfo.utr;
       await fetch(`${SUPABASE_URL}/rest/v1/tokens`,{
         method:"POST",
         headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":`Bearer ${SUPABASE_ANON_KEY}`},
-        body:JSON.stringify({token_code:newTok, status:"active", fl_id:fl_id, mobile:pending.mobile})
+        body:JSON.stringify({token_code:pendingToken, status:"pending_verification", fl_id:fl_id, mobile:pending.mobile})
       });
+      
+      const waText=`🔶 NEW PAYMENT - VERIFICATION NEEDED:\nFL ID:${fl_id}\nName:${pending.name}\nMobile:${pending.mobile}\nSponsor:${pending.sponsor}\nUTR:${payInfo.utr}\nAmount:${payInfo.amount}\nUPI:${CLIENT_UPI_ID}\n\nPlease verify payment and activate!`;
+      const waLink=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(waText)}`;
+      
+      showSuccess(`⏳ <b>PENDING VERIFICATION!</b><br/>FL ID: <b>${fl_id}</b> (Temporary)<br/>Mobile: ${pending.mobile}<br/>UTR: ${payInfo.utr}<br/>Amount: Rs.${payInfo.amount}<br/><br/>⚠️ <b>Admin 2 hours lo payment verify chesi account ACTIVE chestadu!</b><br/>Fake payment chesthe account BLOCK avthundi!<br/><br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:12px 20px;border-radius:30px;text-decoration:none;font-weight:bold">📱 Send UTR to Admin ${ADMIN_WA}</a><br/><br/><div style="font-size:11px;background:#fff3e0;padding:8px;border-radius:8px;color:#e65100">WhatsApp lo payment screenshot kuda pampu!</div>`);
     }
-
-    const waLink=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`Hi, Registered FL ID:${fl_id} Mobile:${pending.mobile} ${isToken?`Token:${pending.tokenCode}`:`Paid Rs2000`}`)}`;
-    showSuccess(`✅ SUCCESS!<br/>FL ID: <b>${fl_id}</b><br/>Mobile: ${pending.mobile}<br/><a href="${waLink}" target="_blank" style="display:inline-block;background:#25D366;color:#fff;padding:10px 18px;border-radius:20px;text-decoration:none;margin-top:10px">📱 WhatsApp ${ADMIN_WA}</a>`);
-    btn.textContent="✅ Registered"; btn.disabled=true;
-  }catch(e){ showError("Error: "+e.message); document.getElementById('debug').textContent="ERROR: "+e.message; } finally { if(!btn.disabled || btn.textContent.includes("Saving")){ btn.textContent=currentTab==='token'?'🎟️ Token tho Register':'💸 Rs.2000 Pay & Join'; btn.disabled=false; } }
+    btn.textContent="✅ Done"; btn.disabled=true;
+  }catch(e){ showError("Error: "+e.message); } finally { if(btn.textContent.includes("Saving")){ btn.textContent=currentTab==='token'?'🎟️ Token tho Register':'💸 Rs.2000 Pay & Join'; btn.disabled=false; } }
 }
 </script>
 </body>
