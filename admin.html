@@ -44,7 +44,49 @@ body{background:#f1f5f9}
 </div>
 <div class="main">
 <div id="p-dash"><h2>Super Admin Dashboard</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px"><div class="card">Total Members<br><b>1,254</b></div><div class="card">Total Stores<br><b>12</b></div><div class="card">Pending Store Withdrawals<br><b>8</b> (200/500/1000/3000/5000 only, 20% deduction)</div><div class="card">Today Pairs (Max 25/user)<br><b>342 pairs = Rs.68,400</b></div></div></div>
-<div id="p-admins" style="display:none"><h2>Admin Management - Create Test Admin with Permissions</h2><div class="card"><b>Create New Admin (Test Admin)</b><div class="grid2" style="margin-top:8px"><input class="input" placeholder="Name" id="an"><input class="input" placeholder="Email" id="ae"><input class="input" placeholder="Mobile" id="am"><input class="input" placeholder="Password" id="apw" type="password"></div><div style="margin-top:8px"><b>Permissions:</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px"><label><input type="checkbox" checked> View Users</label><label><input type="checkbox" checked> Approve Store Withdrawals (200/500/1000/3000/5000 + 20%)</label><label><input type="checkbox" checked> Manage Sample Kits</label><label><input type="checkbox"> View Wallets</label><label><input type="checkbox"> Approve Normal Withdrawals</label><label><input type="checkbox"> Manage Stores</label><label><input type="checkbox"> Manage Loans</label><label><input type="checkbox"> Manage Rewards</label><label><input type="checkbox"> Manage Support Tickets</label><label><input type="checkbox"> View Reports</label></div></div><button class="btn btn-blue" style="margin-top:10px" onclick="createAdmin()">Create Test Admin & Activate</button><div style="font-size:10px;color:#64748b;margin-top:4px">Super Admin activates test admin, then that admin logs in to admin panel with given permissions only</div></div><div class="card"><b>Admin List</b><div style="font-size:11px;margin-top:6px"><div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr;gap:6px;background:#f8fafc;padding:6px;border-radius:6px"><span>Name/Email</span><span>Permissions</span><span>Status</span><span>Actions</span></div><div id="adminList" style="margin-top:6px"></div></div></div></div>
+<div id="p-admins" style="display:none"><h2>Admin Management - Super Admin + General Admin (Store) + Test Admin</h2>
+<div class="card" style="border-left:4px solid #f59e0b"><b>🔑 Create New Admin - General Admin for Store + Admin Panel</b>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+<input class="input" placeholder="Name" id="an">
+<input class="input" placeholder="Email" id="ae">
+<input class="input" placeholder="Mobile" id="am">
+<input class="input" placeholder="Password" id="apw" type="password">
+<select class="input" id="adminRole" onchange="changeRole()">
+<option value="test_admin">Test Admin</option>
+<option value="general_admin">General Admin (Store + Admin Panel) ⭐</option>
+<option value="normal_admin">Normal Admin</option>
+<option value="store_admin">Store Admin Only</option>
+</select>
+<select class="input" id="storeAssign" style="display:none">
+<option value="">Select Store</option>
+<option value="KPHB Store - 500072">KPHB Store - 500072 (15 users in 25KM)</option>
+<option value="Ameerpet Store - 500016">Ameerpet Store - 500016 (22 users)</option>
+<option value="Secunderabad Store - 500003">Secunderabad Store - 500003 (18 users)</option>
+<option value="All Stores">All Stores Access</option>
+</select>
+</div>
+<div style="margin-top:10px"><b>Permissions - Auto-selected for General Admin:</b>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:11px" id="permList">
+<label><input type="checkbox" checked id="p1"> View Users</label>
+<label><input type="checkbox" checked id="p2"> Approve Store Withdrawals (200/500/1000/3000/5000 + 20% + Once/day)</label>
+<label><input type="checkbox" checked id="p3"> Manage Sample Kits (Product Uploading)</label>
+<label><input type="checkbox" checked id="p4"> View Wallets (ROI 1000+, Matching 5000+ or 40:40)</label>
+<label><input type="checkbox" checked id="p5"> Approve Normal Withdrawals</label>
+<label><input type="checkbox" checked id="p6"> Manage Stores (25KM Radius)</label>
+<label><input type="checkbox" checked id="p7"> Manage ROI Redemptions</label>
+<label><input type="checkbox" checked id="p8"> Manage Loan 20% Purchase</label>
+<label><input type="checkbox" id="p9"> Manage Loans (16 Levels)</label>
+<label><input type="checkbox" id="p10"> Manage Rewards (13 Rewards)</label>
+<label><input type="checkbox" checked id="p11"> Manage Support Tickets (2 Hours Response)</label>
+<label><input type="checkbox" id="p12"> View Reports + Daily Matching 25 Cap</label>
+</div>
+</div>
+<button class="btn btn-blue" style="margin-top:12px;width:100%;height:40px" onclick="createAdmin()">✅ Create Admin & Activate - Can Login to Admin Panel + Store Panel</button>
+<div style="font-size:10px;color:#64748b;margin-top:6px;background:#fef3c7;padding:6px;border-radius:6px">
+<b>General Admin Logic:</b> Super Admin creates General Admin → Assign Store (KPHB/Ameerpet/Secunderabad) → General Admin can login to BOTH admin panel (with given permissions) + store panel (manage that store's withdrawals, ROI, loan purchases, kits, pickups). Test Admin = Only admin panel with limited permissions.
+</div>
+</div>
+<div class="card"><b>Admin List - All Roles</b><div style="font-size:11px;margin-top:6px"><div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;gap:6px;background:#f8fafc;padding:6px;border-radius:6px"><span>Name/Email</span><span>Role + Store</span><span>Permissions</span><span>Status</span><span>Actions</span></div><div id="adminList" style="margin-top:6px"></div></div></div></div>
 <div id="p-kits" style="display:none"><h2>Sample Kits - Product Uploading</h2><div class="card"><b>Add New Kit</b><div class="grid2" style="margin-top:8px"><input class="input" placeholder="Kit Name e.g. Alkaline Jar Sample Kit"><input class="input" placeholder="Price e.g. 1000"><input class="input" placeholder="Products e.g. Alkaline Jar x1 + Brochure x2"><input class="input" placeholder="Stock e.g. 50"></div><button class="btn btn-blue" style="margin-top:8px">Upload Kit</button></div><div class="card"><b>Kit List</b><div style="font-size:11px">Kit 1: Alkaline Jar Sample Kit - Rs.1000 - Stock 50 - Active<br>Kit 2: Business Starter Kit - Rs.2500 - Stock 30<br>Kit 3: Premium Kit - Rs.5000 - Stock 20</div></div><div class="card"><b>Kit Orders (User Panel → Send Kit)</b><div style="font-size:11px">Order #K001 - FL597130 - Alkaline Jar Kit - Rs.1000 - Pending - Store: KPHB Store - Mark Shipped/Delivered</div></div></div>
 <div id="p-storeW" style="display:none"><h2>Store Withdrawals - 20% Deduction + Limited Amounts</h2><div class="card"><div style="font-size:11px">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction at store | Once per day | Remaining stays in wallet | Full loan amount withdrawable</div><div style="margin-top:8px;font-size:11px">FL597130 - Rs.5000 - Deduction 20% = Rs.1000 - Net Rs.4000 - Remaining Rs.1200 - Store: KPHB - Status: Pending - Approve/Reject</div></div></div>
 <div id="p-daily" style="display:none"><h2>Daily Matching - 25 Pairs Cap</h2><div class="card"><div style="font-size:11px"><b>Rule:</b> Max 25 pairs/day = Rs.5000 max per user. Ex: Left 27 + Right 30 joins today → Only 25 counted = Rs.5000. Carry: Left 2, Right 5 to next day. Previous members + new joins.</div><div style="margin-top:8px;font-size:11px">FL597130 - Date: 2026-09-06 - Left New:27 Right New:30 - Prev Left Carry:0 Prev Right Carry:0 - Counted:25 - Income:5000 - New Carry L:2 R:5</div></div></div>
@@ -59,9 +101,16 @@ body{background:#f1f5f9}
 <script>
 function toggleMenu(){let sb=document.querySelector('.sidebar');let ov=document.getElementById('overlay');sb.classList.toggle('open');ov.style.display=sb.classList.contains('open')?'block':'none';}
 function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';if(window.innerWidth<=900)toggleMenu();}
-let admins=[{name:'Test Admin1',email:'testadmin1@freedomloans.in',perms:'View Users, Approve Store Withdrawals, Manage Kits',status:'Active'},{name:'Test Admin2',email:'testadmin2@freedomloans.in',perms:'View Users, View Wallets, Support Tickets',status:'Active'}];
-function renderAdmins(){document.getElementById('adminList').innerHTML=admins.map(a=>`<div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr;gap:6px;padding:6px;border-bottom:1px solid #f1f5f9"><span>${a.name}<br><span style="color:#64748b">${a.email}</span></span><span>${a.perms}</span><span><span class="badge" style="background:#dcfce7;color:#166534">${a.status}</span></span><span><button class="btn" style="background:#f1f5f9">Edit</button></span></div>`).join('');}
-function createAdmin(){let n=document.getElementById('an').value||'Test Admin';let e=document.getElementById('ae').value||'test'+(admins.length+1)+'@freedomloans.in';admins.push({name:n,email:e,perms:'Custom Permissions',status:'Active'});renderAdmins();alert('Test Admin Created & Activated! Email: '+e+' / Password: test123 - This admin can now login to admin panel with given permissions');}
+let admins=[
+{name:'Test Admin1',email:'testadmin1@freedomloans.in',role:'Test Admin',store:'-',perms:'View Users, Approve Store Withdrawals, Manage Kits',status:'Active'},
+{name:'General Admin - KPHB',email:'general.kphb@freedomloans.in',role:'General Admin ⭐',store:'KPHB Store - 500072',perms:'All Store + Admin (Withdrawals, ROI, Loans, Kits, Support)',status:'Active'},
+{name:'Store Admin - Ameerpet',email:'store.ameerpet@freedomloans.in',role:'Store Admin',store:'Ameerpet Store - 500016',perms:'Store Withdrawals, ROI, Loan Purchase, Kits',status:'Active'}
+];
+function changeRole(){let role=document.getElementById('adminRole').value;let storeSel=document.getElementById('storeAssign');if(role==='general_admin' || role==='store_admin'){storeSel.style.display='block';}else{storeSel.style.display='none';}
+if(role==='general_admin'){document.getElementById('p1').checked=true;document.getElementById('p2').checked=true;document.getElementById('p3').checked=true;document.getElementById('p4').checked=true;document.getElementById('p5').checked=true;document.getElementById('p6').checked=true;document.getElementById('p7').checked=true;document.getElementById('p8').checked=true;document.getElementById('p11').checked=true;}
+}
+function renderAdmins(){document.getElementById('adminList').innerHTML=admins.map(a=>`<div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;gap:6px;padding:6px;border-bottom:1px solid #f1f5f9;font-size:11px"><span><b>${a.name}</b><br><span style="color:#64748b">${a.email}</span></span><span><span style="background:${a.role.includes('General')?'#f59e0b':'#e0e7ff'};color:${a.role.includes('General')?'#000':'#3730a3'};padding:2px 6px;border-radius:999px;font-size:9px">${a.role}</span><br><span style="font-size:9px">${a.store}</span></span><span style="font-size:10px">${a.perms}</span><span><span class="badge" style="background:#dcfce7;color:#166534">${a.status}</span></span><span><button class="btn" style="background:#f1f5f9">Edit</button> <button class="btn" style="background:#fef3c7">Login As</button></span></div>`).join('');}
+function createAdmin(){let n=document.getElementById('an').value||'General Admin';let e=document.getElementById('ae').value||'general'+(admins.length+1)+'@freedomloans.in';let role=document.getElementById('adminRole').value;let store=document.getElementById('storeAssign').value||'-';let roleText=role==='general_admin'?'General Admin ⭐':role==='store_admin'?'Store Admin':role==='test_admin'?'Test Admin':'Normal Admin';admins.push({name:n,email:e,role:roleText,store:store,perms:'Custom Permissions - '+store,status:'Active'});renderAdmins();if(role==='general_admin'){alert('✅ General Admin Created & Activated!\nEmail: '+e+'\nPassword: test123\nStore: '+store+'\n\nThis admin can now login to:\n1. Admin Panel (admin.html) - With given permissions\n2. Store Panel (store.html) - Manage that store\n\nPermissions: Store Withdrawals (200/500/1000/3000/5000 + 20% deduction + Once/day), ROI Redeem (1000+), Loan 20% Purchase, Kits, Pickups, Support');}else{alert('Admin Created & Activated! Email: '+e+' / Password: test123 - Can login to admin panel with given permissions');}}
 renderAdmins();
 </script>
 </body>
