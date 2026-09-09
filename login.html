@@ -172,16 +172,26 @@ function demoLogin(id,pass){
 document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;
 setTimeout(()=>{document.getElementById('loginBtn').click();},200);
 }
-document.getElementById('loginBtn').addEventListener('click',()=>{
+document.getElementById('loginBtn').addEventListener('click',async ()=>{
 const id=document.getElementById('loginId').value.trim();const pass=document.getElementById('loginPass').value.trim();
 const err=document.getElementById('err');if(!id||!pass){err.style.display='block';err.innerText='Enter ID and Password';return;}err.style.display='none';
-const user={flId:id.toUpperCase(),name:id.includes('100001')?'Admin':id.includes('973530')?'Theja':'User',mobile:id};
-localStorage.setItem('flm_session',JSON.stringify(user));
-document.getElementById('loginWrap').style.display='none';document.getElementById('dashView').style.display='block';
-document.getElementById('dashUserName').innerText=user.name;document.getElementById('dashFlId').innerText=user.flId;
-document.getElementById('memberName').innerText=user.name;document.getElementById('memberFlId2').innerText=user.flId;
-document.getElementById('userInitial').innerText=user.name.charAt(0).toUpperCase();
-toast('Welcome '+user.name+'! Demo login success - Client ki chupincheki');
+err.style.display='block';err.style.background='#dbeafe';err.style.color='#1e40af';err.innerText='⏳ Checking Supabase Live DB - 2000 Plan...';
+try{
+  const result = await loginReal(id, pass);
+  if(result.success){
+    const user = result.user;
+    document.getElementById('loginWrap').style.display='none';document.getElementById('dashView').style.display='block';
+    document.getElementById('dashUserName').innerText=user.name||user.full_name||user.flId;document.getElementById('dashFlId').innerText=user.flId||user.fl_id;
+    document.getElementById('memberName').innerText=user.name||user.full_name||user.flId;document.getElementById('memberFlId2').innerText=user.flId||user.fl_id;
+    document.getElementById('userInitial').innerText=(user.name||user.full_name||'T').charAt(0).toUpperCase();
+    toast('Welcome '+(user.name||user.full_name)+'! Real DB Login Success - FL ID: '+(user.flId||user.fl_id));
+    err.style.display='none';
+  } else {
+    err.style.background='#fee2e2';err.style.color='#991b1b';err.innerText='❌ '+result.message;
+  }
+} catch(e){
+  err.style.background='#fee2e2';err.style.color='#991b1b';err.innerText='❌ Error: '+e.message;
+}
 });
 function sendOtp(){const email=document.getElementById('forgotEmail').value.trim();const msg=document.getElementById('forgotMsg');if(!email){msg.innerHTML='<span style=color:#dc2626>Enter email</span>';return;}const otp=Math.floor(100000+Math.random()*900000);localStorage.setItem('flm_otp_'+email,otp);msg.innerHTML='OTP: <b>'+otp+'</b> (Demo) - 5 min valid';document.getElementById('otpBox').style.display='block';}
 (function(){const s=localStorage.getItem('flm_session');if(s){try{const u=JSON.parse(s);document.getElementById('loginWrap').style.display='none';document.getElementById('dashView').style.display='block';document.getElementById('dashUserName').innerText=u.name;document.getElementById('dashFlId').innerText=u.flId;document.getElementById('memberName').innerText=u.name;document.getElementById('memberFlId2').innerText=u.flId;document.getElementById('userInitial').innerText=u.name.charAt(0).toUpperCase();}catch(e){}}})();
