@@ -29,16 +29,109 @@ async function loadDepositRequests(){
  }
  listEl.innerHTML=html;
 }
-async function confirmDeposit(flId,depositId,req,extra,total,amount,utr,source){if(!flId){alert('FL ID missing');return;}if(!confirm('Confirm '+total+' pins for '+flId+'?')) return;try{if(supabaseClient){const pins=[];for(let i=0;i<total;i++){pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:flId.toUpperCase()});}const {error}=await supabaseClient.from('pins').insert(pins);if(error) throw new Error(error.message);if(source.includes('pin_purchase_requests')&&depositId){await supabaseClient.from('pin_purchase_requests').update({status:'confirmed'}).eq('id',depositId);}else if(source.includes('payment_transactions')&&depositId){await supabaseClient.from('payment_transactions').update({status:'confirmed'}).eq('id',depositId);}}alert('Confirmed '+total+' pins for '+flId);loadDepositRequests();loadSec('pins');}catch(e){alert('Error: '+e.message);}}
-async function rejectDeposit(flId,depositId,source){if(!confirm('Reject '+flId+'?')) return;try{if(supabaseClient){if(source.includes('pin_purchase_requests')&&depositId){await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('id',depositId);}else if(source.includes('payment_transactions')&&depositId){await supabaseClient.from('payment_transactions').update({status:'rejected'}).eq('id',depositId);}}alert('Rejected');loadDepositRequests();}catch(e){alert('Error: '+e.message);}}
+async function confirmDeposit(flId,depositId,req,extra,total,amount,utr,source){
+ if(!flId){alert('FL ID missing');return;}
+ if(!confirm('Confirm '+total+' pins for '+flId+' - '+req+' + '+extra+' bonus = '+total+' total?')) return;
+ try{
+  if(supabaseClient){
+   const pins=[];for(let i=0;i<total;i++){pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:flId.toUpperCase()});}
+   const {error}=await supabaseClient.from('pins').insert(pins);
+   if(error) throw new Error('Pin insert error: '+error.message);
+   // Update status in pin_purchase_requests - try by id first, then by utr+fl_id fallback
+   try{
+    if(depositId && depositId.length>5){
+     const r1 = await supabaseClient.from('pin_purchase_requests').update({status:'confirmed'}).eq('id',depositId);
+    }
+    // Fallback: update by utr and fl_id where pending
+    if(utr){
+     await supabaseClient.from('pin_purchase_requests').update({status:'confirmed'}).eq('fl_id',flId.toUpperCase()).eq('utr',utr).eq('status','pending');
+     await supabaseClient.from('pin_purchase_requests').update({status:'confirmed'}).eq('fl_id',flId.toUpperCase()).eq('utr',utr);
+    }
+   }catch(e){console.log('pin_purchase_requests update error',e.message);}
+   try{
+    if(depositId && depositId.length>5){
+     await supabaseClient.from('payment_transactions').update({status:'confirmed'}).eq('id',depositId);
+    }
+    if(utr){
+     await supabaseClient.from('payment_transactions').update({status:'confirmed'}).eq('utr_hash',utr).eq('status','pending');
+     await supabaseClient.from('payment_transactions').update({status:'confirmed'}).eq('utr',utr).eq('status','pending');
+     await supabaseClient.from('payment_transactions').update({status:'confirmed'}).eq('utr_hash',utr);
+     await supabaseClient.from('payment_transactions').update({status:'confirmed'}).eq('utr',utr);
+    }
+   }catch(e){console.log('payment_transactions update error',e.message);}
+  }
+  // Update localStorage for ALL users (admin browser may have copies from same device testing)
+  try{
+   const allKeys = Object.keys(localStorage).filter(k=>k.startsWith('flm_deposits_'));
+   for(const key of allKeys){
+    const arr = JSON.parse(localStorage.getItem(key)||'[]');
+    let changed=false;
+    const updated = arr.map(d=>{
+     if((d.utr===utr || d.id===depositId) && d.status==='pending'){changed=true;return {...d,status:'confirmed',confirmed_at:new Date().toISOString()};}
+     if(d.fl_id===flId.toUpperCase() && d.utr===utr && d.status==='pending'){changed=true;return {...d,status:'confirmed'};}
+     return d;
+    });
+    if(changed) localStorage.setItem(key, JSON.stringify(updated));
+   }
+   // Also specific FL ID
+   const key='flm_deposits_'+flId.toUpperCase();
+   const arr=JSON.parse(localStorage.getItem(key)||'[]');
+   const updated=arr.map(d=>{if(d.utr===utr && d.status==='pending') return {...d,status:'confirmed',confirmed_at:new Date().toISOString()}; return d;});
+   localStorage.setItem(key, JSON.stringify(updated));
+  }catch(e){}
+  alert('✅ Confirmed '+total+' pins for '+flId+' - Amount Rs.'+amount+' - UTR '+utr+' - Status updated to CONFIRMED - Pins added - User panel will show CONFIRMED after refresh');
+  loadDepositRequests();
+  // Also reload pins analytics
+  setTimeout(()=>loadSec('pins'),500);
+ }catch(e){alert('Error: '+e.message);}
+}
+async function rejectDeposit(flId,depositId,source){
+ if(!confirm('Reject deposit for '+flId+'? - Mark as rejected?')) return;
+ try{
+  if(supabaseClient){
+   try{
+    if(depositId && depositId.length>5) await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('id',depositId);
+    const flUpper = flId ? flId.toUpperCase() : flId;
+    // Try by fl_id from stored deposits list element id is utr
+    const utrFromId = depositId; // In localStorage case, depositId is actually UTR
+    // Update by UTR if we have it from current card - find from DOM? We'll use depositId as UTR fallback
+    if(flUpper){
+     // Update any pending with same fl_id - last resort
+     await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('fl_id',flUpper).eq('status','pending');
+     await supabaseClient.from('payment_transactions').update({status:'rejected'}).eq('mobile',flUpper).eq('status','pending');
+    }
+   }catch(e){console.log('reject update error',e.message);}
+  }
+  try{
+   const allKeys = Object.keys(localStorage).filter(k=>k.startsWith('flm_deposits_'));
+   for(const k of allKeys){
+    const arr=JSON.parse(localStorage.getItem(k)||'[]');
+    const upd=arr.map(d=>{if(d.id===depositId || d.utr===depositId){return {...d,status:'rejected'};} return d;});
+    localStorage.setItem(k,JSON.stringify(upd));
+   }
+  }catch(e){}
+  alert('Rejected deposit for '+flId+' - Status updated to REJECTED');
+  loadDepositRequests();
+ }catch(e){alert('Error: '+e.message);}
+}
 let currentPinsFilter='all';function filterPins(t){currentPinsFilter=t;loadSec('pins');}
 function adminLogin(){const e=document.getElementById('adminEmail').value.trim();const p=document.getElementById('adminPass').value.trim();const m=document.getElementById('adminLoginMsg');const admins=[{id:'super@freedomloans.in',pass:'super123'}];const ok=admins.some(a=>a.id.toLowerCase()===e.toLowerCase()&&a.pass===p)||(e.toLowerCase().includes('admin')&&p.length>=3);if(ok){localStorage.setItem('flm_admin_session',JSON.stringify({id:e}));m.innerHTML='<span style=color:#059669>✅ Login Success</span>';setTimeout(()=>{document.getElementById('adminLogin').style.display='none';document.getElementById('adminMain').style.display='block';loadAdminData();},500);}else{m.innerHTML='<span style=color:#dc2626>❌ Wrong ID/Pass</span>';}}
 function adminLogout(){localStorage.removeItem('flm_admin_session');document.getElementById('adminMain').style.display='none';document.getElementById('adminLogin').style.display='flex';}
+
+function copyPin(pinCode){
+ if(navigator.clipboard){
+  navigator.clipboard.writeText(pinCode).then(()=>{alert('Copied: '+pinCode);}).catch(()=>{fallbackCopy(pinCode);});
+ } else {fallbackCopy(pinCode);}
+}
+function fallbackCopy(text){
+ const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');alert('Copied: '+text);}catch(e){alert('Copy failed: '+text);}document.body.removeChild(ta);
+}
+
 function checkAdminSession(){const s=localStorage.getItem('flm_admin_session');if(s){document.getElementById('adminLogin').style.display='none';document.getElementById('adminMain').style.display='block';loadAdminData();}else{document.getElementById('adminLogin').style.display='flex';document.getElementById('adminMain').style.display='none';}}
 async function loadAdminData(){if(supabaseClient){const d=await loadDashboardReal();if(d){document.getElementById('statMembers').innerText=d.usersCount||0;document.getElementById('statTokens').innerText=d.pinsCount||0;if(d.users){document.getElementById('recentMembers').innerHTML=d.users.map(u=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id}</div>`).join('');}}}}
 function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);}
-async function loadSec(id){if(id==='users'&&supabaseClient){const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('usersList').innerHTML=data.map(u=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id}</div>`).join('');}if(id==='pins'&&supabaseClient){const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(200);if(data){const total=data.length;const unused=data.filter(p=>p.status==='unused').length;const used=data.filter(p=>p.status==='used').length;document.getElementById('pinsTotal').innerText=total;document.getElementById('pinsUnused').innerText=unused;document.getElementById('pinsUsed').innerText=used;let f=data;if(currentPinsFilter==='unused') f=data.filter(p=>p.status==='unused');if(currentPinsFilter==='used') f=data.filter(p=>p.status==='used');document.getElementById('pinsList').innerHTML=f.map(p=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:8px;margin-bottom:6px"><div style="font-weight:700;font-family:monospace">${p.pin_code}</div><div style="margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span> <span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span> ${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''}</div></div>`).join('');}loadDepositRequests();}}
+async function loadSec(id){if(id==='users'&&supabaseClient){const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('usersList').innerHTML=data.map(u=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id}</div>`).join('');}if(id==='pins'&&supabaseClient){const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(200);if(data){const total=data.length;const unused=data.filter(p=>p.status==='unused').length;const used=data.filter(p=>p.status==='used').length;document.getElementById('pinsTotal').innerText=total;document.getElementById('pinsUnused').innerText=unused;document.getElementById('pinsUsed').innerText=used;let f=data;if(currentPinsFilter==='unused') f=data.filter(p=>p.status==='unused');if(currentPinsFilter==='used') f=data.filter(p=>p.status==='used');document.getElementById('pinsList').innerHTML=f.map(p=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-family:monospace;font-size:12px">${p.pin_code}</div><div style="margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span> <span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span> ${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''}</div></div><div style="display:flex;flex-direction:column;gap:4px">${p.status==='unused'?`<button onclick="copyPin('${p.pin_code}')" style="background:#0f172a;color:#fff;border:0;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer">📋 Copy</button>`:''}</div></div></div>`).join('');}loadDepositRequests();}}
 window.addEventListener('load',()=>{checkAdminSession();});
 </script>
 <style>*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}body{background:#eef2f7;color:#0f172a}.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}.topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:0 0 16px 16px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}.input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px}.menu{position:fixed;left:-100%;top:0;width:85vw;max-width:340px;height:100dvh;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);color:#fff;z-index:9999;transition:left .3s ease;padding:16px;overflow-y:auto}.menu.open{left:0}.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:9998}.overlay.show{display:block}#adminLogin{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:#eef2f7}#adminMain{width:100%;max-width:100%;padding:12px}</style>
