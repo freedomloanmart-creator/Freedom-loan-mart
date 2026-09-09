@@ -199,7 +199,59 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-downline" style="display:none"><div class="card"><h3>👥 My Team</h3><div id="downlineList">Loading...</div></div></div>
 <div id="sec-tree" style="display:none"><div class="card"><h3>🌳 Binary Tree</h3><div id="treeView">Loading...</div></div></div>
 <div id="sec-loans" style="display:none"><div class="card"><h3>🏦 Loan Plans</h3><div id="loansG">Loading...</div></div></div>
-<div id="sec-profile" style="display:none"><div class="card"><h3>👤 My Profile</h3><div id="profileDetails">Loading...</div></div></div>
+
+<div id="sec-profile" style="display:none">
+<!-- Profile Header -->
+<div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Profile</b></div>
+<div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL241190</div></div></div>
+</div>
+
+<!-- Profile Card -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#c17a2a,#9c4a4a);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👤</div><b style="color:#fff">Profile</b></div>
+<div style="text-align:center;padding:8px 0;color:#64748b;font-size:12px" id="profFlId">FL ID</div>
+<div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name</div><input id="profName" placeholder="Enter full name" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone</div><input id="profPhone" placeholder="Enter phone" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email</div><input id="profEmail" placeholder="Enter email" type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Full Address - For Courier Delivery</div><textarea id="profAddress" placeholder="Enter full address - House no, street, area, landmark" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;min-height:80px;resize:none"></textarea></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Pincode</div><input id="profPincode" placeholder="Eg: 506101" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">City</div><input id="profCity" placeholder="Eg: Mahbubabad" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+</div>
+<button onclick="saveProfile()" style="width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;margin-top:8px;cursor:pointer">Save profile</button>
+<div id="profMsg" style="font-size:11px;text-align:center;margin-top:8px"></div>
+</div>
+</div>
+
+<!-- Account Card -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📋</div><b style="color:#fff">Account</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px">Network details</div>
+<div style="padding:16px">
+<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9"><div><div style="font-weight:700;font-size:14px" id="accStatus">Active</div><div style="font-size:11px;color:#64748b">Status</div></div></div>
+<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9"><div><div style="font-weight:700;font-size:14px" id="accSponsor">FL100001</div><div style="font-size:11px;color:#64748b">Sponsor</div></div></div>
+<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9"><div><div style="font-weight:700;font-size:14px" id="accPlacementParent">FL100001</div><div style="font-size:11px;color:#64748b">Placement parent</div></div></div>
+<div style="display:flex;justify-content:space-between;padding:12px 0"><div><div style="font-weight:700;font-size:14px" id="accSide">Right</div><div style="font-size:11px;color:#64748b">Placement side</div></div></div>
+</div>
+</div>
+
+<!-- Change Password Card -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🔒</div><b style="color:#fff">Change password</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px">Login access</div>
+<div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Current Password</div><input id="curPass" type="password" placeholder="" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">New Password</div><input id="newPass" type="password" placeholder="" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Confirm Password</div><input id="confPass" type="password" placeholder="" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<button onclick="changePassword()" style="width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;cursor:pointer">Change password</button>
+<div id="passMsg" style="font-size:11px;text-align:center"></div>
+</div>
+</div>
+
+</div>
+
 <div id="sec-invite" style="display:none"><div class="card"><h3>🔗 Invite Links</h3><div id="inviteLinks">Loading...</div></div></div>
 <div id="sec-tokens" style="display:none"><div class="card"><h3>🎫 My Pins</h3><div id="tokensList">Loading...</div></div></div>
 <div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI Earnings</h3><div id="roiList">Loading...</div></div></div>
@@ -280,6 +332,87 @@ function findS(){
  var html=''; for(var i=0;i<stores.length;i++){var s=stores[i]; html+='<div style="background:#f8fafc;padding:10px;border-radius:10px;margin-top:8px;border:1px solid #e2e8f0"><b>'+s.n+' - '+s.d+'</b> Within 25KM<br><span style="font-size:11px">'+s.a+'</span><br><span style="font-size:11px;color:#64748b">'+s.m+'</span> <button style="background:#0f172a;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-size:10px">Call</button></div>';}
  document.getElementById('sRes').innerHTML=html;
 }
+
+async function loadProfile(){
+ if(!requireLogin()) return;
+ var flId=getFlId();
+ try{
+  if(supabaseClient){
+   var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();
+   var user=r.data;
+   if(user){
+    document.getElementById('profTopName').innerText=user.full_name||flId;
+    document.getElementById('profTopFl').innerText=user.fl_id||flId;
+    document.getElementById('profFlId').innerText=user.fl_id||flId;
+    document.getElementById('profName').value=user.full_name||'';
+    document.getElementById('profPhone').value=user.mobile||'';
+    document.getElementById('profEmail').value=user.email||'';
+    document.getElementById('profAddress').value=user.address||user.full_address||'';
+    document.getElementById('profPincode').value=user.pincode||'';
+    document.getElementById('profCity').value=user.city||'';
+    document.getElementById('accStatus').innerText='Active';
+    document.getElementById('accSponsor').innerText=user.sponsor_id||'None';
+    document.getElementById('accPlacementParent').innerText=user.sponsor_id||'None';
+    document.getElementById('accSide').innerText=user.side||'Left';
+   }
+  }
+ }catch(e){console.log('Profile load error: '+e.message);}
+}
+
+async function saveProfile(){
+ var flId=getFlId();
+ var name=document.getElementById('profName').value.trim();
+ var phone=document.getElementById('profPhone').value.trim();
+ var email=document.getElementById('profEmail').value.trim();
+ var address=document.getElementById('profAddress').value.trim();
+ var pincode=document.getElementById('profPincode').value.trim();
+ var city=document.getElementById('profCity').value.trim();
+ var msg=document.getElementById('profMsg');
+ if(!name){msg.style.color='#dc2626';msg.innerText='Enter name';return;}
+ msg.style.color='#2563eb';msg.innerText='Saving...';
+ try{
+  if(supabaseClient){
+   var {error}=await supabaseClient.from('users').update({full_name:name,mobile:phone,email:email,address:address,full_address:address,pincode:pincode,city:city}).eq('fl_id',flId);
+   if(error) throw error;
+   // Update session name
+   try{var sess=JSON.parse(localStorage.getItem('flm_session'));sess.name=name;sess.full_name=name;localStorage.setItem('flm_session',JSON.stringify(sess));document.getElementById('topName').innerText=name;document.getElementById('dashName').innerText=name;}catch(e){}
+   msg.style.color='#059669';msg.innerText='Profile saved! Address and pincode saved for courier.';
+  } else {
+   msg.style.color='#059669';msg.innerText='Demo saved - Connect Supabase for real save';
+  }
+ }catch(e){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}
+}
+
+async function changePassword(){
+ var cur=document.getElementById('curPass').value.trim();
+ var nw=document.getElementById('newPass').value.trim();
+ var conf=document.getElementById('confPass').value.trim();
+ var msg=document.getElementById('passMsg');
+ if(!cur||!nw||!conf){msg.style.color='#dc2626';msg.innerText='Fill all fields';return;}
+ if(nw!==conf){msg.style.color='#dc2626';msg.innerText='New and confirm not match';return;}
+ var flId=getFlId();
+ msg.style.color='#2563eb';msg.innerText='Changing...';
+ try{
+  if(supabaseClient){
+   var r=await supabaseClient.from('users').select('password').eq('fl_id',flId).single();
+   if(r.data && r.data.password!==cur){msg.style.color='#dc2626';msg.innerText='Current password wrong';return;}
+   var {error}=await supabaseClient.from('users').update({password:nw}).eq('fl_id',flId);
+   if(error) throw error;
+   msg.style.color='#059669';msg.innerText='Password changed!';
+   document.getElementById('curPass').value='';document.getElementById('newPass').value='';document.getElementById('confPass').value='';
+  } else {
+   msg.style.color='#059669';msg.innerText='Demo changed';
+  }
+ }catch(e){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}
+}
+
+// Override showSec to load profile when opening
+var originalShowSec=showSec;
+showSec=function(id){
+ originalShowSec(id);
+ if(id==='profile'){loadProfile();}
+};
+
 window.addEventListener('load',initDashboard);
 </script>
 </body></html>
