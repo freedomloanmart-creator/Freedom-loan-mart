@@ -76,33 +76,23 @@ body{background:#eef2f7;color:#0f172a}
 
 <div id="sec-dashboard">
 <div class="card" style="background:linear-gradient(135deg,#1e3a8a 0%,#0e7490 50%,#14b8a6 100%);color:#fff;padding:20px;border-radius:20px"><div style="display:flex;align-items:center;gap:12px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:3px solid rgba(255,255,255,.3)" id="dashInitial">U</div><div><div style="font-size:11px;opacity:.8;letter-spacing:1px">MEMBER DASHBOARD</div><div style="font-size:18px;font-weight:800" id="dashName">Loading...</div><div style="font-size:13px;opacity:.9"><span id="dashFlId">FL ID</span> <span style="color:#86efac">• Active</span></div></div></div><button class="btn-white" onclick="showSec('invite')">Invite members</button><button class="btn-outline" onclick="showSec('downline')">View tree</button></div>
-<div class="card" style="background:#f0fdf4;border:1px solid #dcfce7"><div style="background:#dcfce7;color:#166534;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block">MATCHING BONUS</div><div style="font-size:15px;font-weight:800;margin-top:10px;color:#0f172a">Rs. 200 for every completed left and right pair</div><div style="font-size:13px;color:#2563eb;font-weight:700;margin-top:8px;cursor:pointer" onclick="showSec('downline')">Check network →</div></div>
-<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Profile</b><span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:11px">Active</span></div><div style="margin-top:12px;display:flex;flex-direction:column;gap:8px"><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Member ID</div><div style="font-size:14px;font-weight:700" id="pMemberId">FL ID</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Joined</div><div style="font-size:14px;font-weight:700" id="pJoined">--</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Activation</div><div style="font-size:14px;font-weight:700" id="pActivation">--</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Sponsored by</div><div style="font-size:14px;font-weight:700" id="pSponsor">--</div></div></div></div>
-<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Place a member</b><span style="color:#2563eb;font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('invite')">All links →</span></div><div style="margin-top:12px;display:flex;flex-direction:column;gap:10px"><div style="background:linear-gradient(135deg,#cbd5e1,#94a3b8);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyLeft()"><div style="font-size:11px;color:#475569">Left side</div><div style="font-size:16px;font-weight:800;margin-top:4px">Left link</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="leftLinkText">Click to copy</div></div><div style="background:linear-gradient(135deg,#a7f3d0,#6ee7b7);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyRight()"><div style="font-size:11px;color:#065f46">Right side</div><div style="font-size:16px;font-weight:800;margin-top:4px">Right link</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="rightLinkText">Click to copy</div></div></div></div>
-<div class="card" style="background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff;display:flex;justify-content:space-between;align-items:center"><div><b>Earnings and wallets</b></div><span style="font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('wallets')">Open wallet →</span></div>
-<div class="grid2"><div class="dark-card"><div style="font-size:12px;opacity:.8">Main Wallet</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="mainWallet">Rs. 0.00</div></div><div class="dark-card"><div style="font-size:12px;opacity:.8">ROI Credits</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="roiCredits">0.00</div></div></div>
-<div class="grid2"><div class="dark-card"><div style="font-size:12px;opacity:.8">Matching Income</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="matchingIncome">Rs. 0.00</div></div><div class="dark-card"><div style="font-size:12px;opacity:.8">Pending Withdrawal</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="pendingWithdraw">Rs. 0.00</div></div></div>
-<div class="card" style="background:linear-gradient(90deg,#7c3aed,#2563eb);color:#fff;display:flex;justify-content:space-between;align-items:center"><div><b>Binary summary</b></div><span style="font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('downline')">View full tree →</span></div>
-<div class="grid2"><div class="dark-card"><div style="font-size:12px;opacity:.8">Left Tokens</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="leftTokens">0</div></div><div class="dark-card"><div style="font-size:12px;opacity:.8">Right Tokens</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="rightTokens">0</div></div></div>
-<div class="grid2"><div class="dark-card"><div style="font-size:12px;opacity:.8">Left Carry</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="leftCarry">0</div></div><div class="dark-card"><div style="font-size:12px;opacity:.8">Right Carry</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="rightCarry">0</div></div></div>
-<div class="grid2"><div class="dark-card"><div style="font-size:12px;opacity:.8">Total Pairs</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="totalPairs">0</div></div><div class="dark-card"><div style="font-size:12px;opacity:.8">Team Size</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="teamSize">0</div></div></div>
-<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Daily matching</b><b id="dailyMatching">0 / 25 pairs</b></div><div style="margin-top:10px;background:#f1f5f9;height:8px;border-radius:999px"><div style="width:0%;height:100%;background:#2563eb;border-radius:999px" id="dailyBar"></div></div><div style="margin-top:8px;font-size:13px;font-weight:700" id="remainingToday">Rs. 5000 remaining today</div></div>
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Profile</b><span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:11px">Active</span></div><div style="margin-top:12px;display:flex;flex-direction:column;gap:8px"><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Member ID</div><div style="font-size:14px;font-weight:700" id="pMemberId">FL ID</div></div></div></div>
 </div>
 
-<div id="sec-profile" style="display:none"><div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Profile</b></div><div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#c17a2a,#9c4a4a);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👤</div><b style="color:#fff">Profile</b></div><div style="text-align:center;padding:8px 0;color:#64748b;font-size:12px" id="profFlId">FL ID</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name</div><input id="profName" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone</div><input id="profPhone" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email</div><input id="profEmail" disabled type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div></div></div></div>
-
-<div id="sec-invite" style="display:none"><div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">Invite Members</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="inviteTopName">Theja</div><div style="font-size:10px;color:#64748b" id="inviteTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">Left referral link</b></div><div style="padding:16px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><input id="leftLinkInput" readonly style="width:100%;border:0;background:transparent;font-size:12px;outline:none"></div><button onclick="copyLeftLink()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Copy Left Link</button></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">Right referral link</b></div><div style="padding:16px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><input id="rightLinkInput" readonly style="width:100%;border:0;background:transparent;font-size:12px;outline:none"></div><button onclick="copyRightLink()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Copy Right Link</button></div></div></div>
-
-<div id="sec-downline" style="display:none"><div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Downline</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px"><div style="font-size:11px;font-weight:800;color:#1e40af" id="downTopName">Theja</div><div style="font-size:10px;color:#64748b" id="downTopFl">FL ID</div></div></div><div class="card"><div>Network summary</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left tokens</div><div style="font-size:20px;font-weight:800" id="netLeftTokens">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right tokens</div><div style="font-size:20px;font-weight:800" id="netRightTokens">0</div></div></div></div></div>
+<div id="sec-profile" style="display:none"><div class="card"><h3>My Profile</h3><div id="profFlId">FL ID</div></div></div>
+<div id="sec-invite" style="display:none"><div class="card"><h3>Invite</h3><div>Links</div></div></div>
+<div id="sec-downline" style="display:none"><div class="card"><h3>My Team</h3><div>Downline</div></div></div>
+<div id="sec-wallets" style="display:none"><div class="card"><h3>Wallets</h3><div>Wallet</div></div></div>
+<div id="sec-roi" style="display:none"><div class="card"><h3>ROI</h3><div>ROI</div></div></div>
 
 <div id="sec-tokens" style="display:none">
 <div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">My Pins - Tokens</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px"><div style="font-size:11px;font-weight:800;color:#1e40af" id="pinsTopName">Theja</div><div style="font-size:10px;color:#64748b" id="pinsTopFl">FL ID</div></div></div>
 
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">Token status</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:12px;background:linear-gradient(135deg,#0f766e,#0e7490)" id="tokenTotalText">0 total</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Available</div><div style="font-size:20px;font-weight:800" id="tokenAvailable">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Used</div><div style="font-size:20px;font-weight:800" id="tokenUsed">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Expired</div><div style="font-size:20px;font-weight:800" id="tokenExpired">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Total</div><div style="font-size:20px;font-weight:800" id="tokenTotal">0</div></div></div></div>
 
-<div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #2563eb"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">Purchase Pins - Deposit</b></div><div style="text-align:center;padding:6px 0;color:#dbeafe;font-size:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8)">1 Pin = Rs. 2000 - Extra bonus: 25 pins=3 extra, 50 pins=9 extra, 100 pins=20 extra</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">How many pins you want? (1 pin also allowed)</div><input id="pinsWant" type="number" min="1" placeholder="Eg: 10" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px" oninput="calcPins()"></div><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#64748b">Payable Amount (pins × 2000):</span><b style="font-size:13px" id="payableAmount">Rs. 0</b></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-size:11px;color:#64748b">Extra Bonus Pins:</span><b style="font-size:13px;color:#059669" id="extraPins">0 extra</b></div><div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px dashed #bfdbfe;padding-top:6px"><span style="font-size:12px;font-weight:700">You Get Total:</span><b style="font-size:14px;color:#1e40af" id="totalPinsGet">0 pins</b></div><div style="margin-top:6px;font-size:10px;color:#2563eb" id="bonusMsg">Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px"><div style="font-weight:700;font-size:12px">Payment Options - UPI / USDT</div><div style="font-size:11px;margin-top:6px">UPI ID: <b>freedomloans@upi</b> <span style="background:#dbeafe;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="navigator.clipboard.writeText('freedomloans@upi')">Copy</span></div><div style="font-size:11px;margin-top:4px">USDT TRC20: <b>TXabc...123</b> <span style="background:#dbeafe;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="navigator.clipboard.writeText('TXabc123')">Copy</span></div></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Payment Screenshot Upload</div><input id="payScreenshot" type="file" accept="image/*" style="width:100%;padding:10px;border:1px dashed #cbd5e1;border-radius:10px;font-size:12px" onchange="previewScreenshot(this)"><div id="screenshotPreview" style="margin-top:8px;display:none"><img id="previewImg" style="max-width:100%;border-radius:10px;border:1px solid #e2e8f0;max-height:200px"><div style="font-size:10px;color:#64748b;margin-top:4px" id="previewName"></div></div></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">UTR / Transaction Hash</div><input id="payUTR" placeholder="Enter UTR number or USDT Tx Hash" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><button id="submitDepositBtn" onclick="submitPinPurchase()" style="width:100%;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Submit Deposit - Enter Pins Count</button><div id="purchaseMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div></div>
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #2563eb"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">Purchase Pins - Deposit</b></div><div style="text-align:center;padding:6px 0;color:#dbeafe;font-size:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8)">1 Pin = Rs. 2000 - Extra bonus: 25 pins=3 extra, 50 pins=9 extra, 100 pins=20 extra</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">How many pins you want? (1 pin also allowed)</div><input id="pinsWant" type="number" min="1" placeholder="Eg: 10" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px" oninput="calcPins()"></div><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#64748b">Payable Amount (pins × 2000):</span><b style="font-size:13px" id="payableAmount">Rs. 0</b></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-size:11px;color:#64748b">Extra Bonus Pins:</span><b style="font-size:13px;color:#059669" id="extraPins">0 extra</b></div><div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px dashed #bfdbfe;padding-top:6px"><span style="font-size:12px;font-weight:700">You Get Total:</span><b style="font-size:14px;color:#1e40af" id="totalPinsGet">0 pins</b></div><div style="margin-top:6px;font-size:10px;color:#2563eb" id="bonusMsg">Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px"><div style="font-weight:700;font-size:12px">Payment Options - UPI / USDT</div><div style="font-size:11px;margin-top:6px">UPI ID: <b>freedomloans@upi</b></div><div style="font-size:11px;margin-top:4px">USDT TRC20: <b>TXabc...123</b></div></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Payment Screenshot Upload</div><input id="payScreenshot" type="file" accept="image/*" style="width:100%;padding:10px;border:1px dashed #cbd5e1;border-radius:10px;font-size:12px" onchange="previewScreenshot(this)"><div id="screenshotPreview" style="margin-top:8px;display:none"><img id="previewImg" style="max-width:100%;border-radius:10px;border:1px solid #e2e8f0;max-height:200px"><div style="font-size:10px;color:#64748b;margin-top:4px" id="previewName"></div></div></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">UTR / Transaction Hash</div><input id="payUTR" placeholder="Enter UTR number or USDT Tx Hash" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><button id="submitDepositBtn" onclick="submitPinPurchase()" style="width:100%;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Submit Deposit - Enter Pins Count</button><div id="purchaseMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div></div>
 
-<div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #0f766e"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">📋 My Deposit History - Check Your Previous Submissions</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Your payment screenshots, UTR, and status - No need to submit again if code changed - History saved</div><div style="padding:16px"><button onclick="loadDepositHistory()" style="width:100%;background:#0f172a;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer">🔄 Refresh My Deposit History - Show Previous Screenshots & UTR</button><div id="myDepositHistoryList" style="margin-top:12px;max-height:600px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">Click Refresh to load your deposit history - Screenshots, UTR, Pins count, Status (Pending/Confirmed/Rejected) will show here - If you submitted before code change, it will still appear from local storage + Supabase</div></div></div></div>
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #0f766e"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">📋 My Deposit History - Check Your Previous Submissions</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Your payment screenshots, UTR, and status - No need to submit again if code changed - History saved</div><div style="padding:16px"><button onclick="loadDepositHistory()" style="width:100%;background:#0f172a;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer">🔄 Refresh My Deposit History - Show Previous Screenshots & UTR</button><div id="myDepositHistoryList" style="margin-top:12px;max-height:600px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">Click Refresh to load your deposit history - Screenshots, UTR, Pins count, Status will show here - If you submitted before code change, it will still appear</div></div></div></div>
 
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><b style="color:#fff">Unused pins</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Ready to use - Green</div><div style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr;background:#f0f9ff;padding:10px 16px;font-size:12px;font-weight:700"><div>TOKEN</div><div>AMOUNT</div></div><div id="unusedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div></div></div></div>
 
@@ -110,177 +100,67 @@ body{background:#eef2f7;color:#0f172a}
 
 </div>
 
-<div id="sec-wallets" style="display:none"><div class="card"><h3>💰 My Wallets</h3><div>Wallet details</div></div></div>
-<div id="sec-roi" style="display:none"><div class="card"><h3>ROI</h3><div>Coming soon</div></div></div>
-<div id="sec-support" style="display:none"><div class="card"><h3>Help</h3><div>Support</div></div></div>
 </div>
 
 <script>
 async function initDashboard(){
  var flId=getFlId();var name=getName();if(!flId){location.href='./login.html';return;}
  document.getElementById('topFlId').innerText=flId;document.getElementById('topName').innerText=name||flId;document.getElementById('dashInitial').innerText=(name||flId).charAt(0).toUpperCase();document.getElementById('dashName').innerText=name||flId;document.getElementById('dashFlId').innerText=flId;document.getElementById('menuFlId').innerText=flId;
- try{
-  if(supabaseClient){
-   var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();var user=r.data;
-   if(user){var realName=user.full_name||name||flId;document.getElementById('topName').innerText=realName;document.getElementById('dashName').innerText=realName;}
-  }
- }catch(e){}
- var origin=window.location.origin;var leftLink=origin+'/register.html?sponsor='+flId+'&side=left';var rightLink=origin+'/register.html?sponsor='+flId+'&side=right';window.leftLink=leftLink;window.rightLink=rightLink;document.getElementById('leftLinkText').innerText=leftLink;document.getElementById('rightLinkText').innerText=rightLink;
 }
-function copyLeft(){navigator.clipboard.writeText(window.leftLink);alert('Left copied');}
-function copyRight(){navigator.clipboard.writeText(window.rightLink);alert('Right copied');}
-function copyLeftLink(){var v=window.leftInviteLink||document.getElementById('leftLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Left copied');}
-function copyRightLink(){var v=window.rightInviteLink||document.getElementById('rightLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Right copied');}
-async function loadProfile(){var flId=getFlId();try{if(supabaseClient){var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();var u=r.data;if(u){document.getElementById('profTopName').innerText=u.full_name||flId;document.getElementById('profTopFl').innerText=u.fl_id;}}}catch(e){}}
-async function loadInvite(){var flId=getFlId();document.getElementById('inviteTopName').innerText=getName()||flId;document.getElementById('inviteTopFl').innerText=flId;var origin=window.location.origin;document.getElementById('leftLinkInput').value=origin+'/register.html?sponsor='+flId+'&side=left';document.getElementById('rightLinkInput').value=origin+'/register.html?sponsor='+flId+'&side=right';}
-async function loadDownline(){var flId=getFlId();document.getElementById('downTopName').innerText=getName()||flId;document.getElementById('downTopFl').innerText=flId;}
-
 function previewScreenshot(input){
- var file=input.files[0];
- if(!file) return;
- var preview=document.getElementById('screenshotPreview');
- var img=document.getElementById('previewImg');
- var nameEl=document.getElementById('previewName');
- if(file){
-  fileToBase64(file).then(b64=>{img.src=b64;preview.style.display='block';nameEl.innerText=file.name+' - '+(file.size/1024).toFixed(1)+' KB - Preview below - Will be saved in history';});
- }
+ var file=input.files[0];if(!file) return;
+ var preview=document.getElementById('screenshotPreview');var img=document.getElementById('previewImg');var nameEl=document.getElementById('previewName');
+ if(file){fileToBase64(file).then(b64=>{img.src=b64;preview.style.display='block';nameEl.innerText=file.name+' - '+(file.size/1024).toFixed(1)+' KB - Preview - Will be saved in history';});}
 }
-
 function calcPins(){
- var wantEl=document.getElementById('pinsWant');
- var want=parseInt(wantEl?wantEl.value:'0')||0;
- var extra=0;
- if(want>=100) extra=20;
- else if(want>=50) extra=9;
- else if(want>=25) extra=3;
- var payable=want*2000;
- var totalGet=want+extra;
- document.getElementById('payableAmount').innerText='Rs. '+payable;
- document.getElementById('extraPins').innerText=extra+' extra';
- document.getElementById('totalPinsGet').innerText=totalGet+' pins ('+want+' + '+extra+' bonus)';
- var msgEl=document.getElementById('bonusMsg');
- if(msgEl){if(want>0){msgEl.innerText='You type '+want+' → Pay Rs.'+payable+' → You get total '+totalGet+' pins - Extra '+extra+' free';}else{msgEl.innerText='Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)';}}
- var btn=document.getElementById('submitDepositBtn');
- if(btn){if(want>0){btn.innerText='Submit Deposit - Admin Will Confirm '+totalGet+' Pins (Pay Rs.'+payable+' for '+want+' pins) - '+totalGet+' pins total';}else{btn.innerText='Submit Deposit - Enter Pins Count';}}
+ var wantEl=document.getElementById('pinsWant');var want=parseInt(wantEl?wantEl.value:'0')||0;var extra=0;if(want>=100) extra=20;else if(want>=50) extra=9;else if(want>=25) extra=3;var payable=want*2000;var totalGet=want+extra;
+ document.getElementById('payableAmount').innerText='Rs. '+payable;document.getElementById('extraPins').innerText=extra+' extra';document.getElementById('totalPinsGet').innerText=totalGet+' pins ('+want+' + '+extra+' bonus)';
+ var msgEl=document.getElementById('bonusMsg');if(msgEl){if(want>0){msgEl.innerText='You type '+want+' → Pay Rs.'+payable+' → You get total '+totalGet+' pins - Extra '+extra+' free';}else{msgEl.innerText='Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)';}}
+ var btn=document.getElementById('submitDepositBtn');if(btn){if(want>0){btn.innerText='Submit Deposit - Admin Will Confirm '+totalGet+' Pins (Pay Rs.'+payable+' for '+want+' pins) - '+totalGet+' pins total';}else{btn.innerText='Submit Deposit - Enter Pins Count';}}
  window.currentPurchase={want:want,extra:extra,total:totalGet,payable:payable};
 }
-
 async function submitPinPurchase(){
- var wantEl=document.getElementById('pinsWant');
- var utrEl=document.getElementById('payUTR');
- var msgEl=document.getElementById('purchaseMsg');
- var fileEl=document.getElementById('payScreenshot');
- var want=parseInt(wantEl?wantEl.value:'0')||0;
- var utr=utrEl?utrEl.value.trim():'';
- if(want<1){msgEl.style.color='#dc2626';msgEl.innerText='Enter how many pins - Minimum 1';return;}
- if(!utr){msgEl.style.color='#dc2626';msgEl.innerText='Enter UTR / Transaction Hash';return;}
+ var wantEl=document.getElementById('pinsWant');var utrEl=document.getElementById('payUTR');var msgEl=document.getElementById('purchaseMsg');var fileEl=document.getElementById('payScreenshot');var want=parseInt(wantEl?wantEl.value:'0')||0;var utr=utrEl?utrEl.value.trim():'';
+ if(want<1){msgEl.style.color='#dc2626';msgEl.innerText='Enter how many pins - Minimum 1';return;}if(!utr){msgEl.style.color='#dc2626';msgEl.innerText='Enter UTR';return;}
  var calc=window.currentPurchase||{want:want,extra:(want>=100?20:want>=50?9:want>=25?3:0),total:want+(want>=100?20:want>=50?9:want>=25?3:0),payable:want*2000};
- msgEl.style.color='#2563eb';msgEl.innerText='Submitting deposit for '+calc.want+' pins (Pay Rs.'+calc.payable+' → Get '+calc.total+' pins)...';
+ msgEl.style.color='#2563eb';msgEl.innerText='Submitting deposit for '+calc.want+' pins...';
  try{
-  var flId=getFlId();
-  var file=fileEl && fileEl.files[0] ? fileEl.files[0] : null;
-  var screenshotName=file?file.name:'No file';
-  var screenshotBase64='';
-  if(file){try{screenshotBase64=await fileToBase64(file);}catch(e){}}
+  var flId=getFlId();var file=fileEl && fileEl.files[0] ? fileEl.files[0] : null;var screenshotName=file?file.name:'No file';var screenshotBase64='';if(file){try{screenshotBase64=await fileToBase64(file);}catch(e){}}
   var success=false;var lastError='';
   if(supabaseClient){
    try{var insertData={fl_id:flId, requested_pins:calc.want, extra_pins:calc.extra, total_pins:calc.total, amount:calc.payable, utr:utr, payment_method:'UPI', status:'pending'};var res=await supabaseClient.from('pin_purchase_requests').insert(insertData).select();if(!res.error){success=true;}else{lastError=res.error.message;}}catch(e){lastError=e.message;}
    if(!success){try{var res2=await supabaseClient.from('payment_transactions').insert({mobile:flId, email:flId, payment_method:'UPI', utr_hash:utr, amount:calc.payable, status:'pending'});if(!res2.error){success=true;}else{lastError=res2.error.message;}}catch(e){lastError=e.message;}}
   }
-  // Always save to localStorage with screenshot base64 for history check - Even if Supabase succeeds, save locally for user history view
-  try{
-   var deposits=JSON.parse(localStorage.getItem('flm_deposits_'+flId)||'[]');
-   deposits.push({fl_id:flId, requested_pins:calc.want, extra_pins:calc.extra, total_pins:calc.total, amount:calc.payable, utr:utr, screenshot:screenshotName, screenshotData:screenshotBase64, status:'pending', created_at:new Date().toISOString()});
-   localStorage.setItem('flm_deposits_'+flId, JSON.stringify(deposits));
-   success=true;
-  }catch(e){lastError=e.message;}
-  if(success){
-   msgEl.style.color='#059669';
-   msgEl.innerText='✅ Deposit submitted! You paid Rs.'+calc.payable+' for '+calc.want+' pins + '+calc.extra+' bonus = Total '+calc.total+' pins. Screenshot: '+screenshotName+' - UTR: '+utr+' - After admin confirmation, '+calc.total+' pins will appear in My Pins. Status: Pending - Your screenshot is saved in My Deposit History below - No need to submit again even if code changes';
-   wantEl.value='';utrEl.value='';fileEl.value='';document.getElementById('screenshotPreview').style.display='none';calcPins();loadDepositHistory();
-  } else {msgEl.style.color='#dc2626';msgEl.innerText='Error: '+lastError;}
+  try{var deposits=JSON.parse(localStorage.getItem('flm_deposits_'+flId)||'[]');deposits.push({fl_id:flId, requested_pins:calc.want, extra_pins:calc.extra, total_pins:calc.total, amount:calc.payable, utr:utr, screenshot:screenshotName, screenshotData:screenshotBase64, status:'pending', created_at:new Date().toISOString()});localStorage.setItem('flm_deposits_'+flId, JSON.stringify(deposits));success=true;}catch(e){lastError=e.message;}
+  if(success){msgEl.style.color='#059669';msgEl.innerText='✅ Deposit submitted! You paid Rs.'+calc.payable+' for '+calc.want+' pins + '+calc.extra+' bonus = Total '+calc.total+' pins. Screenshot: '+screenshotName+' - UTR: '+utr+' - After admin confirmation, '+calc.total+' pins will appear in My Pins. Status: Pending - Saved in My Deposit History below';wantEl.value='';utrEl.value='';fileEl.value='';document.getElementById('screenshotPreview').style.display='none';calcPins();loadDepositHistory();}
+  else{msgEl.style.color='#dc2626';msgEl.innerText='Error: '+lastError;}
  }catch(e){msgEl.style.color='#dc2626';msgEl.innerText='Error: '+e.message;}
 }
-
 async function loadDepositHistory(){
- var flId=getFlId();
- var listEl=document.getElementById('myDepositHistoryList');
- if(!listEl) return;
- listEl.innerHTML='Loading your deposit history...';
- let deposits=[];
- let supabaseDeposits=[];
- // Load from Supabase
+ var flId=getFlId();var listEl=document.getElementById('myDepositHistoryList');if(!listEl) return;listEl.innerHTML='Loading your deposit history...';let deposits=[];let supabaseDeposits=[];
  if(supabaseClient){
-  try{
-   const {data}=await supabaseClient.from('pin_purchase_requests').select('*').eq('fl_id',flId).order('created_at',{ascending:false});
-   if(data && data.length>0) supabaseDeposits=supabaseDeposits.concat(data.map(d=>({...d,screenshot:d.screenshot||'N/A',source:'Supabase pin_purchase_requests'})));
-  }catch(e){}
-  try{
-   const {data}=await supabaseClient.from('payment_transactions').select('*').or(`mobile.eq.${flId},fl_id.eq.${flId}`).order('created_at',{ascending:false});
-   if(data && data.length>0) supabaseDeposits=supabaseDeposits.concat(data.map(d=>({fl_id:flId, requested_pins: Math.floor((d.amount||0)/2000), extra_pins:0, total_pins: Math.floor((d.amount||0)/2000), amount:d.amount, utr:d.utr||d.utr_hash, screenshot:'N/A', status:d.status, created_at:d.created_at, source:'Supabase payment_transactions'})));
-  }catch(e){}
+  try{const {data}=await supabaseClient.from('pin_purchase_requests').select('*').eq('fl_id',flId).order('created_at',{ascending:false});if(data && data.length>0) supabaseDeposits=supabaseDeposits.concat(data.map(d=>({...d,screenshot:d.screenshot||'N/A',source:'Supabase pin_purchase_requests'})));}catch(e){}
+  try{const {data}=await supabaseClient.from('payment_transactions').select('*').or(`mobile.eq.${flId},fl_id.eq.${flId}`).order('created_at',{ascending:false});if(data && data.length>0) supabaseDeposits=supabaseDeposits.concat(data.map(d=>({fl_id:flId, requested_pins: Math.floor((d.amount||0)/2000), extra_pins:0, total_pins: Math.floor((d.amount||0)/2000), amount:d.amount, utr:d.utr||d.utr_hash, screenshot:'N/A', status:d.status, created_at:d.created_at, source:'Supabase payment_transactions'})));}catch(e){}
  }
- // Load from localStorage
- let localDeposits=[];
- try{localDeposits=JSON.parse(localStorage.getItem('flm_deposits_'+flId)||'[]');}catch(e){}
+ let localDeposits=[];try{localDeposits=JSON.parse(localStorage.getItem('flm_deposits_'+flId)||'[]');}catch(e){}
  deposits=supabaseDeposits.concat(localDeposits);
- // Deduplicate by UTR + amount + created_at close
- if(deposits.length===0){
-  listEl.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No deposit history found. If you submitted before code change, it may have been in old localStorage - But now onwards, all deposits will be saved with screenshot preview in this history - You can check status here anytime - No need to submit again</div>';
-  return;
- }
- // Sort newest first
+ if(deposits.length===0){listEl.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No deposit history found. New deposits will appear here with screenshot preview</div>';return;}
  deposits.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
- let html='';
- for(let i=0;i<deposits.length;i++){
-  const d=deposits[i];
-  const statusColor=d.status==='confirmed'?'#059669':d.status==='rejected'?'#dc2626':'#d97706';
-  const statusBg=d.status==='confirmed'?'#dcfce7':d.status==='rejected'?'#fee2e2':'#fef3c7';
-  const hasImage=d.screenshotData && d.screenshotData.startsWith('data:image');
-  html+=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px">
-  <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${d.fl_id} - ${d.requested_pins||0} pins + ${d.extra_pins||0} bonus = ${d.total_pins||0} total</b><span style="background:${statusBg};color:${statusColor};padding:4px 8px;border-radius:999px;font-size:10px;font-weight:700">${(d.status||'pending').toUpperCase()}</span></div>
-  <div style="margin-top:8px;font-size:11px;color:#475569">Amount: Rs.${d.amount||0} | UTR: <b>${d.utr||'N/A'}</b> | Date: ${d.created_at?new Date(d.created_at).toLocaleString():''} | Source: ${d.source||'local'}</div>
-  <div style="margin-top:6px;font-size:11px">Screenshot: ${d.screenshot||'N/A'} ${hasImage?'<span style="color:#059669">• Image saved - Click to view</span>':''}</div>
-  ${hasImage?`<div style="margin-top:8px"><img src="${d.screenshotData}" style="max-width:100%;border-radius:10px;border:1px solid #e2e8f0;max-height:200px;cursor:pointer" onclick="window.open(this.src)"><div style="font-size:10px;color:#64748b;margin-top:4px">Tap image to view full screenshot - This is your uploaded payment proof - Admin will check this UTR and screenshot</div></div>`:''}
-  <div style="margin-top:8px;font-size:10px;color:${statusColor};background:${statusBg};padding:6px 8px;border-radius:6px">${d.status==='confirmed'?'✅ Confirmed - '+d.total_pins+' pins generated and added to your My Pins':d.status==='rejected'?'❌ Rejected - Payment not verified - Contact admin':d.status==='pending'?'⏳ Pending - After admin confirmation, '+d.total_pins+' pins will appear in My Pins - No need to submit again - You can check status here':'Status: '+d.status}</div>
-  </div>`;
- }
+ let html='';for(let i=0;i<deposits.length;i++){const d=deposits[i];const statusColor=d.status==='confirmed'?'#059669':d.status==='rejected'?'#dc2626':'#d97706';const statusBg=d.status==='confirmed'?'#dcfce7':d.status==='rejected'?'#fee2e2':'#fef3c7';const hasImage=d.screenshotData && d.screenshotData.startsWith('data:image');html+=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${d.fl_id} - ${d.requested_pins||0} pins + ${d.extra_pins||0} bonus = ${d.total_pins||0} total</b><span style="background:${statusBg};color:${statusColor};padding:4px 8px;border-radius:999px;font-size:10px;font-weight:700">${(d.status||'pending').toUpperCase()}</span></div><div style="margin-top:8px;font-size:11px;color:#475569">Amount: Rs.${d.amount||0} | UTR: <b>${d.utr||'N/A'}</b> | Date: ${d.created_at?new Date(d.created_at).toLocaleString():''} | Source: ${d.source||'local'}</div><div style="margin-top:6px;font-size:11px">Screenshot: ${d.screenshot||'N/A'} ${hasImage?'<span style="color:#059669">• Image saved</span>':''}</div>${hasImage?`<div style="margin-top:8px"><img src="${d.screenshotData}" style="max-width:100%;border-radius:10px;border:1px solid #e2e8f0;max-height:200px;cursor:pointer" onclick="window.open(this.src)"><div style="font-size:10px;color:#64748b;margin-top:4px">Tap to view full screenshot</div></div>`:''}<div style="margin-top:8px;font-size:10px;color:${statusColor};background:${statusBg};padding:6px 8px;border-radius:6px">${d.status==='confirmed'?'✅ Confirmed - '+d.total_pins+' pins added to My Pins':d.status==='rejected'?'❌ Rejected - Contact admin':d.status==='pending'?'⏳ Pending - After admin confirmation, '+d.total_pins+' pins will appear in My Pins - No need to submit again':'Status: '+d.status}</div></div>`;}
  listEl.innerHTML=html;
 }
-
 async function loadPins(){
- if(!requireLogin()) return;
- var flId=getFlId();
- document.getElementById('pinsTopName').innerText=getName()||flId;
- document.getElementById('pinsTopFl').innerText=flId;
- // Load deposit history automatically
- loadDepositHistory();
+ if(!requireLogin()) return;var flId=getFlId();document.getElementById('pinsTopName').innerText=getName()||flId;document.getElementById('pinsTopFl').innerText=flId;loadDepositHistory();
  try{
-  if(supabaseClient){
-   var r=await supabaseClient.from('pins').select('*').eq('generated_for',flId).order('created_at',{ascending:false});
-   var pins=r.data||[];
-   var available=pins.filter(p=>p.status==='unused').length;
-   var used=pins.filter(p=>p.status==='used').length;
-   document.getElementById('tokenAvailable').innerText=available;
-   document.getElementById('tokenUsed').innerText=used;
-   document.getElementById('tokenExpired').innerText=0;
-   document.getElementById('tokenTotal').innerText=pins.length;
-   document.getElementById('tokenTotalText').innerText=pins.length+' total';
-   var unusedList=document.getElementById('unusedPinsList');
-   if(unusedList){
-     var unused=pins.filter(p=>p.status==='unused');
-     if(unused.length>0){var html='';for(var i=0;i<unused.length;i++){var p=unused[i];html+='<div style="display:grid;grid-template-columns:1fr 1fr;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#f0fdf4"><div style="font-family:monospace;font-weight:700;font-size:12px">'+p.pin_code+'</div><div style="font-size:12px">Rs.'+(p.amount||2000)+'</div></div>';}unusedList.innerHTML=html;}
-     else{unusedList.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div>';}
-   }
-   var usedList=document.getElementById('usedPinsList');
-   if(usedList){
-     var usedPins=pins.filter(p=>p.status==='used');
-     if(usedPins.length>0){var html='';for(var i=0;i<usedPins.length;i++){var p=usedPins[i];html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#fff7ed"><div style="font-family:monospace;font-weight:700;font-size:11px">'+p.pin_code+'</div><div style="font-size:11px">Rs.'+(p.amount||2000)+'</div><div style="font-size:10px;color:#64748b">'+(p.used_by_mobile||'Used')+'</div></div>';}usedList.innerHTML=html;}
-     else{usedList.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No used pins yet.</div>';}
-   }
+  if(supabaseClient){var r=await supabaseClient.from('pins').select('*').eq('generated_for',flId).order('created_at',{ascending:false});var pins=r.data||[];document.getElementById('tokenAvailable').innerText=pins.filter(p=>p.status==='unused').length;document.getElementById('tokenUsed').innerText=pins.filter(p=>p.status==='used').length;document.getElementById('tokenExpired').innerText=0;document.getElementById('tokenTotal').innerText=pins.length;document.getElementById('tokenTotalText').innerText=pins.length+' total';
+   var unusedList=document.getElementById('unusedPinsList');if(unusedList){var unused=pins.filter(p=>p.status==='unused');if(unused.length>0){var html='';for(var i=0;i<unused.length;i++){var p=unused[i];html+='<div style="display:grid;grid-template-columns:1fr 1fr;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#f0fdf4"><div style="font-family:monospace;font-weight:700;font-size:12px">'+p.pin_code+'</div><div style="font-size:12px">Rs.'+(p.amount||2000)+'</div></div>';}unusedList.innerHTML=html;}else{unusedList.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div>';}}
+   var usedList=document.getElementById('usedPinsList');if(usedList){var usedPins=pins.filter(p=>p.status==='used');if(usedPins.length>0){var html='';for(var i=0;i<usedPins.length;i++){var p=usedPins[i];html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#fff7ed"><div style="font-family:monospace;font-weight:700;font-size:11px">'+p.pin_code+'</div><div style="font-size:11px">Rs.'+(p.amount||2000)+'</div><div style="font-size:10px;color:#64748b">'+(p.used_by_mobile||'Used')+'</div></div>';}usedList.innerHTML=html;}else{usedList.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No used pins yet.</div>';}}
   }
  }catch(e){console.log(e.message);}
 }
-window.addEventListener('load',initDashboard);
+async function loadProfile(){var flId=getFlId();try{if(supabaseClient){var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();}}catch(e){}}
+async function loadInvite(){var flId=getFlId();document.getElementById('inviteTopName')?.innerText;var origin=window.location.origin;window.leftInviteLink=origin+'/register.html?sponsor='+flId+'&side=left';window.rightInviteLink=origin+'/register.html?sponsor='+flId+'&side=right';}
+async function loadDownline(){var flId=getFlId();document.getElementById('downTopName')?.innerText;}
+window.addEventListener('load',async()=>{var flId=getFlId();if(!flId){location.href='./login.html';return;}document.getElementById('topFlId').innerText=flId;document.getElementById('topName').innerText=getName()||flId;document.getElementById('menuFlId').innerText=flId;});
 </script>
 </body></html>
