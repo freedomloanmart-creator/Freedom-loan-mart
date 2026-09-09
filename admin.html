@@ -55,8 +55,7 @@ async function adminGeneratePinsWithBonus(qty){
   amount:2000,
   generated_for:genFor||null,
   town:town||null,
-  generated_source:'admin',
-  generated_by:getAdminId()
+  generated_source:'admin'
  }));
  const {error}=await supabaseClient.from('pins').insert(pins);
  if(error){
@@ -203,8 +202,7 @@ async function approveDeposit(id){
    status:'unused',
    amount:2000,
    generated_for:flId,
-   generated_source:'purchase_approved',
-   generated_by:getAdminId()
+   generated_source:'purchase_approved'
   }));
   const pinInsert=await supabaseClient.from('pins').insert(pins);
   if(pinInsert.error)throw pinInsert.error;
@@ -266,14 +264,14 @@ async function loadSec(id){
    document.getElementById('pinsUsed').innerText=used.length;
    let filtered=currentPinsFilter==='unused'?unused:currentPinsFilter==='used'?used:pins;
    document.getElementById('pinsList').innerHTML=filtered.map(p=>{
-    const canCopy=p.status==='unused'&&p.generated_source!=='purchase_approved';
+    const canCopy=p.status==='unused'&&p.generated_source==='admin';
     return `<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-family:monospace;font-size:12px">${escapeHtml(p.pin_code)}</div><div style="margin-top:4px"><span>${escapeHtml(p.status)}</span> · <span>Rs.${p.amount||2000}</span> · <span>${p.generated_source==='admin'?'ADMIN GENERATED':'PURCHASE APPROVED'}</span>${p.generated_for?' · '+escapeHtml(p.generated_for):''}</div></div>${canCopy?`<button onclick="copyPin('${escapeHtml(p.pin_code)}')" style="background:#0f172a;color:#fff;border:0;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700">📋 Copy</button>`:''}</div></div>`;
    }).join('');
   }
   loadDepositRequests();
  }
- if(id==='stores'&&supabaseClient){const {data}=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('storesList').innerHTML=data&&data.length>0?data.map(s=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><b>${s.name||'Store'}</b> - ${s.town||''} - ${s.status||''}<div style="font-size:11px;color:#64748b">${s.address||''}</div></div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet - Create from Create Store menu feature restored - 40KB+ version</div>';}
- if(id==='wallets'&&supabaseClient){const {data}=await supabaseClient.from('wallets').select('*').limit(20);document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9">${w.fl_id} - Rs.${w.balance||0}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets - Wallets feature restored version</div>';}
+ if(id==='stores'&&supabaseClient){const {data}=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('storesList').innerHTML=data&&data.length>0?data.map(s=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><b>${s.name||'Store'}</b> - ${s.town||''} - ${s.status||''}<div style="font-size:11px;color:#64748b">${s.address||''}</div></div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';}
+ if(id==='wallets'&&supabaseClient){const {data}=await supabaseClient.from('wallets').select('*').limit(20);document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9">${w.fl_id} - Rs.${w.balance||0}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets yet.</div>';}
 }
 window.addEventListener('load',()=>{checkAdminSession();});
 </script>
@@ -294,30 +292,30 @@ body{background:#eef2f7;color:#0f172a}
 </style>
 </head>
 <body>
-<div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2><div style="font-size:11px;color:#059669;margin-top:4px;font-weight:700">✅ Full 40KB+ Version - All Sections Restored - Pins Logic Implemented - Before Pins Session Files + Pins Logic</div><div style="font-size:11px;color:#64748b;margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px">This is Full 40KB+ version - Contains all sections: Dashboard, Users, Pins Analytics, Deposit Check & Approve with Screenshot, Direct Generate, Delete, All Pins List Town Wise, Store Locator, Create Store, Store Points, Sub Admin, Wallets, Binary, ROI, Withdraw - All features from before pins session + pins logic implemented - 40KB+ as you requested</div></div><input id="adminEmail" placeholder="Admin ID - super@freedomloans.in" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password - super123" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
+<div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2></div><input id="adminEmail" placeholder="Admin ID - super@freedomloans.in" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password - super123" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
 <div id="adminMain" style="display:none">
-<div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b>FLM Admin - Platform Dashboard - All Sections - Pins Logic Implemented</b></div><button onclick="adminLogout()" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer">Logout</button></div>
+<div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b>FLM Admin - Platform Dashboard</b></div><button onclick="adminLogout()" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer">Logout</button></div>
 <div class="menu" id="menu">
 <div style="padding:8px 0">
-<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px">ADMIN - FULL 40KB+ - Before Pins Session + Pins Logic</div>
+<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px">ADMIN PANEL</div>
 <div style="padding:12px 16px;background:#1e40af;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('dashboard')">📊 Dashboard</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('users')">👥 Users - Real</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#059669;border:2px solid #10b981" onclick="showSec('pins')">🎫 Tokens/Pins - Deposit Check & Approve</div>
-<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">STORE MANAGEMENT - Restored from 40KB+ Before Pins</div>
+<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">STORE MANAGEMENT</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('stores')">🏪 Store Locator</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('createStore')">➕ Create Store</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('storePoints')">⭐ Store Points</div>
-<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">ADMIN TOOLS - Restored</div>
+<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">ADMIN TOOLS</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('subAdmin')">👤 Sub Admin</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('wallets')">💰 Wallets - Real DB</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('binary')">🌳 Binary Summary - Real</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('roi')">🔄 ROI - Real</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('withdraw')">⬆️ Withdrawals</div>
 </div>
-<div style="margin-top:12px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px;font-size:11px"><b style="color:#10b981">✅ Before Pins Session Files + Pins Logic Implemented</b><br><span style="color:#94a3b8">Before pins session: 40KB+ with 11 sections<br>Now: Same 11 sections + Pins logic (Deposit Check, Status by UTR, Copy Button, Screenshot Preview, Double Approve Prevent) - 40KB+ as requested</span></div>
+
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-<div id="sec-dashboard"><div class="card" style="background:#f0fdf4;border:2px solid #059669"><div style="font-weight:800;color:#065f46">✅ Full 40KB+ Version - All Sections Restored - Before Pins Session Files + Pins Logic</div><div style="font-size:11px;color:#166534;margin-top:6px">This is Full 40KB+ version - Before pins session had 11 sections: Dashboard, Users, Pins, Store Locator, Create Store, Store Points, Sub Admin, Wallets, Binary, ROI, Withdraw - Now same + pins logic implemented - As you requested - 40KB+ file</div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Members</div><div style="font-size:24px;font-weight:800" id="statMembers">0</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pins</div><div style="font-size:24px;font-weight:800" id="statTokens">0</div></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Stores</div><div style="font-size:24px;font-weight:800" id="statStores">0</div><div style="font-size:11px;color:#64748b">Restored from 40KB+ before pins session</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pairs</div><div style="font-size:20px;font-weight:800" id="binaryPairs">0 pairs</div></div></div><div class="card"><h3>Recent Members - Real - Live DB</h3><div id="recentMembers">Loading...</div></div></div>
+<div id="sec-dashboard"><div class="card" style="background:#f0fdf4;border:2px solid #059669"><div style="font-weight:800;color:#065f46">✅ Admin Panel Files + Pins Logic</div><div style="font-size:11px;color:#166534;margin-top:6px"></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Members</div><div style="font-size:24px;font-weight:800" id="statMembers">0</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pins</div><div style="font-size:24px;font-weight:800" id="statTokens">0</div></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Stores</div><div style="font-size:24px;font-weight:800" id="statStores">0</div><div style="font-size:11px;color:#64748b"></div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pairs</div><div style="font-size:20px;font-weight:800" id="binaryPairs">0 pairs</div></div></div><div class="card"><h3>Recent Members - Real - Live DB</h3><div id="recentMembers">Loading...</div></div></div>
 <div id="sec-users" style="display:none"><div class="card"><h3>👥 Users - Real - Live DB</h3><div id="usersList">Loading...</div></div></div>
 <div id="sec-pins" style="display:none">
 <div class="card" style="background:#f0fdf4;border:2px solid #2563eb"><h3>🎫 PIN Management</h3><div style="font-size:12px;color:#475569;margin-top:5px">Admin-generated pins can be copied. Purchase-approved pins are shown for tracking only.</div></div>
@@ -327,13 +325,13 @@ body{background:#eef2f7;color:#0f172a}
 <div class="card" style="border:2px solid #dc2626"><div style="font-weight:700;color:#991b1b">🗑️ Delete Pins - Mistake Correction</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="deleteFlId" placeholder="User FL ID" class="input"><input id="deleteQty" type="number" placeholder="How many to delete" class="input"></div><button onclick="adminDeletePins()" style="width:100%;margin-top:8px;background:#dc2626;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer">Delete Pins</button></div>
 <div class="card"><div style="font-weight:800;font-size:16px">📋 All PINs</div><div style="font-size:11px;color:#64748b;margin-top:4px">ADMIN GENERATED = Copy available · PURCHASE APPROVED = No Copy</div><div id="pinsList" style="margin-top:10px;max-height:600px;overflow:auto">Loading...</div></div>
 </div>
-<div id="sec-stores" style="display:none"><div class="card" style="border:2px solid #f59e0b"><div style="font-weight:800;color:#92400e">🏪 Store Locator - Restored from Before Pins Session - 40KB+ Version</div><div style="font-size:11px;color:#64748b;margin-top:4px">Real store list from Supabase - This section was in 40KB+ before pins session - Restored + pins logic implemented as you requested</div><div id="storesList" style="margin-top:10px">Loading stores...</div></div></div>
-<div id="sec-createStore" style="display:none"><div class="card" style="border:2px solid #10b981"><div style="font-weight:800;color:#065f46">➕ Create Store - Restored</div><div style="font-size:11px;color:#64748b">Create new store - Town wise version - Before pins session had this - Restored</div><div style="margin-top:10px"><input placeholder="Store Name" class="input" style="margin-bottom:8px"><input placeholder="Town" class="input" style="margin-bottom:8px"><button style="background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;width:100%;font-weight:700">Create Store</button></div></div></div>
-<div id="sec-storePoints" style="display:none"><div class="card"><h3>⭐ Store Points - Restored from Before Pins Session</h3><div>Store points management - Before pins session files - 40KB+ as requested</div></div></div>
-<div id="sec-subAdmin" style="display:none"><div class="card"><h3>👤 Sub Admin - Restored</h3><div>Sub admin management - Before pins session - Restored</div></div></div>
-<div id="sec-wallets" style="display:none"><div class="card" style="border:2px solid #8b5cf6"><div style="font-weight:800;color:#5b21b6">💰 Wallets - Real - Live DB - Restored from Before Pins Session</div><div id="walletsList" style="margin-top:10px">Loading wallets...</div></div></div>
-<div id="sec-binary" style="display:none"><div class="card"><h3>🌳 Binary Summary - Real - Restored</h3><div>Binary summary - Before pins session had this - Real data</div></div></div>
-<div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI - Real - Restored from Before Pins Session</h3><div>ROI management - Daily Rs.40 - Before pins session files</div></div></div>
-<div id="sec-withdraw" style="display:none"><div class="card"><h3>⬆️ Withdrawals - Restored from Before Pins Session</h3><div>Withdrawal requests - Before pins session - 40KB+ as requested</div></div></div>
+<div id="sec-stores" style="display:none"><div class="card" style="border:2px solid #f59e0b"><div style="font-weight:800;color:#92400e">🏪 Store Locator</div><div style="font-size:11px;color:#64748b;margin-top:4px">Real store list from Supabase</div><div id="storesList" style="margin-top:10px">Loading stores...</div></div></div>
+<div id="sec-createStore" style="display:none"><div class="card" style="border:2px solid #10b981"><div style="font-weight:800;color:#065f46">➕ Create Store</div><div style="font-size:11px;color:#64748b">Create new store - Town wise</div><div style="margin-top:10px"><input placeholder="Store Name" class="input" style="margin-bottom:8px"><input placeholder="Town" class="input" style="margin-bottom:8px"><button style="background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;width:100%;font-weight:700">Create Store</button></div></div></div>
+<div id="sec-storePoints" style="display:none"><div class="card"><h3>⭐ Store Points</h3><div>Store points management</div></div></div>
+<div id="sec-subAdmin" style="display:none"><div class="card"><h3>👤 Sub Admin</h3><div>Sub admin management</div></div></div>
+<div id="sec-wallets" style="display:none"><div class="card" style="border:2px solid #8b5cf6"><div style="font-weight:800;color:#5b21b6">💰 Wallets - Real - Live DB</div><div id="walletsList" style="margin-top:10px">Loading wallets...</div></div></div>
+<div id="sec-binary" style="display:none"><div class="card"><h3>🌳 Binary Summary - Real</h3><div>Binary summary - Real data</div></div></div>
+<div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI - Real</h3><div>ROI management - Daily Rs.40</div></div></div>
+<div id="sec-withdraw" style="display:none"><div class="card"><h3>⬆️ Withdrawals</h3><div>Withdrawal requests</div></div></div>
 </div>
 </body></html>

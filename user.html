@@ -192,6 +192,13 @@ function setPurchaseStatus(text,type='info'){
  const el=document.getElementById('purchaseStatus'); if(!el)return;
  const styles={info:['#eff6ff','#1d4ed8'],pending:['#fffbeb','#92400e'],confirmed:['#f0fdf4','#166534'],rejected:['#fef2f2','#991b1b'],error:['#fef2f2','#991b1b']};
  const st=styles[type]||styles.info; el.style.background=st[0];el.style.color=st[1];el.innerText=text;
+ if(type==='rejected'){
+  const btn=document.createElement('button');
+  btn.type='button'; btn.innerText='↩️ Resubmit Screenshot + UTR';
+  btn.style.cssText='display:block;width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:700;cursor:pointer';
+  btn.onclick=()=>{document.getElementById('payScreenshot')?.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('payScreenshot')?.click();};
+  el.appendChild(btn);
+ }
 }
 async function loadPurchaseStatus(){
  if(!requireLogin()||!supabaseClient)return;
@@ -203,7 +210,7 @@ async function loadPurchaseStatus(){
   if(!req){setPurchaseStatus('No pin purchase submitted yet.','info');return;}
   if(req.status==='pending')setPurchaseStatus(`⏳ Already submitted. Waiting for admin approval.\nUTR: ${req.utr||'—'} · Requested: ${req.requested_pins||0} pins`,'pending');
   else if(req.status==='confirmed')setPurchaseStatus(`✅ Approved — ${req.total_pins||req.requested_pins||0} pins added to My Pins.\nApproved: ${req.reviewed_at?new Date(req.reviewed_at).toLocaleString():'Recently'}`,'confirmed');
-  else if(req.status==='rejected')setPurchaseStatus(`❌ Rejected — Please check or resubmit the screenshot / UTR, or contact admin.\nReason: ${req.rejection_reason||'Please verify the payment proof.'}`,'rejected');
+  else if(req.status==='rejected')setPurchaseStatus(`❌ Rejected — Please check the screenshot / UTR and resubmit the payment proof, or contact admin.\nReason: ${req.rejection_reason||'Please verify the payment proof.'}`,'rejected');
  }catch(e){setPurchaseStatus('Could not load purchase status. Please refresh.','error');}
 }
 async function submitPinPurchase(){
