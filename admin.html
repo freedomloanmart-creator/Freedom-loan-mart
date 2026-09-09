@@ -81,13 +81,13 @@ async function adminDeletePins(){
  const delQty=parseInt(document.getElementById('deleteQty')?.value)||0;
  if(!flId||delQty<1){alert('Enter FL ID and quantity');return;}
  if(!supabaseClient){alert('Supabase is not connected.');return;}
- if(!confirm(`Delete ${delQty} unused admin pins for ${flId}?`))return;
- const {data:pins,error:readError}=await supabaseClient.from('pins').select('id,generated_source').eq('generated_for',flId).eq('status','unused').eq('generated_source','admin').order('created_at',{ascending:true}).limit(delQty);
+ if(!confirm(`Delete ${delQty} unused pins for ${flId}?`))return;
+ const {data:pins,error:readError}=await supabaseClient.from('pins').select('id,generated_source').eq('generated_for',flId).eq('status','unused').order('created_at',{ascending:true}).limit(delQty);
  if(readError){alert('Delete error: '+readError.message);return;}
- if(!pins?.length){alert('No unused admin-generated pins for '+flId);return;}
+ if(!pins?.length){alert('No unused pins for '+flId);return;}
  const {error}=await supabaseClient.from('pins').delete().in('id',pins.map(p=>p.id));
  if(error)alert('Delete error: '+error.message);
- else{alert('Deleted '+pins.length+' admin pins for '+flId);loadSec('pins');}
+ else{alert('Deleted '+pins.length+' unused pins for '+flId);loadSec('pins');}
 }
 
 async function copyPin(pinCode){
@@ -319,7 +319,10 @@ async function editStore(storeId){
   document.getElementById('editStoreLng').value=s.longitude??'';
   document.getElementById('editStoreStatus').value=s.status||'active';
   var box=document.getElementById('storeEditor');
-  if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'start');}
+  if(box){
+    box.style.display='block';
+    box.scrollIntoView({behavior:'smooth',block:'start'});
+  }
 }
 
 async function saveStoreEdits(){
@@ -335,8 +338,7 @@ async function saveStoreEdits(){
   var lng=parseFloat(document.getElementById('editStoreLng').value);
   var status=document.getElementById('editStoreStatus').value;
   if(!id||!name||!code||!phone||!address||!town||!pincode||!Number.isFinite(lat)||!Number.isFinite(lng)){
-    alert('Fill all store details and latitude/longitude.');
-    return;
+    alert('Fill all store details and latitude/longitude.');return;
   }
   var obj={name:name,store_code:code,phone:phone,mobile:phone,address:address,town:town,pincode:pincode,latitude:lat,longitude:lng,status:status};
   var r=await supabaseClient.from('stores').update(obj).eq('id',id);
@@ -344,7 +346,6 @@ async function saveStoreEdits(){
   alert('✅ Store updated successfully.');
   closeStoreEditor();
   loadStoresAdmin();
-  loadDashboardReal();
 }
 
 function closeStoreEditor(){
@@ -358,8 +359,11 @@ async function loadStoresAdmin(){
   var r=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(100);
   if(r.error){el.innerHTML='<div style="padding:12px;color:#dc2626">'+escapeHtml(r.error.message)+'</div>';return;}
   var rows=r.data||[];
-  el.innerHTML=rows.length?rows.map(st=>'<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||st.mobile||'')+'</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button onclick="editStore(\''+escapeHtml(st.id||'')+'\')" style="background:#f59e0b;color:#fff;border:0;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800">✏️ Edit Store</button>'+(st.latitude!=null&&st.longitude!=null?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800">🗺️ View Map</a>':'')+'</div></div>').join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';
-}).limit(100);if(r.error){el.innerHTML='<div style="padding:12px;color:#dc2626">'+escapeHtml(r.error.message)+'</div>';return;}var rows=r.data||[];el.innerHTML=rows.length?rows.map(st=>'<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||'')+'</div>'+(st.latitude!=null&&st.longitude!=null?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;margin-top:8px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">🗺️ Open Map</a>':'')+'</div>').join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';}
+  el.innerHTML=rows.length?rows.map(st=>{
+    var map=(st.latitude!=null&&st.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800">🗺️ View Map</a>':'';
+    return '<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||st.mobile||'')+'</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button onclick="editStore(\''+escapeHtml(st.id||'')+'\')" style="background:#f59e0b;color:#fff;border:0;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800">✏️ Edit Store</button>'+map+'</div></div>';
+  }).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';
+}
 
 async function loadSec(id){
  if(id==='users'&&supabaseClient){const {data,error}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);if(error){document.getElementById('usersList').innerHTML='<div style="padding:14px;color:#991b1b">'+escapeHtml(error.message)+'</div>';return;}document.getElementById('usersList').innerHTML=(data||[]).map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><b>${escapeHtml(u.full_name||'')}</b> - ${escapeHtml(u.fl_id||'')}</div><button onclick="openUserEditor('${escapeHtml(u.fl_id||'')}')" style="background:#2563eb;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">✏️ Edit</button></div><div style="font-size:11px;color:#64748b;margin-top:5px">Mobile: ${escapeHtml(u.mobile||'')} | Email: ${escapeHtml(u.email||'')} | Address: ${escapeHtml(u.address||u.full_address||'Not saved')}</div></div>`).join('')||'<div style="padding:20px;text-align:center;color:#64748b">No users found.</div>';}
