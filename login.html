@@ -1,196 +1,53 @@
 <!DOCTYPE html><html><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Freedom Loans Mart - Login - Final - Real Supabase Login - No Demo Default</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// === SUPABASE LIVE CONFIG - Self-contained - 2000 Plan - Daily ROI 40x50 - Real Key ===
-const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
-let supabaseClient = null;
-try {
-  if (typeof supabase !== 'undefined') {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase Live Connected - 2000 Plan - ROI 40x50 - Real Key Embedded - Self-contained');
+const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+let supabaseClient=null;
+try{if(typeof supabase!=='undefined'){supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}}catch(e){}
+async function loginReal(flIdOrMobile,password){
+ if(!supabaseClient){return {success:false,message:'Supabase not connected - Check internet'};}
+ try{
+  let user=null;
+  const {data: byFlId} = await supabaseClient.from('users').select('*').eq('fl_id',flIdOrMobile.toUpperCase()).limit(1);
+  if(byFlId&&byFlId.length>0) user=byFlId[0];
+  if(!user){
+   const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile',flIdOrMobile).limit(1);
+   if(byMobile&&byMobile.length>0) user=byMobile[0];
   }
-} catch(e) { console.log('Supabase fallback demo'); }
-
-// ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
-
-async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash) {
-  if (!supabaseClient) {
-    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
-    const user = {fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password, pin_token: pinToken, payment_method: paymentMethod, utr_hash: utrHash};
-    localStorage.setItem('flm_user_'+flId, JSON.stringify(user));
-    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName}));
-    return {success: true, flId: flId, message: 'Demo Registration - FL ID: '+flId};
-  }
-  try {
-    if (pinToken) {
-      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).single();
-      if (pinError || !pinData) {
-        return {success: false, message: '❌ Pin Wrong - Pin/Token not found: '+pinToken};
-      }
-      if(pinData.status==='used'){
-        return {success: false, message: '⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile+' at '+pinData.used_at};
-      }
-      if(pinData.status!=='unused'){
-        return {success: false, message: '❌ Pin Wrong - Status: '+pinData.status};
-      }
-      await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
-    } else {
-      if (!utrHash) return {success: false, message: 'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
-      await supabaseClient.from('payment_transactions').insert({
-        mobile: mobile, email: email, payment_method: paymentMethod, utr_hash: utrHash, amount: 2000, status: 'pending'
-      });
-    }
-    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
-    const {data: userData, error: userError} = await supabaseClient.from('users').insert({
-      fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password,
-      left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0
-    }).select().single();
-    if (userError) throw userError;
-    await supabaseClient.from('wallets').insert({fl_id: flId, roi_wallet: 0, matching_wallet: 0, loan_wallet: 0, main_wallet: 0});
-    await supabaseClient.from('binary_summary').insert({
-      fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
-      left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
-    });
-
-    // === UPDATE SPONSOR BINARY COUNT - LEFT/RIGHT + TEAM SIZE + TOKENS - FIX FOR COUNT 0 ISSUE ===
-    if(sponsorId){
-      try{
-        // Get sponsor binary summary
-        const {data: sponsorBin, error: binErr} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
-        if(!binErr && sponsorBin){
-          let updateData = {};
-          if(side.toLowerCase()==='left'){
-            updateData.left_own = (sponsorBin.left_own||0)+1;
-            updateData.left_tokens = (sponsorBin.left_tokens||0)+1;
-          } else {
-            updateData.right_own = (sponsorBin.right_own||0)+1;
-            updateData.right_tokens = (sponsorBin.right_tokens||0)+1;
-          }
-          updateData.team_size = (sponsorBin.team_size||0)+1;
-          // Calculate pairs - min of left_tokens and right_tokens
-          const newLeft = updateData.left_tokens!==undefined ? updateData.left_tokens : sponsorBin.left_tokens;
-          const newRight = updateData.right_tokens!==undefined ? updateData.right_tokens : sponsorBin.right_tokens;
-          const pairs = Math.min(newLeft, newRight);
-          updateData.total_pairs = pairs;
-          updateData.daily_pairs_today = (sponsorBin.daily_pairs_today||0)+ (pairs > (sponsorBin.total_pairs||0) ? 1 : 0);
-          updateData.daily_income_today = updateData.daily_pairs_today * 200; // Rs.200 per pair
-          
-          await supabaseClient.from('binary_summary').update(updateData).eq('fl_id', sponsorId.toUpperCase());
-          console.log('Sponsor binary updated - '+sponsorId+' - Side '+side+' - Left:'+newLeft+' Right:'+newRight+' Pairs:'+pairs);
-          
-          // Also update users table left_own/right_own for sponsor
-          const {data: sponsorUser} = await supabaseClient.from('users').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
-          if(sponsorUser){
-            let userUpdate = {};
-            if(side.toLowerCase()==='left'){
-              userUpdate.left_own = (sponsorUser.left_own||0)+1;
-            } else {
-              userUpdate.right_own = (sponsorUser.right_own||0)+1;
-            }
-            await supabaseClient.from('users').update(userUpdate).eq('fl_id', sponsorId.toUpperCase());
-          }
-        } else {
-          console.log('Sponsor binary not found - '+sponsorId+' - Creating?');
-          // If sponsor binary not found, try create for sponsor if sponsor is FL884234 etc
-        }
-      } catch(e){ console.log('Sponsor update error: '+e.message); }
-    }
-
-    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
-    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50 - Sponsor '+sponsorId+' binary updated - Left/Right count +1'};
-  } catch(err) {
-    return {success: false, message: 'Registration failed: '+err.message};
-  }
+  if(!user) return {success:false,message:'No account found with FL ID or Mobile: '+flIdOrMobile+' - Real DB - Check users table'};
+  if(user.password!==password) return {success:false,message:'Wrong password - Real DB check'};
+  return {success:true,user:user};
+ }catch(err){return {success:false,message:'Login failed: '+err.message};}
 }
-
-async function loginReal(flIdOrMobile, password) {
-  if (!supabaseClient) {
-    if(flIdOrMobile.toUpperCase().includes('973530') || flIdOrMobile.toUpperCase().includes('THEJA')){
-      return {success: true, user: {fl_id: 'FL973530', full_name: 'Theja', sponsor_id: 'FL100001'}};
-    }
-    return {success: false, message: 'Demo: Use FL973530 / theja123 - Live connect Supabase'};
-  }
-  try {
-    let query = supabaseClient.from('users').select('*');
-    const {data: byFlId} = await query.eq('fl_id', flIdOrMobile.toUpperCase()).limit(1);
-    let user = byFlId && byFlId.length>0 ? byFlId[0] : null;
-    if (!user) {
-      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile', flIdOrMobile).limit(1);
-      user = byMobile && byMobile.length>0 ? byMobile[0] : null;
-    }
-    if (!user) return {success: false, message: 'No account found: '+flIdOrMobile};
-    if (user.password !== password) return {success: false, message: 'Wrong password'};
-    const {data: wallet} = await supabaseClient.from('wallets').select('*').eq('fl_id', user.fl_id).single();
-    const {data: binary} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', user.fl_id).single();
-    const sessionUser = {flId: user.fl_id, name: user.full_name, sponsorId: user.sponsor_id, side: user.side, mobile: user.mobile, email: user.email, wallet: wallet, binary: binary};
-    localStorage.setItem('flm_session', JSON.stringify(sessionUser));
-    return {success: true, user: sessionUser, wallet: wallet, binary: binary};
-  } catch(err) {
-    return {success: false, message: 'Login failed: '+err.message};
-  }
-}
-
-async function adminLoadUsers() {
-  if (!supabaseClient) return [{fl_id: 'FL973530', full_name: 'Theja'}];
-  const {data} = await supabaseClient.from('users').select('*').order('created_at', {ascending: false}).limit(50);
-  return data;
-}
-async function adminLoadPins() {
-  if (!supabaseClient) return [{pin_code: 'FLMPIN100001', status: 'unused', amount: 2000}];
-  const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
-  return data;
-}
-async function adminGeneratePinsWithBonus(qty) {
-  const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
-  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
-  const pins = [];
-  for(let i=0;i<total;i++){
-    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
-    pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
-  }
-  const {error} = await supabaseClient.from('pins').insert(pins);
-  if(error) alert('Error: '+error.message);
-  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
-}
-
 </script>
-<title>FLM Login</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}
-html,body{width:100%;overflow-x:hidden} body{background:#eef2f7;min-height:100vh;padding:16px}
-.card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:16px;border:1px solid #e5e7eb}
-.btn{padding:12px 20px;border-radius:12px;border:0;font-weight:700;cursor:pointer;font-size:14px}
-.btn-blue{background:#1e40af;color:#fff}
-.input{width:100%;height:52px;border:1px solid #e5e7eb;border-radius:14px;padding:0 16px;font-size:14px;background:#f9fafb;outline:none}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;z-index:9999}
-</style></head><body>
-<div id="loginWrap" style="max-width:440px;margin:0 auto">
-<div class="card" style="padding:24px;text-align:center">
-<div style="width:200px;height:60px;background:linear-gradient(135deg,#dc2626 35%,#1e40af 35%);border-radius:10px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px">FREEDOM<br>LOANS MART</div>
-<div style="color:#dc2626;font-size:12px;font-weight:700;letter-spacing:1px;margin:12px 0 8px">FREEDOM LOANS</div>
-<h1 style="font-size:28px;font-weight:800;color:#0f172a;line-height:1.1">Secure access to your account.</h1>
-<p style="font-size:13px;color:#64748b;margin-top:8px">Sign in to manage referrals, wallet, loans, rewards.</p>
-</div>
-<div class="card" style="padding:24px">
-<div style="color:#dc2626;font-size:11px;font-weight:700;letter-spacing:1.5px;margin-bottom:6px">SECURE ACCESS</div>
-<h2 style="font-size:24px;font-weight:800;color:#0f172a;margin-bottom:20px">Sign in</h2>
-<label style="font-size:13px;font-weight:700;display:block;margin-bottom:8px">Username or email</label>
-<input id="loginId" class="input" placeholder="admin or name@example.com" style="margin-bottom:16px">
-<label style="font-size:13px;font-weight:700;display:block;margin-bottom:8px">Password</label>
-<input id="loginPass" type="password" class="input" placeholder="Enter password" style="margin-bottom:16px">
-<div id="err" style="color:#dc2626;font-size:12px;display:none;background:#fef2f2;padding:8px;border-radius:8px;margin-bottom:12px"></div>
-<button id="loginBtn" class="btn btn-blue" style="width:100%;height:52px">Sign In</button>
-<div style="text-align:center;margin-top:12px"><a href="#" onclick="document.getElementById('forgotBox').style.display='block';return false" style="color:#2563eb;font-size:13px;font-weight:600;text-decoration:none">Forgot password?</a></div>
+body{background:#eef2f7;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+.card{background:#fff;border-radius:20px;padding:20px;max-width:400px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:10px}
+.btn{width:100%;padding:12px;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:999px;font-size:12px;z-index:9999}
+</style>
+</head>
+<body>
+<div class="card" id="loginWrap">
+<div style="text-align:center;margin-bottom:16px"><div style="width:64px;height:64px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div><div style="margin-top:10px;font-weight:800;font-size:16px">FREEDOM LOANS MART</div><div style="font-size:11px;color:#64748b">Real Login - Supabase users table - No Demo Default - Final</div></div>
+<div id="err" style="display:none;background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px"></div>
+<input id="loginId" placeholder="FL ID or Mobile - Eg: FL123456 or 9876543210 - Real from Supabase" class="input">
+<input id="loginPass" type="password" placeholder="Password - Real from Supabase users.password" class="input">
+<button id="loginBtn" class="btn btn-primary">Login - Real Supabase Check - No Default FL973530</button>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-<button onclick="demoLogin('FL973530','theja123')" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">👤 Demo: Theja</button>
-<button onclick="demoLogin('FL100001','admin123')" style="background:#0f172a;color:#fff;border:1px solid #0f172a;padding:12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">🔑 Admin Demo</button>
+<button onclick="demoLogin('FL100001','admin123')" style="background:#0f172a;color:#fff;border:1px solid #0f172a;padding:10px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer">🔑 Admin FL100001</button>
+<button onclick="document.getElementById('forgotBox').style.display=document.getElementById('forgotBox').style.display==='none'?'block':'none'" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer">Forgot?</button>
 </div>
-<div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register</a> | <a href="./admin.html" style="color:#64748b">Admin</a> | <a href="./index.html" style="color:#64748b">Dashboard</a></div>
+<div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register - Real Supabase</a> | <a href="./index.html" style="color:#64748b">Dashboard</a> | <a href="./admin.html" style="color:#64748b">Admin</a></div>
 <div id="forgotBox" style="display:none;margin-top:16px;border-top:1px solid #f1f5f9;padding-top:16px">
 <div style="font-weight:700;font-size:14px;margin-bottom:8px">Forget Password - Mail OTP</div>
-<input id="forgotEmail" placeholder="Enter email" type="email" class="input" style="margin-bottom:8px;height:44px">
+<input id="forgotEmail" placeholder="Enter email - Real" type="email" class="input" style="margin-bottom:8px;height:44px">
 <button onclick="sendOtp()" class="btn" style="width:100%;background:#0f172a;color:#fff;height:44px">Send OTP</button>
 <div id="otpBox" style="display:none;margin-top:10px">
 <input id="otpInput" placeholder="Enter 6-digit OTP" class="input" style="margin-bottom:8px;height:44px">
@@ -199,44 +56,38 @@ html,body{width:100%;overflow-x:hidden} body{background:#eef2f7;min-height:100vh
 </div>
 <div id="forgotMsg" style="margin-top:8px;font-size:11px"></div>
 </div>
-</div>
-</div>
-<div class="menu" id="dashMenu" style="position:fixed;left:-100%;top:0;width:85vw;max-width:340px;height:100dvh;background:#fff;color:#0f172a;z-index:9999;transition:left 0.3s ease;padding:16px;overflow-y:auto;box-shadow:4px 0 20px rgba(0,0,0,0.15)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><b>Freedom Loans Mart</b><span style="cursor:pointer;background:#f1f5f9;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onclick="toggleDashMenu()">✕</span></div><div style="display:flex;flex-direction:column;gap:10px"><div onclick="location.href='./index.html'" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0">📊 Full Dashboard</div><div onclick="location.href='./register.html'" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0">➕ Register Member</div><div onclick="localStorage.removeItem('flm_session');location.reload()" style="cursor:pointer;background:#fef3c7;padding:12px;border-radius:12px;border:1px solid #f59e0b">🚪 Logout</div></div></div><div class="overlay" id="dashOverlay" onclick="toggleDashMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;z-index:9998"></div>
-<div id="dashView" style="display:none;max-width:440px;margin:0 auto;padding:16px;background:#eef2f7;min-height:100vh">
-<div style="position:relative;border-radius:24px;overflow:hidden;height:180px;margin-bottom:16px;background:linear-gradient(135deg,#1e40af,#0e7490);display:flex;align-items:center;padding:16px;color:#fff">
-<div><div style="font-size:24px;font-weight:800">Members</div><div style="font-size:16px">Dashboard</div></div>
-<div style="position:absolute;right:12px;top:12px;background:#fff;padding:6px 10px;border-radius:8px;color:#1e40af;font-size:9px;font-weight:800;text-align:center">FREEDOM<br>LOANS MART</div>
-</div>
-<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-radius:20px">
-<div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px;cursor:pointer" onclick="toggleDashMenu()">☰</span><span style="font-size:18px;font-weight:800;color:#1e3a5f">Dashboard</span></div>
-<div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 12px;border-radius:16px;border:1px solid #e2e8f0"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:12px;font-weight:700" id="dashUserName">Theja</div><div style="font-size:10px;color:#64748b" id="dashFlId">FL973530</div></div></div>
-</div>
-<div style="background:linear-gradient(135deg,#1e4a7a 0%,#2a7a8a 50%,#3aa99e 100%);border-radius:28px;padding:20px;color:#fff;margin-top:16px">
-<div style="display:flex;gap:14px;align-items:center;margin-bottom:20px"><div style="width:56px;height:56px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800" id="userInitial">T</div><div><div style="font-size:10px;letter-spacing:2px;opacity:.8">MEMBER DASHBOARD</div><div style="font-size:16px;font-weight:700;margin-top:2px" id="memberName">Theja</div><div style="font-size:12px;opacity:.9"><span id="memberFlId2">FL973530</span> • <span style="color:#86efac">Active</span></div></div></div>
-<button class="btn" style="width:100%;background:#fff;color:#1e4a7a;height:44px;border-radius:14px;font-weight:700;margin-bottom:10px">Invite members</button>
-<button class="btn" style="width:100%;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);height:44px;border-radius:14px" onclick="location.href='./index.html'">View Full Dashboard</button>
-</div>
-<div class="card" style="margin-top:16px;border-radius:20px;padding:16px"><div style="background:#dcfce7;color:#166534;padding:6px 10px;border-radius:8px;font-size:10px;font-weight:700;display:inline-block;margin-bottom:8px">MATCHING BONUS</div><div style="font-size:15px;font-weight:700;color:#1e3a5f">Rs. 200 for every completed left and right pair</div><button class="btn" style="width:100%;margin-top:12px;background:#0f172a;color:#fff;height:44px;border-radius:12px" onclick="localStorage.removeItem('flm_session');location.reload()">Logout</button></div>
+<div style="margin-top:12px;background:#f8fafc;padding:10px;border-radius:10px;border:1px solid #e2e8f0"><div style="font-size:10px;font-weight:700;color:#0f172a">Real Login - No Default - Final</div><div style="font-size:9px;color:#64748b;margin-top:2px">FL ID or Mobile + Password - Query Supabase users table - Password check - Real name, mobile, sponsor_id fetch - Session save flId = real FL ID - Redirect to index.html - Real data load - No default FL973530 - Santho login ayite Santho details - Link ayindi - Final</div></div>
 </div>
 <script>
-function toggleDashMenu(){const menu=document.getElementById('dashMenu');const ov=document.getElementById('dashOverlay');if(!menu)return;menu.classList.toggle('open');const isOpen=menu.classList.contains('open');menu.style.left=isOpen?'0':'-100%';ov.style.display=isOpen?'block':'none';}
-function toast(m){let t=document.createElement('div');t.className='toast';t.innerText=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2000);}
-function demoLogin(id,pass){
-document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;
-setTimeout(()=>{document.getElementById('loginBtn').click();},200);
+function toast(m){let t=document.createElement('div');t.className='toast';t.innerText=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+async function demoLogin(id,pass){
+ document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;
+ document.getElementById('loginBtn').click();
 }
-document.getElementById('loginBtn').addEventListener('click',()=>{
-const id=document.getElementById('loginId').value.trim();const pass=document.getElementById('loginPass').value.trim();
-const err=document.getElementById('err');if(!id||!pass){err.style.display='block';err.innerText='Enter ID and Password';return;}err.style.display='none';
-const user={flId:id.toUpperCase(),name:id.includes('100001')?'Admin':id.includes('973530')?'Theja':'User',mobile:id};
-localStorage.setItem('flm_session',JSON.stringify(user));
-document.getElementById('loginWrap').style.display='none';document.getElementById('dashView').style.display='block';
-document.getElementById('dashUserName').innerText=user.name;document.getElementById('dashFlId').innerText=user.flId;
-document.getElementById('memberName').innerText=user.name;document.getElementById('memberFlId2').innerText=user.flId;
-document.getElementById('userInitial').innerText=user.name.charAt(0).toUpperCase();
-toast('Welcome '+user.name+'! Demo login success - Client ki chupincheki');
+document.getElementById('loginBtn').addEventListener('click',async()=>{
+ const id=document.getElementById('loginId').value.trim();const pass=document.getElementById('loginPass').value.trim();
+ const err=document.getElementById('err');if(!id||!pass){err.style.display='block';err.innerText='Enter FL ID/Mobile and Password - Real DB';return;}err.style.display='none';
+ const btn=document.getElementById('loginBtn');btn.innerText='⏳ Logging in - Real Supabase users table check...';btn.disabled=true;
+ try{
+  const result=await loginReal(id,pass);
+  if(result.success){
+   const user=result.user;
+   const flId=user.fl_id||id.toUpperCase();
+   const name=user.full_name||'User';
+   const session={flId:flId,fl_id:flId,name:name,full_name:name,mobile:user.mobile||'',email:user.email||'',sponsor_id:user.sponsor_id||'',side:user.side||''};
+   localStorage.setItem('flm_session',JSON.stringify(session));
+   toast('Welcome '+name+'! FL ID: '+flId+' - Real login success - Redirecting to dashboard - Real data for '+flId);
+   setTimeout(()=>{location.href='./index.html';},1200);
+  }else{
+   err.style.display='block';err.innerText='❌ '+result.message+' - Real DB - Check FL ID/Mobile and Password';
+   btn.innerText='Login - Real Supabase Check';btn.disabled=false;
+  }
+ }catch(e){
+  err.style.display='block';err.innerText='❌ Login error: '+e.message;
+  btn.innerText='Login - Real Supabase Check';btn.disabled=false;
+ }
 });
-function sendOtp(){const email=document.getElementById('forgotEmail').value.trim();const msg=document.getElementById('forgotMsg');if(!email){msg.innerHTML='<span style=color:#dc2626>Enter email</span>';return;}const otp=Math.floor(100000+Math.random()*900000);localStorage.setItem('flm_otp_'+email,otp);msg.innerHTML='OTP: <b>'+otp+'</b> (Demo) - 5 min valid';document.getElementById('otpBox').style.display='block';}
-(function(){const s=localStorage.getItem('flm_session');if(s){try{const u=JSON.parse(s);document.getElementById('loginWrap').style.display='none';document.getElementById('dashView').style.display='block';document.getElementById('dashUserName').innerText=u.name;document.getElementById('dashFlId').innerText=u.flId;document.getElementById('memberName').innerText=u.name;document.getElementById('memberFlId2').innerText=u.flId;document.getElementById('userInitial').innerText=u.name.charAt(0).toUpperCase();}catch(e){}}})();
+function sendOtp(){const email=document.getElementById('forgotEmail').value.trim();const msg=document.getElementById('forgotMsg');if(!email){msg.innerHTML='<span style=color:#dc2626>Enter email - Real</span>';return;}const otp=Math.floor(100000+Math.random()*900000);localStorage.setItem('flm_otp_'+email,otp);msg.innerHTML='OTP: <b>'+otp+'</b> (Demo) - 5 min valid - Real email: '+email;document.getElementById('otpBox').style.display='block';}
+(function(){const s=localStorage.getItem('flm_session');if(s){try{const u=JSON.parse(s);if(u.flId){/* Stay on login - user can re-login */}}catch(e){}}})();
 </script>
 </body></html>
