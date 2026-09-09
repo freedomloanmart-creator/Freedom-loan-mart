@@ -301,8 +301,65 @@ async function saveUserEdits(){
  loadSec('users');
 }
 async function getStoreCoords(){var a=document.getElementById('storeLat'),b=document.getElementById('storeLng');if(a.value&&b.value)return;if(!navigator.geolocation){alert('Location unavailable. Enter latitude/longitude manually.');return;}navigator.geolocation.getCurrentPosition(function(pos){a.value=pos.coords.latitude.toFixed(7);b.value=pos.coords.longitude.toFixed(7);},function(){alert('Location permission denied. Enter latitude/longitude manually.');},{enableHighAccuracy:true,timeout:10000});}
-async function createStore(){if(!supabaseClient){alert('Database unavailable');return;}var o={name:storeName.value.trim(),store_code:storeCode.value.trim().toUpperCase(),phone:storePhone.value.trim(),mobile:storePhone.value.trim(),address:storeAddress.value.trim(),town:storeTown.value.trim(),pincode:storePincode.value.trim(),latitude:parseFloat(storeLat.value),longitude:parseFloat(storeLng.value),status:'active'};if(!o.name||!o.store_code||!o.phone||!o.address||!o.town||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){alert('Fill all store details and latitude/longitude.');return;}var r=await supabaseClient.from('stores').insert(o);if(r.error){alert('Store save failed: '+r.error.message);return;}alert('✅ Store created successfully.');['storeName','storeCode','storePhone','storeAddress','storeTown','storePincode','storeLat','storeLng'].forEach(id=>document.getElementById(id).value='');loadSec('stores');}
-async function loadStoresAdmin(){var el=document.getElementById('storesList');if(!el||!supabaseClient)return;var r=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(100);if(r.error){el.innerHTML='<div style="padding:12px;color:#dc2626">'+escapeHtml(r.error.message)+'</div>';return;}var rows=r.data||[];el.innerHTML=rows.length?rows.map(st=>'<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||'')+'</div>'+(st.latitude!=null&&st.longitude!=null?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;margin-top:8px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">🗺️ Open Map</a>':'')+'</div>').join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';}
+async function createStore(){if(!supabaseClient){alert('Database unavailable');return;}var o={name:storeName.value.trim(),store_code:storeCode.value.trim().toUpperCase(),phone:storePhone.value.trim(),address:storeAddress.value.trim(),town:storeTown.value.trim(),pincode:storePincode.value.trim(),latitude:parseFloat(storeLat.value),longitude:parseFloat(storeLng.value),status:'active'};if(!o.name||!o.store_code||!o.phone||!o.address||!o.town||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){alert('Fill all store details and latitude/longitude.');return;}var r=await supabaseClient.from('stores').insert(o);if(r.error){alert('Store save failed: '+r.error.message);return;}alert('✅ Store created successfully.');['storeName','storeCode','storePhone','storeAddress','storeTown','storePincode','storeLat','storeLng'].forEach(id=>document.getElementById(id).value='');loadSec('stores');}
+
+async function editStore(storeId){
+  if(!storeId||!supabaseClient)return;
+  var r=await supabaseClient.from('stores').select('*').eq('id',storeId).single();
+  if(r.error){alert('Could not load store: '+r.error.message);return;}
+  var s=r.data||{};
+  document.getElementById('editStoreId').value=s.id||'';
+  document.getElementById('editStoreName').value=s.name||'';
+  document.getElementById('editStoreCode').value=s.store_code||'';
+  document.getElementById('editStorePhone').value=s.phone||s.mobile||'';
+  document.getElementById('editStoreAddress').value=s.address||'';
+  document.getElementById('editStoreTown').value=s.town||s.city||'';
+  document.getElementById('editStorePincode').value=s.pincode||'';
+  document.getElementById('editStoreLat').value=s.latitude??'';
+  document.getElementById('editStoreLng').value=s.longitude??'';
+  document.getElementById('editStoreStatus').value=s.status||'active';
+  var box=document.getElementById('storeEditor');
+  if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'start');}
+}
+
+async function saveStoreEdits(){
+  if(!supabaseClient){alert('Database unavailable');return;}
+  var id=document.getElementById('editStoreId').value.trim();
+  var name=document.getElementById('editStoreName').value.trim();
+  var code=document.getElementById('editStoreCode').value.trim().toUpperCase();
+  var phone=document.getElementById('editStorePhone').value.trim();
+  var address=document.getElementById('editStoreAddress').value.trim();
+  var town=document.getElementById('editStoreTown').value.trim();
+  var pincode=document.getElementById('editStorePincode').value.trim();
+  var lat=parseFloat(document.getElementById('editStoreLat').value);
+  var lng=parseFloat(document.getElementById('editStoreLng').value);
+  var status=document.getElementById('editStoreStatus').value;
+  if(!id||!name||!code||!phone||!address||!town||!pincode||!Number.isFinite(lat)||!Number.isFinite(lng)){
+    alert('Fill all store details and latitude/longitude.');
+    return;
+  }
+  var obj={name:name,store_code:code,phone:phone,mobile:phone,address:address,town:town,pincode:pincode,latitude:lat,longitude:lng,status:status};
+  var r=await supabaseClient.from('stores').update(obj).eq('id',id);
+  if(r.error){alert('Store update failed: '+r.error.message);return;}
+  alert('✅ Store updated successfully.');
+  closeStoreEditor();
+  loadStoresAdmin();
+  loadDashboardReal();
+}
+
+function closeStoreEditor(){
+  var box=document.getElementById('storeEditor');
+  if(box)box.style.display='none';
+}
+
+async function loadStoresAdmin(){
+  var el=document.getElementById('storesList');
+  if(!el||!supabaseClient)return;
+  var r=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(100);
+  if(r.error){el.innerHTML='<div style="padding:12px;color:#dc2626">'+escapeHtml(r.error.message)+'</div>';return;}
+  var rows=r.data||[];
+  el.innerHTML=rows.length?rows.map(st=>'<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||st.mobile||'')+'</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button onclick="editStore(\''+escapeHtml(st.id||'')+'\')" style="background:#f59e0b;color:#fff;border:0;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800">✏️ Edit Store</button>'+(st.latitude!=null&&st.longitude!=null?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800">🗺️ View Map</a>':'')+'</div></div>').join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';
+}).limit(100);if(r.error){el.innerHTML='<div style="padding:12px;color:#dc2626">'+escapeHtml(r.error.message)+'</div>';return;}var rows=r.data||[];el.innerHTML=rows.length?rows.map(st=>'<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||'')+'</div>'+(st.latitude!=null&&st.longitude!=null?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;margin-top:8px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">🗺️ Open Map</a>':'')+'</div>').join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';}
 
 async function loadSec(id){
  if(id==='users'&&supabaseClient){const {data,error}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);if(error){document.getElementById('usersList').innerHTML='<div style="padding:14px;color:#991b1b">'+escapeHtml(error.message)+'</div>';return;}document.getElementById('usersList').innerHTML=(data||[]).map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><b>${escapeHtml(u.full_name||'')}</b> - ${escapeHtml(u.fl_id||'')}</div><button onclick="openUserEditor('${escapeHtml(u.fl_id||'')}')" style="background:#2563eb;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">✏️ Edit</button></div><div style="font-size:11px;color:#64748b;margin-top:5px">Mobile: ${escapeHtml(u.mobile||'')} | Email: ${escapeHtml(u.email||'')} | Address: ${escapeHtml(u.address||u.full_address||'Not saved')}</div></div>`).join('')||'<div style="padding:20px;text-align:center;color:#64748b">No users found.</div>';}
@@ -378,6 +435,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="card"><div style="font-weight:800;font-size:16px">📋 All PINs</div><div style="font-size:11px;color:#64748b;margin-top:4px">ADMIN GENERATED = Copy available · PURCHASE APPROVED = No Copy</div><div id="pinsList" style="margin-top:10px;max-height:600px;overflow:auto">Loading...</div></div>
 </div>
 <div id="sec-stores" style="display:none"><div class="card" style="border:2px solid #f59e0b"><div style="font-weight:800;color:#92400e">🏪 Store Locator</div><div style="font-size:11px;color:#64748b;margin-top:4px">Real store list from Supabase</div><div id="storesList" style="margin-top:10px">Loading stores...</div></div></div>
+<div id="storeEditor" style="display:none"><div class="card" style="border:2px solid #f59e0b;background:#fffbeb"><div style="font-weight:800;color:#92400e;font-size:16px">✏️ Edit FLM Store</div><div style="font-size:11px;color:#64748b;margin-top:4px">Update complete store information, contact details, address, pincode and map location.</div><input id="editStoreId" type="hidden"><input id="editStoreName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="editStoreCode" class="input" placeholder="Unique Store Code" style="margin-top:8px"><input id="editStorePhone" class="input" placeholder="Store Phone Number" style="margin-top:8px"><textarea id="editStoreAddress" class="input" placeholder="Complete Store Address" style="margin-top:8px;min-height:70px;resize:none"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreTown" class="input" placeholder="Town / City"><input id="editStorePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreLat" class="input" placeholder="Latitude"><input id="editStoreLng" class="input" placeholder="Longitude"></div><select id="editStoreStatus" class="input" style="margin-top:8px"><option value="active">Active</option><option value="inactive">Inactive</option></select><button type="button" onclick="saveStoreEdits()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store Changes</button><button type="button" onclick="closeStoreEditor()" style="width:100%;margin-top:8px;background:#fff;color:#334155;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font-weight:800">Cancel</button></div></div>
 <div id="sec-createStore" style="display:none"><div class="card" style="border:2px solid #10b981"><div style="font-weight:800;color:#065f46;font-size:16px">➕ Create / Add FLM Store</div><div style="font-size:11px;color:#64748b;margin-top:4px">Store address + pincode + phone + exact map location. Members will use this data.</div><input id="storeName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="storeCode" class="input" placeholder="Unique Store Code e.g. FLM-HYD-001" style="margin-top:8px"><input id="storePhone" class="input" placeholder="Store Phone Number" style="margin-top:8px"><textarea id="storeAddress" class="input" placeholder="Complete Store Address" style="margin-top:8px;min-height:70px;resize:none"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeTown" class="input" placeholder="Town / City"><input id="storePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeLat" class="input" placeholder="Latitude"><input id="storeLng" class="input" placeholder="Longitude"></div><button type="button" onclick="getStoreCoords()" style="width:100%;margin-top:8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:10px;padding:11px;font-weight:800">📍 Use Current Location for Store</button><button type="button" onclick="createStore()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store</button></div></div>
 <div id="sec-storePoints" style="display:none"><div class="card"><h3>⭐ Store Points</h3><div>Store points management</div></div></div>
 <div id="sec-subAdmin" style="display:none"><div class="card"><h3>👤 Sub Admin</h3><div>Sub admin management</div></div></div>
