@@ -252,8 +252,56 @@ function checkAdminSession(){const sess=localStorage.getItem('flm_admin_session'
 async function loadAdminData(){if(supabaseClient){const dash=await loadDashboardReal();if(dash){document.getElementById('statMembers').innerText=dash.usersCount||0;document.getElementById('statTokens').innerText=dash.pinsCount||0;document.getElementById('statStores').innerText=dash.storesCount||0;if(dash.users){document.getElementById('recentMembers').innerHTML=dash.users.map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id} - ${u.mobile} - ${u.town||''}</div>`).join('');}if(dash.binarySummary){const totalPairs=dash.binarySummary.reduce((s,x)=>s+(x.total_pairs||0),0);document.getElementById('binaryPairs').innerText=totalPairs+' pairs';}}}}
 function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);}
+function openUserEditor(flId){
+ var box=document.getElementById('userEditor'); if(box) box.style.display='block';
+ var input=document.getElementById('editFlId'); if(input) input.value=flId||'';
+ loadUserForEdit();
+ if(box) box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function loadUserForEdit(){
+ var flId=(document.getElementById('editFlId')||{}).value.trim(); if(!flId||!supabaseClient) return;
+ var msg=document.getElementById('editUserMsg'); if(msg) msg.innerText='Loading...';
+ var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();
+ if(r.error){if(msg) msg.innerText='User not found: '+r.error.message;return;}
+ var u=r.data||{};
+ document.getElementById('editName').value=u.full_name||'';
+ document.getElementById('editMobile').value=u.mobile||'';
+ document.getElementById('editEmail').value=u.email||'';
+ document.getElementById('editPassword').value='';
+ document.getElementById('editAddress').value=u.address||u.full_address||'';
+ document.getElementById('editPincode').value=u.pincode||'';
+ document.getElementById('editCity').value=u.city||u.town||'';
+ if(msg){msg.style.color='#059669';msg.innerText='User loaded. Make changes and save.';}
+}
+async function saveUserEdits(){
+ var flId=(document.getElementById('editFlId')||{}).value.trim(); if(!flId){alert('Enter User FL ID');return;}
+ if(!supabaseClient){alert('Database not available');return;}
+ var msg=document.getElementById('editUserMsg'); if(msg) msg.innerText='Saving...';
+ var obj={
+  full_name:document.getElementById('editName').value.trim(),
+  mobile:document.getElementById('editMobile').value.trim(),
+  email:document.getElementById('editEmail').value.trim(),
+  address:document.getElementById('editAddress').value.trim(),
+  full_address:document.getElementById('editAddress').value.trim(),
+  pincode:document.getElementById('editPincode').value.trim(),
+  city:document.getElementById('editCity').value.trim()
+ };
+ var pass=document.getElementById('editPassword').value;
+ if(pass) obj.password=pass;
+ var r=await supabaseClient.from('users').update(obj).eq('fl_id',flId);
+ if(r.error){
+  // Some older schemas may not have full_address/city/password. Retry only the common profile columns.
+  if(pass){
+   var fallback={full_name:obj.full_name,mobile:obj.mobile,email:obj.email,address:obj.address,pincode:obj.pincode,city:obj.city,password:pass};
+   var rr=await supabaseClient.from('users').update(fallback).eq('fl_id',flId);
+   if(rr.error){if(msg){msg.style.color='#dc2626';msg.innerText='Save failed: '+rr.error.message;}return;}
+  }else{if(msg){msg.style.color='#dc2626';msg.innerText='Save failed: '+r.error.message;}return;}
+ }
+ if(msg){msg.style.color='#059669';msg.innerText='✅ User details updated successfully.';}
+ loadSec('users');
+}
 async function loadSec(id){
- if(id==='users'&&supabaseClient){const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('usersList').innerHTML=data.map(u=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><b>${u.full_name}</b> - ${u.fl_id} - Left 0 Right 0 Pairs 0 Team 1<br><span style="font-size:11px;color:#64748b">Mobile: ${u.mobile} | Email: ${u.email||''} | Sponsor: ${u.sponsor_id||''}</span></div>`).join('');}
+ if(id==='users'&&supabaseClient){const {data,error}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);if(error){document.getElementById('usersList').innerHTML='<div style="padding:14px;color:#991b1b">'+escapeHtml(error.message)+'</div>';return;}document.getElementById('usersList').innerHTML=(data||[]).map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><b>${escapeHtml(u.full_name||'')}</b> - ${escapeHtml(u.fl_id||'')}</div><button onclick="openUserEditor('${escapeHtml(u.fl_id||'')}')" style="background:#2563eb;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">✏️ Edit</button></div><div style="font-size:11px;color:#64748b;margin-top:5px">Mobile: ${escapeHtml(u.mobile||'')} | Email: ${escapeHtml(u.email||'')} | Address: ${escapeHtml(u.address||u.full_address||'Not saved')}</div></div>`).join('')||'<div style="padding:20px;text-align:center;color:#64748b">No users found.</div>';}
  if(id==='pins'&&supabaseClient){
   const {data,error}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(500);
   if(error){document.getElementById('pinsList').innerHTML='<div style="padding:14px;color:#991b1b">'+escapeHtml(error.message)+'</div>';}
@@ -316,7 +364,7 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 <div id="sec-dashboard"><div class="card" style="background:#f0fdf4;border:2px solid #059669"><div style="font-weight:800;color:#065f46">✅ Admin Panel Files + Pins Logic</div><div style="font-size:11px;color:#166534;margin-top:6px"></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Members</div><div style="font-size:24px;font-weight:800" id="statMembers">0</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pins</div><div style="font-size:24px;font-weight:800" id="statTokens">0</div></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Stores</div><div style="font-size:24px;font-weight:800" id="statStores">0</div><div style="font-size:11px;color:#64748b"></div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pairs</div><div style="font-size:20px;font-weight:800" id="binaryPairs">0 pairs</div></div></div><div class="card"><h3>Recent Members - Real - Live DB</h3><div id="recentMembers">Loading...</div></div></div>
-<div id="sec-users" style="display:none"><div class="card"><h3>👥 Users - Real - Live DB</h3><div id="usersList">Loading...</div></div></div>
+<div id="sec-users" style="display:none"><div class="card"><h3>👥 Users - Real - Live DB</h3><div style="font-size:11px;color:#64748b;margin:5px 0 10px">Admin can update member name, mobile, email, password and delivery address.</div><div id="usersList">Loading...</div></div><div class="card" id="userEditor" style="display:none;border:2px solid #2563eb;background:#eff6ff"><div style="font-weight:800;color:#1e40af;font-size:16px">✏️ Edit Member</div><input id="editFlId" class="input" placeholder="User FL ID" style="margin-top:10px"><button onclick="loadUserForEdit()" style="width:100%;margin-top:8px;background:#0f172a;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:700">Load User</button><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input id="editName" class="input" placeholder="Full name"><input id="editMobile" class="input" placeholder="Mobile"></div><input id="editEmail" class="input" placeholder="Email" style="margin-top:8px"><input id="editPassword" class="input" type="password" placeholder="New password (leave blank to keep current)" style="margin-top:8px"><textarea id="editAddress" class="input" placeholder="Full address" style="margin-top:8px;min-height:80px;resize:none"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editPincode" class="input" placeholder="Pincode"><input id="editCity" class="input" placeholder="City"></div><button onclick="saveUserEdits()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Member Changes</button><div id="editUserMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div></div>
 <div id="sec-pins" style="display:none">
 <div class="card" style="background:#f0fdf4;border:2px solid #2563eb"><h3>🎫 PIN Management</h3><div style="font-size:12px;color:#475569;margin-top:5px">Admin-generated pins can be copied. Purchase-approved pins are shown for tracking only.</div></div>
 <div class="card" style="border:2px solid #2563eb"><div style="font-weight:800;color:#1e40af;font-size:16px">📌 Pins Analytics - Live</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px"><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#64748b">Total</div><div style="font-size:22px;font-weight:800" id="pinsTotal">0</div></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#64748b">Unused Green</div><div style="font-size:22px;font-weight:800;color:#166534" id="pinsUnused">0</div></div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#64748b">Used Brown</div><div style="font-size:22px;font-weight:800;color:#991b1b" id="pinsUsed">0</div></div></div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="filterPins('all')" style="background:#0f172a;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700">All</button><button onclick="filterPins('unused')" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700">Unused Green</button><button onclick="filterPins('used')" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700">Used Brown</button></div></div>
