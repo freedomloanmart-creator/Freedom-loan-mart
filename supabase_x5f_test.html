@@ -1,0 +1,34 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Supabase Test - Insert User</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+let supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function testInsert(){
+  const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+  const {data, error} = await supabaseClient.from('users').insert({
+    fl_id: flId, sponsor_id: 'FL100001', side: 'left', full_name: 'Test User '+flId, mobile: '98765'+Math.floor(100000 + Math.random()*900000), email: 'test'+flId+'@gmail.com', password: 'test123'
+  }).select();
+  document.getElementById('res').innerHTML = error ? '❌ Error: '+error.message + '<br>Check RLS - Run fix_rls_allow_all.sql' : '✅ Success Inserted: '+flId+'<br>Data: '+JSON.stringify(data)+'<br>Now check Supabase Table Editor > public.users - Should show new row';
+  if(!error){
+    await supabaseClient.from('wallets').insert({fl_id: flId});
+    await supabaseClient.from('binary_summary').insert({fl_id: flId});
+  }
+}
+
+async function testSelect(){
+  const {data, error} = await supabaseClient.from('users').select('*').limit(5);
+  document.getElementById('res').innerHTML = error ? '❌ Select Error: '+error.message : '✅ Select Success - '+data.length+' users<br>'+JSON.stringify(data).substring(0,500);
+}
+</script>
+</head><body style="padding:16px;font-family:sans-serif">
+<h2>Supabase Connection Test - 2000 Plan</h2>
+<div style="background:#dbeafe;padding:8px;border-radius:8px;font-size:12px">URL: https://izmkjarrksemenjzboid.supabase.co<br>Anon Key: eyJ... (embedded)</div>
+<button onclick="testSelect()" style="padding:10px 20px;margin:10px 5px;background:#2563eb;color:#fff;border:0;border-radius:8px">Test SELECT users</button>
+<button onclick="testInsert()" style="padding:10px 20px;margin:10px 5px;background:#059669;color:#fff;border:0;border-radius:8px">Test INSERT user</button>
+<div id="res" style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:12px"></div>
+<p style="font-size:11px;margin-top:16px">If INSERT fails with RLS error, run fix_rls_allow_all.sql in Supabase SQL Editor - Then test again</p>
+</body></html>
