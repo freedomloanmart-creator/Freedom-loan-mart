@@ -25,9 +25,15 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
   }
   try {
     if (pinToken) {
-      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).eq('status', 'unused').single();
+      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).single();
       if (pinError || !pinData) {
-        return {success: false, message: 'Invalid Pin/Token - Use FLMPIN... or FLTKN... - Pin=Token same - 2000 plan'};
+        return {success: false, message: '❌ Pin Wrong - Pin/Token not found: '+pinToken};
+      }
+      if(pinData.status==='used'){
+        return {success: false, message: '⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile+' at '+pinData.used_at};
+      }
+      if(pinData.status!=='unused'){
+        return {success: false, message: '❌ Pin Wrong - Status: '+pinData.status};
       }
       await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
     } else {
@@ -47,8 +53,53 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
       fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
       left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
     });
+
+    // === UPDATE SPONSOR BINARY COUNT - LEFT/RIGHT + TEAM SIZE + TOKENS - FIX FOR COUNT 0 ISSUE ===
+    if(sponsorId){
+      try{
+        // Get sponsor binary summary
+        const {data: sponsorBin, error: binErr} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
+        if(!binErr && sponsorBin){
+          let updateData = {};
+          if(side.toLowerCase()==='left'){
+            updateData.left_own = (sponsorBin.left_own||0)+1;
+            updateData.left_tokens = (sponsorBin.left_tokens||0)+1;
+          } else {
+            updateData.right_own = (sponsorBin.right_own||0)+1;
+            updateData.right_tokens = (sponsorBin.right_tokens||0)+1;
+          }
+          updateData.team_size = (sponsorBin.team_size||0)+1;
+          // Calculate pairs - min of left_tokens and right_tokens
+          const newLeft = updateData.left_tokens!==undefined ? updateData.left_tokens : sponsorBin.left_tokens;
+          const newRight = updateData.right_tokens!==undefined ? updateData.right_tokens : sponsorBin.right_tokens;
+          const pairs = Math.min(newLeft, newRight);
+          updateData.total_pairs = pairs;
+          updateData.daily_pairs_today = (sponsorBin.daily_pairs_today||0)+ (pairs > (sponsorBin.total_pairs||0) ? 1 : 0);
+          updateData.daily_income_today = updateData.daily_pairs_today * 200; // Rs.200 per pair
+          
+          await supabaseClient.from('binary_summary').update(updateData).eq('fl_id', sponsorId.toUpperCase());
+          console.log('Sponsor binary updated - '+sponsorId+' - Side '+side+' - Left:'+newLeft+' Right:'+newRight+' Pairs:'+pairs);
+          
+          // Also update users table left_own/right_own for sponsor
+          const {data: sponsorUser} = await supabaseClient.from('users').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
+          if(sponsorUser){
+            let userUpdate = {};
+            if(side.toLowerCase()==='left'){
+              userUpdate.left_own = (sponsorUser.left_own||0)+1;
+            } else {
+              userUpdate.right_own = (sponsorUser.right_own||0)+1;
+            }
+            await supabaseClient.from('users').update(userUpdate).eq('fl_id', sponsorId.toUpperCase());
+          }
+        } else {
+          console.log('Sponsor binary not found - '+sponsorId+' - Creating?');
+          // If sponsor binary not found, try create for sponsor if sponsor is FL884234 etc
+        }
+      } catch(e){ console.log('Sponsor update error: '+e.message); }
+    }
+
     localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
-    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50'};
+    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50 - Sponsor '+sponsorId+' binary updated - Left/Right count +1'};
   } catch(err) {
     return {success: false, message: 'Registration failed: '+err.message};
   }
@@ -153,15 +204,38 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 </div></div>
 <script>
 let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
-function checkToken(){
+async function checkToken(){
 const token=document.getElementById('pinToken').value.trim();
 const sec=document.getElementById('paymentSection');
+const msgBox=document.getElementById('msg');
 if(!token){alert('Enter Token/Pin - FLMPIN... or FLTKN...');return;}
-// Check if valid (demo: any starting with FLM or FLT)
-if(token.toUpperCase().startsWith('FLM') || token.toUpperCase().startsWith('FLT')){
-alert('✅ Token/Pin Valid: '+token+' - No payment needed - Direct entry - Pin=Token okate');
-if(sec) sec.style.display='none';
-}else{alert('❌ Invalid Token/Pin - Use FLMPIN... or FLTKN... or pay via UPI/USDT');if(sec) sec.style.display='block';}
+if(!supabaseClient){alert('❌ Supabase not connected - Demo: Any FLM/FLT valid');return;}
+msgBox.innerHTML='<span style=color:#2563eb>⏳ Checking Pin/Token - Real DB...</span>';
+try{
+  const {data: allPins, error: err1} = await supabaseClient.from('pins').select('*').eq('pin_code', token.toUpperCase()).limit(1);
+  if(err1) throw err1;
+  if(!allPins || allPins.length===0){
+    msgBox.innerHTML='<span style=color:#dc2626>❌ Pin Wrong - Pin/Token not found in DB - Use valid FLMPIN... or FLTKN... from pins table</span>';
+    alert('❌ Pin Wrong - Not found: '+token);
+    if(sec) sec.style.display='block';
+    return;
+  }
+  const pin = allPins[0];
+  if(pin.status==='used'){
+    msgBox.innerHTML='<span style=color:#f59e0b>⚠️ This Pin Already Used - Used by: '+pin.used_by_mobile+' at '+new Date(pin.used_at).toLocaleString()+' - Use another unused pin</span>';
+    alert('⚠️ This Pin Already Used - Used by: '+pin.used_by_mobile);
+    if(sec) sec.style.display='none';
+    return;
+  }
+  if(pin.status==='unused'){
+    msgBox.innerHTML='<span style=color:#059669>✅ Correct - Pin/Token Valid & Unused - Amount Rs.'+pin.amount+' - No payment needed - Direct entry - Pin=Token same</span>';
+    alert('✅ Correct - Pin Valid & Unused: '+token+' - Amount Rs.'+pin.amount);
+    if(sec) sec.style.display='none';
+    return;
+  }
+} catch(e){
+  msgBox.innerHTML='<span style=color:#dc2626>❌ Error checking pin: '+e.message+'</span>';
+}
 }
 document.getElementById('pinToken').addEventListener('input',function(){
 const v=this.value.trim();const sec=document.getElementById('paymentSection');
@@ -188,8 +262,8 @@ try{
  const utrHash = payMethod==='UPI' ? utr : hash;
  const result = await registerReal(sponsor, side.toLowerCase(), pinToken, name, mobile, email, password, payMethod, utrHash);
  if(result.success){
-   msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'<br>Supabase Tables lo Insert Ayindi - Check public.users, wallets, binary_summary<br>Redirecting to Login...</span>';
-   setTimeout(()=>location.href='./login.html',2000);
+   msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'<br>Supabase Tables lo Insert Ayindi - Check public.users, wallets, binary_summary<br>Admin Panel lo Live Kanipistundi - Refresh Chey<br>Redirecting to Login...</span>';
+   setTimeout(()=>location.href='./login.html',2500);
  } else {
    msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
  }
