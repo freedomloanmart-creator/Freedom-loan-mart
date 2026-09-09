@@ -29,10 +29,33 @@ async function adminGeneratePinsWithBonus(qty){
   const bonus=Math.floor(qty/100)*20; const total=qty+bonus;
   const genFor=document.getElementById('pinGenerateFor')?.value||'';
   const town=document.getElementById('pinTown')?.value||'';
-  if(!supabaseClient){ alert('Demo: '+total+' Random Pins - For: '+genFor+' Town: '+town); return; }
-  const pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:genFor,town:town}); }
-  const {error}=await supabaseClient.from('pins').insert(pins);
-  if(error) alert('Error: '+error.message+' - Note: generated_for/town columns lekapothe Supabase lo add chey'); else { alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nTown wise: '+town+'\nUser wise: '+genFor); loadSec('pins'); }
+  if(!supabaseClient){ alert('Demo: '+total+' Random Pins - For: '+genFor+' Town: '+town+'\nNote: Supabase connect ayithe live save'); loadSec('pins'); return; }
+  // Try with town and generated_for columns first
+  let pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:genFor,town:town}); }
+  let {error}=await supabaseClient.from('pins').insert(pins);
+  if(error){
+    console.log('Insert with town/generated_for failed: '+error.message+' - Trying without those columns');
+    // Fallback - insert without generated_for/town if columns don't exist in Supabase
+    if(error.message.includes('generated_for') || error.message.includes('town') || error.message.includes('schema cache')){
+      pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000}); }
+      const retry=await supabaseClient.from('pins').insert(pins);
+      if(retry.error){
+        alert('Error: '+retry.error.message);
+      } else {
+        // Save town/user info locally for analytics if DB columns missing
+        let localMeta=JSON.parse(localStorage.getItem('flm_pins_meta')||'{}');
+        pins.forEach(p=>{ localMeta[p.pin_code]={generated_for:genFor,town:town,created_at:new Date().toISOString()}; });
+        localStorage.setItem('flm_pins_meta', JSON.stringify(localMeta));
+        alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB (Basic)\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nNote: Town/User info saved locally - Supabase lo generated_for/town columns add cheyali for permanent - SQL icha - Town: '+town);
+        loadSec('pins');
+      }
+    } else {
+      alert('Error: '+error.message);
+    }
+  } else {
+    alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nTown wise: '+town+'\nUser wise: '+genFor);
+    loadSec('pins');
+  }
 }
 async function adminGeneratePinsWithTown(){
   const qty=parseInt(document.getElementById('pinQty').value)||10;
@@ -271,6 +294,9 @@ async function loadSec(id){
      let filtered=data;
      if(currentPinsFilter==='unused') filtered=data.filter(p=>p.status==='unused');
      if(currentPinsFilter==='used') filtered=data.filter(p=>p.status==='used');
+     // Merge local meta if DB columns missing
+     let localMeta=JSON.parse(localStorage.getItem('flm_pins_meta')||'{}');
+     filtered=filtered.map(p=>{ const meta=localMeta[p.pin_code]||{}; return {...p, town:p.town||meta.town||'', generated_for:p.generated_for||meta.generated_for||''}; });
      document.getElementById('pinsList').innerHTML=filtered.map(p=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:8px;margin-bottom:6px"><div style="font-weight:700;font-family:monospace">${p.pin_code}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span><span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span>${p.town?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;font-size:10px">📍 ${p.town}</span>`:''}${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''}${p.used_by_mobile?`<span style="padding:2px 6px;border-radius:4px;background:#e0e7ff;font-size:10px">Used by: ${p.used_by_mobile}</span>`:''}</div>${p.used_at?`<div style="font-size:10px;color:#64748b;margin-top:2px">Used at: ${new Date(p.used_at).toLocaleString()}</div>`:''}</div>`).join('');
      // Client analytics info
      const townGroups={}; data.forEach(p=>{ const t=p.town||'General'; if(!townGroups[t]) townGroups[t]={total:0,used:0,unused:0}; townGroups[t].total++; if(p.status==='used') townGroups[t].used++; else townGroups[t].unused++; });
