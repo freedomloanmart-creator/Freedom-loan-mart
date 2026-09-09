@@ -262,7 +262,57 @@ body{background:#eef2f7;color:#0f172a}
 
 </div>
 
-<div id="sec-invite" style="display:none"><div class="card"><h3>🔗 Invite Links</h3><div id="inviteLinks">Loading...</div></div></div>
+
+<div id="sec-invite" style="display:none">
+<!-- Header -->
+<div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">Invite Members</b></div>
+<div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="inviteTopName">Theja</div><div style="font-size:10px;color:#64748b" id="inviteTopFl">FL ID</div></div></div>
+</div>
+
+<!-- Left referral link -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">🔗</div><b style="color:#fff">Left referral link</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px" id="leftLinkStatus">Open</div>
+<div style="padding:16px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><input id="leftLinkInput" readonly style="width:100%;border:0;background:transparent;font-size:12px;color:#1e3a5a;outline:none" value=""></div>
+<button onclick="copyLeftLink()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;cursor:pointer">Copy</button>
+</div>
+</div>
+
+<!-- Right referral link -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🔗</div><b style="color:#fff">Right referral link</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px" id="rightLinkStatus">Open</div>
+<div style="padding:16px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><input id="rightLinkInput" readonly style="width:100%;border:0;background:transparent;font-size:12px;color:#1e3a5a;outline:none" value=""></div>
+<button onclick="copyRightLink()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;cursor:pointer">Copy</button>
+</div>
+</div>
+
+<!-- Wing status -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📊</div><b style="color:#fff">Wing status</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px;cursor:pointer" onclick="showSec('downline')">Open downline</div>
+<div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left wing</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="leftWingCount">0</div></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right wing</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="rightWingCount">0</div></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left placement</div><div style="font-size:18px;font-weight:800;margin-top:6px" id="leftPlacement">Open</div></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right placement</div><div style="font-size:18px;font-weight:800;margin-top:6px" id="rightPlacement">Open</div></div>
+</div>
+</div>
+
+<!-- Sponsored members -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👥</div><b style="color:#fff">Sponsored members</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px" id="sponsoredTotal">0 total</div>
+<div style="padding:16px">
+<div id="sponsoredList" style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;text-align:center;color:#64748b;font-size:14px">No sponsored members yet.</div>
+</div>
+</div>
+
+</div>
+
 <div id="sec-tokens" style="display:none"><div class="card"><h3>🎫 My Pins</h3><div id="tokensList">Loading...</div></div></div>
 <div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI Earnings</h3><div id="roiList">Loading...</div></div></div>
 <div id="sec-rewards" style="display:none"><div class="card"><h3>🏆 Rewards</h3><div id="rewardsList">Loading...</div></div></div>
