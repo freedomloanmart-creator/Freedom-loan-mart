@@ -1,305 +1,166 @@
-<!DOCTYPE html><html><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Freedom Loans Mart - Members Dashboard - Light Theme</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// === SUPABASE LIVE CONFIG - Self-contained - 2000 Plan - Daily ROI 40x50 - Real Key ===
 const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient = null;
-try {
-  if (typeof supabase !== 'undefined') {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase Live Connected - 2000 Plan - ROI 40x50 - Real Key Embedded - Self-contained');
-  }
-} catch(e) { console.log('Supabase fallback demo'); }
-
-// ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
-
-async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash) {
-  if (!supabaseClient) {
-    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
-    const user = {fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password, pin_token: pinToken, payment_method: paymentMethod, utr_hash: utrHash};
-    localStorage.setItem('flm_user_'+flId, JSON.stringify(user));
-    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName}));
-    return {success: true, flId: flId, message: 'Demo Registration - FL ID: '+flId};
-  }
-  try {
-    if (pinToken) {
-      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).single();
-      if (pinError || !pinData) {
-        return {success: false, message: '❌ Pin Wrong - Pin/Token not found: '+pinToken};
-      }
-      if(pinData.status==='used'){
-        return {success: false, message: '⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile+' at '+pinData.used_at};
-      }
-      if(pinData.status!=='unused'){
-        return {success: false, message: '❌ Pin Wrong - Status: '+pinData.status};
-      }
-      await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
-    } else {
-      if (!utrHash) return {success: false, message: 'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
-      await supabaseClient.from('payment_transactions').insert({
-        mobile: mobile, email: email, payment_method: paymentMethod, utr_hash: utrHash, amount: 2000, status: 'pending'
-      });
-    }
-    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
-    const {data: userData, error: userError} = await supabaseClient.from('users').insert({
-      fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password,
-      left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0
-    }).select().single();
-    if (userError) throw userError;
-    await supabaseClient.from('wallets').insert({fl_id: flId, roi_wallet: 0, matching_wallet: 0, loan_wallet: 0, main_wallet: 0});
-    await supabaseClient.from('binary_summary').insert({
-      fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
-      left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
-    });
-
-    // === UPDATE SPONSOR BINARY COUNT - LEFT/RIGHT + TEAM SIZE + TOKENS - FIX FOR COUNT 0 ISSUE ===
-    if(sponsorId){
-      try{
-        // Get sponsor binary summary
-        const {data: sponsorBin, error: binErr} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
-        if(!binErr && sponsorBin){
-          let updateData = {};
-          if(side.toLowerCase()==='left'){
-            updateData.left_own = (sponsorBin.left_own||0)+1;
-            updateData.left_tokens = (sponsorBin.left_tokens||0)+1;
-          } else {
-            updateData.right_own = (sponsorBin.right_own||0)+1;
-            updateData.right_tokens = (sponsorBin.right_tokens||0)+1;
-          }
-          updateData.team_size = (sponsorBin.team_size||0)+1;
-          // Calculate pairs - min of left_tokens and right_tokens
-          const newLeft = updateData.left_tokens!==undefined ? updateData.left_tokens : sponsorBin.left_tokens;
-          const newRight = updateData.right_tokens!==undefined ? updateData.right_tokens : sponsorBin.right_tokens;
-          const pairs = Math.min(newLeft, newRight);
-          updateData.total_pairs = pairs;
-          updateData.daily_pairs_today = (sponsorBin.daily_pairs_today||0)+ (pairs > (sponsorBin.total_pairs||0) ? 1 : 0);
-          updateData.daily_income_today = updateData.daily_pairs_today * 200; // Rs.200 per pair
-          
-          await supabaseClient.from('binary_summary').update(updateData).eq('fl_id', sponsorId.toUpperCase());
-          console.log('Sponsor binary updated - '+sponsorId+' - Side '+side+' - Left:'+newLeft+' Right:'+newRight+' Pairs:'+pairs);
-          
-          // Also update users table left_own/right_own for sponsor
-          const {data: sponsorUser} = await supabaseClient.from('users').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
-          if(sponsorUser){
-            let userUpdate = {};
-            if(side.toLowerCase()==='left'){
-              userUpdate.left_own = (sponsorUser.left_own||0)+1;
-            } else {
-              userUpdate.right_own = (sponsorUser.right_own||0)+1;
-            }
-            await supabaseClient.from('users').update(userUpdate).eq('fl_id', sponsorId.toUpperCase());
-          }
-        } else {
-          console.log('Sponsor binary not found - '+sponsorId+' - Creating?');
-          // If sponsor binary not found, try create for sponsor if sponsor is FL884234 etc
-        }
-      } catch(e){ console.log('Sponsor update error: '+e.message); }
-    }
-
-    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
-    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50 - Sponsor '+sponsorId+' binary updated - Left/Right count +1'};
-  } catch(err) {
-    return {success: false, message: 'Registration failed: '+err.message};
-  }
-}
-
-async function loginReal(flIdOrMobile, password) {
-  if (!supabaseClient) {
-    if(flIdOrMobile.toUpperCase().includes('973530') || flIdOrMobile.toUpperCase().includes('THEJA')){
-      return {success: true, user: {fl_id: 'FL973530', full_name: 'Theja', sponsor_id: 'FL100001'}};
-    }
-    return {success: false, message: 'Demo: Use FL973530 / theja123 - Live connect Supabase'};
-  }
-  try {
-    let query = supabaseClient.from('users').select('*');
-    const {data: byFlId} = await query.eq('fl_id', flIdOrMobile.toUpperCase()).limit(1);
-    let user = byFlId && byFlId.length>0 ? byFlId[0] : null;
-    if (!user) {
-      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile', flIdOrMobile).limit(1);
-      user = byMobile && byMobile.length>0 ? byMobile[0] : null;
-    }
-    if (!user) return {success: false, message: 'No account found: '+flIdOrMobile};
-    if (user.password !== password) return {success: false, message: 'Wrong password'};
-    const {data: wallet} = await supabaseClient.from('wallets').select('*').eq('fl_id', user.fl_id).single();
-    const {data: binary} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', user.fl_id).single();
-    const sessionUser = {flId: user.fl_id, name: user.full_name, sponsorId: user.sponsor_id, side: user.side, mobile: user.mobile, email: user.email, wallet: wallet, binary: binary};
-    localStorage.setItem('flm_session', JSON.stringify(sessionUser));
-    return {success: true, user: sessionUser, wallet: wallet, binary: binary};
-  } catch(err) {
-    return {success: false, message: 'Login failed: '+err.message};
-  }
-}
-
-async function adminLoadUsers() {
-  if (!supabaseClient) return [{fl_id: 'FL973530', full_name: 'Theja'}];
-  const {data} = await supabaseClient.from('users').select('*').order('created_at', {ascending: false}).limit(50);
-  return data;
-}
-async function adminLoadPins() {
-  if (!supabaseClient) return [{pin_code: 'FLMPIN100001', status: 'unused', amount: 2000}];
-  const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
-  return data;
-}
-async function adminGeneratePinsWithBonus(qty) {
-  const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
-  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
-  const pins = [];
-  for(let i=0;i<total;i++){
-    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
-    pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
-  }
-  const {error} = await supabaseClient.from('pins').insert(pins);
-  if(error) alert('Error: '+error.message);
-  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
-}
-
+try { if (typeof supabase !== 'undefined') { supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } } catch(e) {}
 </script>
-<title>Freedom Loans Mart - User Dashboard | FLM</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
-html,body{width:100%;overflow-x:hidden} body{background:#f1f5f9;color:#0f172a}
-.sidebar{position:fixed;left:0;top:0;width:260px;height:100vh;background:#0f172a;color:#cbd5e1;overflow-y:auto;z-index:20}
-.sidebar .logo{padding:20px;border-bottom:1px solid #1e293b}
-.sidebar a{display:flex;gap:10px;padding:10px 12px;border-radius:8px;color:#94a3b8;text-decoration:none;font-size:13px;margin:4px 12px;cursor:pointer}
-.sidebar a.active,.sidebar a:hover{background:#1e293b;color:#fff}
-.main{margin-left:260px;padding:16px}
-.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);margin-bottom:12px}
-.dark{background:#1e293b;color:#e2e8f0;border-radius:12px;padding:14px}
-.grad{border-radius:12px;padding:14px;color:#fff}
-.grad-blue{background:linear-gradient(135deg,#2563eb,#0e7490)}
-.grad-purple{background:linear-gradient(135deg,#7c3aed,#2563eb)}
-.btn{padding:8px 14px;border-radius:8px;border:0;font-weight:600;cursor:pointer;font-size:12px}
-.btn-blue{background:#2563eb;color:#fff}
-.btn-green{background:#059669;color:#fff}
-.input{width:100%;height:40px;border:1px solid #e2e8f0;border-radius:8px;padding:0 12px}
-.badge{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:900px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}#menuBtn{display:flex!important;align-items:center;justify-content:center}}
-
-.info{background:#dbeafe;border:1px solid #93c5fd;padding:8px;border-radius:8px;font-size:11px;color:#1e40af;margin:6px 0}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI}
+html,body{width:100%;overflow-x:hidden;background:#eef2f7}
+body{color:#0f172a;min-height:100vh;padding:0}
+.card{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);width:100%}
+.dark-card{background:#0f172a;color:#fff;border-radius:16px;padding:16px;margin-bottom:12px;width:100%}
+.topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:0 0 16px 16px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
+.btn-blue{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer}
+.input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px}
+.table{width:100%;border-collapse:collapse;font-size:12px}
+.table th{background:#f1f5f9;text-align:left;padding:8px;font-size:11px}
+.table td{padding:8px;border-top:1px solid #f1f5f9;word-break:break-word}
+.menu{position:fixed;left:-100%;top:0;width:85vw;max-width:340px;height:100dvh;background:#fff;color:#0f172a;z-index:9999;transition:left 0.3s ease;padding:16px;overflow-y:auto;box-shadow:4px 0 20px rgba(0,0,0,0.15)}
+.menu.open{left:0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;z-index:9998}
+.overlay.show{display:block}
+#userMain{width:100%;max-width:100%;padding:12px;box-sizing:border-box}
+.grid1{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px;width:100%}
+@media (max-width:768px){#userMain{padding:8px}.grid1{gap:8px}}
+@media (max-width:480px){#userMain{padding:6px}.grid1{gap:6px}}
 </style>
 </head>
 <body>
-<!-- Mobile Hamburger Button -->
-<button id="menuBtn" onclick="toggleMenu()" style="position:fixed;top:12px;left:12px;z-index:30;background:#0f172a;color:#fff;border:0;width:40px;height:40px;border-radius:8px;font-size:18px;display:none">☰</button>
-<div id="overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15;display:none"></div>
 
-<div class="sidebar">
-<div class="logo"><div style="font-weight:800;color:#fff">freedom<br><span style="color:#60a5fa">LOANS MART</span></div><div style="font-size:10px;color:#64748b;margin-top:4px">FLM Project • Live</div></div>
-<a class="active" onclick="show('dashboard')">📊 Dashboard</a>
-<a onclick="show('invite')">🔗 Invite Links</a>
-<a onclick="show('downline')">🌳 Downline</a>
-<a onclick="show('wallets')">💼 Wallets</a>
-<a onclick="show('loans')">💰 Loans</a>
-<a onclick="show('rewards')">🏆 Rewards</a>
-<a onclick="show('withdraw')">💳 Withdrawals</a>
-<a onclick="show('store')">📍 Store Locator</a>
-<a onclick="show('support')">💬 Support</a>
-<a onclick="show('kit')">📦 Sample Kit</a>
-<a onclick="location.href='./login.html'" style="color:#f87171;margin-top:20px">🚪 Logout</a>
+<div id="userMain">
+
+<div class="topbar">
+<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a">Members</b></div>
+<div style="display:flex;align-items:center;gap:8px"><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div style="width:36px;height:28px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;border:1px solid #e2e8f0"><span style="color:#dc2626;font-weight:800;font-size:9px">freedom</span></div><div style="text-align:left"><div style="font-size:11px;font-weight:800;color:#1e40af">Platform Ad...</div><div style="font-size:10px;color:#64748b">Administrator</div></div></div></div>
 </div>
-<div class="main">
-<div id="p-dashboard">
-<div class="grad grad-blue" style="display:flex;justify-content:space-between"><div><div style="font-size:11px;opacity:.8">MEMBER DASHBOARD</div><div style="font-weight:800">Freedom Loans Mart FL597130 • Active</div><div style="font-size:11px;margin-top:4px">Matching: Rs.200/pair | Max 25 pairs/day = Rs.5000 | Store: 25KM Radius</div></div><div><button class="btn" style="background:#fff;color:#2563eb" onclick="show('invite')">Invite Members</button></div></div>
-<div class="card" style="background:#e0f2fe;display:flex;justify-content:space-between"><span style="font-size:12px"><b>MATCHING BONUS:</b> Rs.200 per left and right pair | Daily Cap 25 pairs</span><span style="font-size:11px;color:#0369a1" onclick="show('downline')">Check Network</span></div>
-<div class="grid2"><div class="card"><b>Profile</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Member ID</div><div style="font-weight:700">FL597130</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Joined</div><div style="font-weight:700">05 Sep 2026</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Activation</div><div style="font-weight:700">05 Sep 2026</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Sponsored by</div><div style="font-weight:700">Platform Admin</div></div></div></div><div class="card"><div style="display:flex;justify-content:space-between"><b>Place a Member</b><span style="color:#2563eb;font-size:11px" onclick="show('invite')">All Links</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#dbeafe;padding:10px;border-radius:8px"><div style="font-size:10px">Left side</div><div style="font-weight:700;font-size:12px">Open Placement</div><button class="btn btn-blue" style="width:100%;margin-top:6px" onclick="copyL()">Copy Left</button></div><div style="background:#d1fae5;padding:10px;border-radius:8px"><div style="font-size:10px">Right side</div><div style="font-weight:700;font-size:12px">Open Placement</div><button class="btn btn-green" style="width:100%;margin-top:6px" onclick="copyR()">Copy Right</button></div></div></div></div>
-<div class="grad grad-purple" style="margin-top:12px;display:flex;justify-content:space-between"><span>Earnings and Wallets</span><span style="font-size:11px" onclick="show('wallets')">Open Wallet</span></div>
-<div class="grid4" style="margin-top:10px"><div class="dark"><div style="font-size:11px">Main Wallet</div><div style="font-size:18px;font-weight:800">Rs.6,200.00</div><div style="font-size:10px;color:#94a3b8">Available</div></div><div class="dark"><div style="font-size:11px">ROI Credits</div><div style="font-size:18px;font-weight:800">1,200.00</div><div style="font-size:10px;color:#94a3b8">Min 1000 for store redeem</div></div><div class="dark"><div style="font-size:11px">Matching Income</div><div style="font-size:18px;font-weight:800">Rs.5,500.00</div><div style="font-size:10px;color:#94a3b8">5000+ or 40:40 = Store Withdraw</div></div><div class="dark"><div style="font-size:11px">Pending Withdrawal</div><div style="font-size:18px;font-weight:800">Rs.0.00</div><div style="font-size:10px;color:#94a3b8">Under review</div></div></div>
-<div class="grid2" style="margin-top:12px"><div class="card"><b>Daily Matching - 25 Pairs Cap (Important)</b><div class="info">Max 25 pairs/day = Rs.5000. Ex: Left 27 + Right 30 joins today → Only 25 counted = Rs.5000. Carry: Left 2, Right 5 to next day.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><input id="dl" class="input" type="number" value="27" placeholder="Left today"><input id="dr" class="input" type="number" value="30" placeholder="Right today"></div><button class="btn btn-blue" style="margin-top:6px" onclick="calcD()">Calculate</button><div id="dRes" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px;font-size:11px"></div></div><div class="card"><b>3 Wallets Logic</b><div class="info"><b>ROI:</b> >=1000 store redeem product<br><b>Matching:</b> >=5000 or 40:40 store withdraw (20% deduction, amounts 200/500/1000/3000/5000 only, once/day)<br><b>Loans:</b> Pair 400 + Loan 1000 = Total 1400, Required 20% = 280, Already 100, Remaining 180 → Purchase at store to unlock next portal, monthly rotation</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px"><input id="pw" class="input" type="number" value="400" placeholder="Pair withdrawn"><input id="lw" class="input" type="number" value="1000" placeholder="Loan withdrawn"><input id="ap" class="input" type="number" value="100" placeholder="Already purchased"></div><button class="btn btn-blue" style="margin-top:6px" onclick="calcL()">Calculate 20%</button><div id="lRes" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px;font-size:11px"></div></div></div>
+
+<div class="menu" id="menu">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><b>Freedom Loans Mart</b><span style="cursor:pointer;background:#f1f5f9;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onclick="toggleMenu()">✕</span></div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div onclick="showSec('dashboard')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center">📊</div><div><div style="font-weight:700">Dashboard</div><div style="font-size:11px;color:#64748b">Overview - Real Counts</div></div></div>
+<div onclick="showSec('members')" style="cursor:pointer;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center">👥</div><div><div style="font-weight:700">Members</div><div style="font-size:11px;opacity:.8" id="menuMembers">Total 0 - Real DB</div></div></div>
+<div onclick="showSec('pins')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">🎫</div><div><div style="font-weight:700">My Pins</div><div style="font-size:11px;color:#64748b">Generated & Used - Town Wise</div></div></div>
+<div onclick="showSec('binary')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#ffedd5;border-radius:10px;display:flex;align-items:center;justify-content:center">🔗</div><div><div style="font-weight:700">Binary</div><div style="font-size:11px;color:#64748b">Left Right Pairs - Real</div></div></div>
+<div onclick="showSec('wallet')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">💰</div><div><div style="font-weight:700">Wallets</div><div style="font-size:11px;color:#64748b">ROI 40x50 - Real</div></div></div>
+<div onclick="localStorage.removeItem('flm_session');location.href='data:text/html;base64,PCFET0NUWVBFIGh0bWw+PGh0bWw+PGhlYWQ+CjxtZXRhIGNoYXJzZXQ9IlVURi04Ij48bWV0YSBuYW1lPSJ2aWV3cG9ydCIgY29udGVudD0id2lkdGg9ZGV2aWNlLXdpZHRoLGluaXRpYWwtc2NhbGU9MS4wIj4KPHNjcmlwdCBzcmM9Imh0dHBzOi8vY2RuLmpzZGVsaXZyLm5ldC9ucG0vQHN1cGFiYXNlL3N1cGFiYXNlLWpzQDIiPjwvc2NyaXB0Pgo8c2NyaXB0PgovLyA9PT0gU1VQQUJBU0UgTElWRSBDT05GSUcgLSBTZWxmLWNvbnRhaW5lZCAtIDIwMDAgUGxhbiAtIERhaWx5IFJPSSA0MHg1MCAtIFJlYWwgS2V5ID09PQpjb25zdCBTVVBBQkFTRV9VUkwgPSAnaHR0cHM6Ly9pem1ramFycmtzZW1lbmp6Ym9pZC5zdXBhYmFzZS5jbyc7CmNvbnN0IFNVUEFCQVNFX0FOT05fS0VZID0gJ2V5SmhiR2NpT2lKSVV6STFOaUlzSW5SNWNDSTZJa3BYVkNKOS5leUpwYzNNaU9pSnpkWEJoWW1GelpTSXNJbkpsWmlJNkltbDZiV3RxWVhKeWEzTmxiV1Z1YW5waWIybGtJaXdpY205c1pTSTZJbUZ1YjI0aUxDSnBZWFFpT2pFM09EZzJOREU0TURnc0ltVjRjQ0k2TWpFd05ESXhOemd3T0gwLjcyTFd2N0tNM2x5T2E2d2JieWFhX2x2cmtBMzNpSkFoeVppSDJhNnU4cW8nOwpsZXQgc3VwYWJhc2VDbGllbnQgPSBudWxsOwp0cnkgewogIGlmICh0eXBlb2Ygc3VwYWJhc2UgIT09ICd1bmRlZmluZWQnKSB7CiAgICBzdXBhYmFzZUNsaWVudCA9IHN1cGFiYXNlLmNyZWF0ZUNsaWVudChTVVBBQkFTRV9VUkwsIFNVUEFCQVNFX0FOT05fS0VZKTsKICAgIGNvbnNvbGUubG9nKCdTdXBhYmFzZSBMaXZlIENvbm5lY3RlZCAtIDIwMDAgUGxhbiAtIFJPSSA0MHg1MCAtIFJlYWwgS2V5IEVtYmVkZGVkIC0gU2VsZi1jb250YWluZWQnKTsKICB9Cn0gY2F0Y2goZSkgeyBjb25zb2xlLmxvZygnU3VwYWJhc2UgZmFsbGJhY2sgZGVtbycpOyB9CgovLyA9PT09PT09PT09PT09PT09PSBSRUFMIEZVTkNUSU9OUyAtIExJVkUgLSAyMDAwIFBsYW4gLSBEYWlseSBST0kgNDB4NTAgPT09PT09PT09PT09PT09PT0KCmFzeW5jIGZ1bmN0aW9uIHJlZ2lzdGVyUmVhbChzcG9uc29ySWQsIHNpZGUsIHBpblRva2VuLCBmdWxsTmFtZSwgbW9iaWxlLCBlbWFpbCwgcGFzc3dvcmQsIHBheW1lbnRNZXRob2QsIHV0ckhhc2gpIHsKICBpZiAoIXN1cGFiYXNlQ2xpZW50KSB7CiAgICBjb25zdCBmbElkID0gJ0ZMJyArIE1hdGguZmxvb3IoMTAwMDAwICsgTWF0aC5yYW5kb20oKSo5MDAwMDApOwogICAgY29uc3QgdXNlciA9IHtmbF9pZDogZmxJZCwgc3BvbnNvcl9pZDogc3BvbnNvcklkLCBzaWRlOiBzaWRlLCBmdWxsX25hbWU6IGZ1bGxOYW1lLCBtb2JpbGU6IG1vYmlsZSwgZW1haWw6IGVtYWlsLCBwYXNzd29yZDogcGFzc3dvcmQsIHBpbl90b2tlbjogcGluVG9rZW4sIHBheW1lbnRfbWV0aG9kOiBwYXltZW50TWV0aG9kLCB1dHJfaGFzaDogdXRySGFzaH07CiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnZmxtX3VzZXJfJytmbElkLCBKU09OLnN0cmluZ2lmeSh1c2VyKSk7CiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnZmxtX3Nlc3Npb24nLCBKU09OLnN0cmluZ2lmeSh7ZmxJZDogZmxJZCwgbmFtZTogZnVsbE5hbWV9KSk7CiAgICByZXR1cm4ge3N1Y2Nlc3M6IHRydWUsIGZsSWQ6IGZsSWQsIG1lc3NhZ2U6ICdEZW1vIFJlZ2lzdHJhdGlvbiAtIEZMIElEOiAnK2ZsSWR9OwogIH0KICB0cnkgewogICAgaWYgKHBpblRva2VuKSB7CiAgICAgIGNvbnN0IHtkYXRhOiBwaW5EYXRhLCBlcnJvcjogcGluRXJyb3J9ID0gYXdhaXQgc3VwYWJhc2VDbGllbnQuZnJvbSgncGlucycpLnNlbGVjdCgnKicpLmVxKCdwaW5fY29kZScsIHBpblRva2VuLnRvVXBwZXJDYXNlKCkpLnNpbmdsZSgpOwogICAgICBpZiAocGluRXJyb3IgfHwgIXBpbkRhdGEpIHsKICAgICAgICByZXR1cm4ge3N1Y2Nlc3M6IGZhbHNlLCBtZXNzYWdlOiAn4p2MIFBpbiBXcm9uZyAtIFBpbi9Ub2tlbiBub3QgZm91bmQ6ICcrcGluVG9rZW59OwogICAgICB9CiAgICAgIGlmKHBpbkRhdGEuc3RhdHVzPT09J3VzZWQnKXsKICAgICAgICByZXR1cm4ge3N1Y2Nlc3M6IGZhbHNlLCBtZXNzYWdlOiAn4pqg77iPIFRoaXMgUGluIEFscmVhZHkgVXNlZCAtIFVzZWQgYnk6ICcrcGluRGF0YS51c2VkX2J5X21vYmlsZSsnIGF0ICcrcGluRGF0YS51c2VkX2F0fTsKICAgICAgfQogICAgICBpZihwaW5EYXRhLnN0YXR1cyE9PSd1bnVzZWQnKXsKICAgICAgICByZXR1cm4ge3N1Y2Nlc3M6IGZhbHNlLCBtZXNzYWdlOiAn4p2MIFBpbiBXcm9uZyAtIFN0YXR1czogJytwaW5EYXRhLnN0YXR1c307CiAgICAgIH0KICAgICAgYXdhaXQgc3VwYWJhc2VDbGllbnQuZnJvbSgncGlucycpLnVwZGF0ZSh7c3RhdHVzOiAndXNlZCcsIHVzZWRfYnlfbW9iaWxlOiBtb2JpbGUsIHVzZWRfYXQ6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKX0pLmVxKCdwaW5fY29kZScsIHBpblRva2VuLnRvVXBwZXJDYXNlKCkpOwogICAgfSBlbHNlIHsKICAgICAgaWYgKCF1dHJIYXNoKSByZXR1cm4ge3N1Y2Nlc3M6IGZhbHNlLCBtZXNzYWdlOiAnVG9rZW4gbGVrdW50ZSBVUEkgVVRSIG9yIFVTRFQgSGFzaCBtYW5kYXRvcnkgLSAyMDAwIFJzJ307CiAgICAgIGF3YWl0IHN1cGFiYXNlQ2xpZW50LmZyb20oJ3BheW1lbnRfdHJhbnNhY3Rpb25zJykuaW5zZXJ0KHsKICAgICAgICBtb2JpbGU6IG1vYmlsZSwgZW1haWw6IGVtYWlsLCBwYXltZW50X21ldGhvZDogcGF5bWVudE1ldGhvZCwgdXRyX2hhc2g6IHV0ckhhc2gsIGFtb3VudDogMjAwMCwgc3RhdHVzOiAncGVuZGluZycKICAgICAgfSk7CiAgICB9CiAgICBjb25zdCBmbElkID0gJ0ZMJyArIE1hdGguZmxvb3IoMTAwMDAwICsgTWF0aC5yYW5kb20oKSo5MDAwMDApOwogICAgY29uc3Qge2RhdGE6IHVzZXJEYXRhLCBlcnJvcjogdXNlckVycm9yfSA9IGF3YWl0IHN1cGFiYXNlQ2xpZW50LmZyb20oJ3VzZXJzJykuaW5zZXJ0KHsKICAgICAgZmxfaWQ6IGZsSWQsIHNwb25zb3JfaWQ6IHNwb25zb3JJZCwgc2lkZTogc2lkZSwgZnVsbF9uYW1lOiBmdWxsTmFtZSwgbW9iaWxlOiBtb2JpbGUsIGVtYWlsOiBlbWFpbCwgcGFzc3dvcmQ6IHBhc3N3b3JkLAogICAgICBsZWZ0X293bjogMCwgcmlnaHRfb3duOiAwLCBsZWZ0X3NwaWxsb3ZlcjogMCwgcmlnaHRfc3BpbGxvdmVyOiAwCiAgICB9KS5zZWxlY3QoKS5zaW5nbGUoKTsKICAgIGlmICh1c2VyRXJyb3IpIHRocm93IHVzZXJFcnJvcjsKICAgIGF3YWl0IHN1cGFiYXNlQ2xpZW50LmZyb20oJ3dhbGxldHMnKS5pbnNlcnQoe2ZsX2lkOiBmbElkLCByb2lfd2FsbGV0OiAwLCBtYXRjaGluZ193YWxsZXQ6IDAsIGxvYW5fd2FsbGV0OiAwLCBtYWluX3dhbGxldDogMH0pOwogICAgYXdhaXQgc3VwYWJhc2VDbGllbnQuZnJvbSgnYmluYXJ5X3N1bW1hcnknKS5pbnNlcnQoewogICAgICBmbF9pZDogZmxJZCwgbGVmdF90b2tlbnM6IDAsIHJpZ2h0X3Rva2VuczogMCwgbGVmdF9vd246IDAsIHJpZ2h0X293bjogMCwgbGVmdF9zcGlsbG92ZXI6IDAsIHJpZ2h0X3NwaWxsb3ZlcjogMCwKICAgICAgbGVmdF9jYXJyeTogMCwgcmlnaHRfY2Fycnk6IDAsIHRvdGFsX3BhaXJzOiAwLCB0ZWFtX3NpemU6IDAsIGRhaWx5X3BhaXJzX3RvZGF5OiAwLCBkYWlseV9pbmNvbWVfdG9kYXk6IDAKICAgIH0pOwoKICAgIC8vID09PSBVUERBVEUgU1BPTlNPUiBCSU5BUlkgQ09VTlQgLSBMRUZUL1JJR0hUICsgVEVBTSBTSVpFICsgVE9LRU5TIC0gRklYIEZPUiBDT1VOVCAwIElTU1VFID09PQogICAgaWYoc3BvbnNvcklkKXsKICAgICAgdHJ5ewogICAgICAgIC8vIEdldCBzcG9uc29yIGJpbmFyeSBzdW1tYXJ5CiAgICAgICAgY29uc3Qge2RhdGE6IHNwb25zb3JCaW4sIGVycm9yOiBiaW5FcnJ9ID0gYXdhaXQgc3VwYWJhc2VDbGllbnQuZnJvbSgnYmluYXJ5X3N1bW1hcnknKS5zZWxlY3QoJyonKS5lcSgnZmxfaWQnLCBzcG9uc29ySWQudG9VcHBlckNhc2UoKSkuc2luZ2xlKCk7CiAgICAgICAgaWYoIWJpbkVyciAmJiBzcG9uc29yQmluKXsKICAgICAgICAgIGxldCB1cGRhdGVEYXRhID0ge307CiAgICAgICAgICBpZihzaWRlLnRvTG93ZXJDYXNlKCk9PT0nbGVmdCcpewogICAgICAgICAgICB1cGRhdGVEYXRhLmxlZnRfb3duID0gKHNwb25zb3JCaW4ubGVmdF9vd258fDApKzE7CiAgICAgICAgICAgIHVwZGF0ZURhdGEubGVmdF90b2tlbnMgPSAoc3BvbnNvckJpbi5sZWZ0X3Rva2Vuc3x8MCkrMTsKICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgIHVwZGF0ZURhdGEucmlnaHRfb3duID0gKHNwb25zb3JCaW4ucmlnaHRfb3dufHwwKSsxOwogICAgICAgICAgICB1cGRhdGVEYXRhLnJpZ2h0X3Rva2VucyA9IChzcG9uc29yQmluLnJpZ2h0X3Rva2Vuc3x8MCkrMTsKICAgICAgICAgIH0KICAgICAgICAgIHVwZGF0ZURhdGEudGVhbV9zaXplID0gKHNwb25zb3JCaW4udGVhbV9zaXplfHwwKSsxOwogICAgICAgICAgLy8gQ2FsY3VsYXRlIHBhaXJzIC0gbWluIG9mIGxlZnRfdG9rZW5zIGFuZCByaWdodF90b2tlbnMKICAgICAgICAgIGNvbnN0IG5ld0xlZnQgPSB1cGRhdGVEYXRhLmxlZnRfdG9rZW5zIT09dW5kZWZpbmVkID8gdXBkYXRlRGF0YS5sZWZ0X3Rva2VucyA6IHNwb25zb3JCaW4ubGVmdF90b2tlbnM7CiAgICAgICAgICBjb25zdCBuZXdSaWdodCA9IHVwZGF0ZURhdGEucmlnaHRfdG9rZW5zIT09dW5kZWZpbmVkID8gdXBkYXRlRGF0YS5yaWdodF90b2tlbnMgOiBzcG9uc29yQmluLnJpZ2h0X3Rva2VuczsKICAgICAgICAgIGNvbnN0IHBhaXJzID0gTWF0aC5taW4obmV3TGVmdCwgbmV3UmlnaHQpOwogICAgICAgICAgdXBkYXRlRGF0YS50b3RhbF9wYWlycyA9IHBhaXJzOwogICAgICAgICAgdXBkYXRlRGF0YS5kYWlseV9wYWlyc190b2RheSA9IChzcG9uc29yQmluLmRhaWx5X3BhaXJzX3RvZGF5fHwwKSsgKHBhaXJzID4gKHNwb25zb3JCaW4udG90YWxfcGFpcnN8fDApID8gMSA6IDApOwogICAgICAgICAgdXBkYXRlRGF0YS5kYWlseV9pbmNvbWVfdG9kYXkgPSB1cGRhdGVEYXRhLmRhaWx5X3BhaXJzX3RvZGF5ICogMjAwOyAvLyBScy4yMDAgcGVyIHBhaXIKICAgICAgICAgIAogICAgICAgICAgYXdhaXQgc3VwYWJhc2VDbGllbnQuZnJvbSgnYmluYXJ5X3N1bW1hcnknKS51cGRhdGUodXBkYXRlRGF0YSkuZXEoJ2ZsX2lkJywgc3BvbnNvcklkLnRvVXBwZXJDYXNlKCkpOwogICAgICAgICAgY29uc29sZS5sb2coJ1Nwb25zb3IgYmluYXJ5IHVwZGF0ZWQgLSAnK3Nwb25zb3JJZCsnIC0gU2lkZSAnK3NpZGUrJyAtIExlZnQ6JytuZXdMZWZ0KycgUmlnaHQ6JytuZXdSaWdodCsnIFBhaXJzOicrcGFpcnMpOwogICAgICAgICAgCiAgICAgICAgICAvLyBBbHNvIHVwZGF0ZSB1c2VycyB0YWJsZSBsZWZ0X293bi9yaWdodF9vd24gZm9yIHNwb25zb3IKICAgICAgICAgIGNvbnN0IHtkYXRhOiBzcG9uc29yVXNlcn0gPSBhd2FpdCBzdXBhYmFzZUNsaWVudC5mcm9tKCd1c2VycycpLnNlbGVjdCgnKicpLmVxKCdmbF9pZCcsIHNwb25zb3JJZC50b1VwcGVyQ2FzZSgpKS5zaW5nbGUoKTsKICAgICAgICAgIGlmKHNwb25zb3JVc2VyKXsKICAgICAgICAgICAgbGV0IHVzZXJVcGRhdGUgPSB7fTsKICAgICAgICAgICAgaWYoc2lkZS50b0xvd2VyQ2FzZSgpPT09J2xlZnQnKXsKICAgICAgICAgICAgICB1c2VyVXBkYXRlLmxlZnRfb3duID0gKHNwb25zb3JVc2VyLmxlZnRfb3dufHwwKSsxOwogICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgIHVzZXJVcGRhdGUucmlnaHRfb3duID0gKHNwb25zb3JVc2VyLnJpZ2h0X293bnx8MCkrMTsKICAgICAgICAgICAgfQogICAgICAgICAgICBhd2FpdCBzdXBhYmFzZUNsaWVudC5mcm9tKCd1c2VycycpLnVwZGF0ZSh1c2VyVXBkYXRlKS5lcSgnZmxfaWQnLCBzcG9uc29ySWQudG9VcHBlckNhc2UoKSk7CiAgICAgICAgICB9CiAgICAgICAgfSBlbHNlIHsKICAgICAgICAgIGNvbnNvbGUubG9nKCdTcG9uc29yIGJpbmFyeSBub3QgZm91bmQgLSAnK3Nwb25zb3JJZCsnIC0gQ3JlYXRpbmc/Jyk7CiAgICAgICAgICAvLyBJZiBzcG9uc29yIGJpbmFyeSBub3QgZm91bmQsIHRyeSBjcmVhdGUgZm9yIHNwb25zb3IgaWYgc3BvbnNvciBpcyBGTDg4NDIzNCBldGMKICAgICAgICB9CiAgICAgIH0gY2F0Y2goZSl7IGNvbnNvbGUubG9nKCdTcG9uc29yIHVwZGF0ZSBlcnJvcjogJytlLm1lc3NhZ2UpOyB9CiAgICB9CgogICAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oJ2ZsbV9zZXNzaW9uJywgSlNPTi5zdHJpbmdpZnkoe2ZsSWQ6IGZsSWQsIG5hbWU6IGZ1bGxOYW1lLCBlbWFpbDogZW1haWwsIG1vYmlsZTogbW9iaWxlfSkpOwogICAgcmV0dXJuIHtzdWNjZXNzOiB0cnVlLCBmbElkOiBmbElkLCBtZXNzYWdlOiAnUmVnaXN0cmF0aW9uIFN1Y2Nlc3MgLSBGTCBJRDogJytmbElkKycgLSAyMDAwIFBsYW4gLSBST0kgNDB4NTAgLSBTcG9uc29yICcrc3BvbnNvcklkKycgYmluYXJ5IHVwZGF0ZWQgLSBMZWZ0L1JpZ2h0IGNvdW50ICsxJ307CiAgfSBjYXRjaChlcnIpIHsKICAgIHJldHVybiB7c3VjY2VzczogZmFsc2UsIG1lc3NhZ2U6ICdSZWdpc3RyYXRpb24gZmFpbGVkOiAnK2Vyci5tZXNzYWdlfTsKICB9Cn0KCmFzeW5jIGZ1bmN0aW9uIGxvZ2luUmVhbChmbElkT3JNb2JpbGUsIHBhc3N3b3JkKSB7CiAgaWYgKCFzdXBhYmFzZUNsaWVudCkgewogICAgaWYoZmxJZE9yTW9iaWxlLnRvVXBwZXJDYXNlKCkuaW5jbHVkZXMoJzk3MzUzMCcpIHx8IGZsSWRPck1vYmlsZS50b1VwcGVyQ2FzZSgpLmluY2x1ZGVzKCdUSEVKQScpKXsKICAgICAgcmV0dXJuIHtzdWNjZXNzOiB0cnVlLCB1c2VyOiB7ZmxfaWQ6ICdGTDk3MzUzMCcsIGZ1bGxfbmFtZTogJ1RoZWphJywgc3BvbnNvcl9pZDogJ0ZMMTAwMDAxJ319OwogICAgfQogICAgcmV0dXJuIHtzdWNjZXNzOiBmYWxzZSwgbWVzc2FnZTogJ0RlbW86IFVzZSBGTDk3MzUzMCAvIHRoZWphMTIzIC0gTGl2ZSBjb25uZWN0IFN1cGFiYXNlJ307CiAgfQogIHRyeSB7CiAgICBsZXQgcXVlcnkgPSBzdXBhYmFzZUNsaWVudC5mcm9tKCd1c2VycycpLnNlbGVjdCgnKicpOwogICAgY29uc3Qge2RhdGE6IGJ5RmxJZH0gPSBhd2FpdCBxdWVyeS5lcSgnZmxfaWQnLCBmbElkT3JNb2JpbGUudG9VcHBlckNhc2UoKSkubGltaXQoMSk7CiAgICBsZXQgdXNlciA9IGJ5RmxJZCAmJiBieUZsSWQubGVuZ3RoPjAgPyBieUZsSWRbMF0gOiBudWxsOwogICAgaWYgKCF1c2VyKSB7CiAgICAgIGNvbnN0IHtkYXRhOiBieU1vYmlsZX0gPSBhd2FpdCBzdXBhYmFzZUNsaWVudC5mcm9tKCd1c2VycycpLnNlbGVjdCgnKicpLmVxKCdtb2JpbGUnLCBmbElkT3JNb2JpbGUpLmxpbWl0KDEpOwogICAgICB1c2VyID0gYnlNb2JpbGUgJiYgYnlNb2JpbGUubGVuZ3RoPjAgPyBieU1vYmlsZVswXSA6IG51bGw7CiAgICB9CiAgICBpZiAoIXVzZXIpIHJldHVybiB7c3VjY2VzczogZmFsc2UsIG1lc3NhZ2U6ICdObyBhY2NvdW50IGZvdW5kOiAnK2ZsSWRPck1vYmlsZX07CiAgICBpZiAodXNlci5wYXNzd29yZCAhPT0gcGFzc3dvcmQpIHJldHVybiB7c3VjY2VzczogZmFsc2UsIG1lc3NhZ2U6ICdXcm9uZyBwYXNzd29yZCd9OwogICAgY29uc3Qge2RhdGE6IHdhbGxldH0gPSBhd2FpdCBzdXBhYmFzZUNsaWVudC5mcm9tKCd3YWxsZXRzJykuc2VsZWN0KCcqJykuZXEoJ2ZsX2lkJywgdXNlci5mbF9pZCkuc2luZ2xlKCk7CiAgICBjb25zdCB7ZGF0YTogYmluYXJ5fSA9IGF3YWl0IHN1cGFiYXNlQ2xpZW50LmZyb20oJ2JpbmFyeV9zdW1tYXJ5Jykuc2VsZWN0KCcqJykuZXEoJ2ZsX2lkJywgdXNlci5mbF9pZCkuc2luZ2xlKCk7CiAgICBjb25zdCBzZXNzaW9uVXNlciA9IHtmbElkOiB1c2VyLmZsX2lkLCBuYW1lOiB1c2VyLmZ1bGxfbmFtZSwgc3BvbnNvcklkOiB1c2VyLnNwb25zb3JfaWQsIHNpZGU6IHVzZXIuc2lkZSwgbW9iaWxlOiB1c2VyLm1vYmlsZSwgZW1haWw6IHVzZXIuZW1haWwsIHdhbGxldDogd2FsbGV0LCBiaW5hcnk6IGJpbmFyeX07CiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnZmxtX3Nlc3Npb24nLCBKU09OLnN0cmluZ2lmeShzZXNzaW9uVXNlcikpOwogICAgcmV0dXJuIHtzdWNjZXNzOiB0cnVlLCB1c2VyOiBzZXNzaW9uVXNlciwgd2FsbGV0OiB3YWxsZXQsIGJpbmFyeTogYmluYXJ5fTsKICB9IGNhdGNoKGVycikgewogICAgcmV0dXJuIHtzdWNjZXNzOiBmYWxzZSwgbWVzc2FnZTogJ0xvZ2luIGZhaWxlZDogJytlcnIubWVzc2FnZX07CiAgfQp9Cgphc3luYyBmdW5jdGlvbiBhZG1pbkxvYWRVc2VycygpIHsKICBpZiAoIXN1cGFiYXNlQ2xpZW50KSByZXR1cm4gW3tmbF9pZDogJ0ZMOTczNTMwJywgZnVsbF9uYW1lOiAnVGhlamEnfV07CiAgY29uc3Qge2RhdGF9ID0gYXdhaXQgc3VwYWJhc2VDbGllbnQuZnJvbSgndXNlcnMnKS5zZWxlY3QoJyonKS5vcmRlcignY3JlYXRlZF9hdCcsIHthc2NlbmRpbmc6IGZhbHNlfSkubGltaXQoNTApOwogIHJldHVybiBkYXRhOwp9CmFzeW5jIGZ1bmN0aW9uIGFkbWluTG9hZFBpbnMoKSB7CiAgaWYgKCFzdXBhYmFzZUNsaWVudCkgcmV0dXJuIFt7cGluX2NvZGU6ICdGTE1QSU4xMDAwMDEnLCBzdGF0dXM6ICd1bnVzZWQnLCBhbW91bnQ6IDIwMDB9XTsKICBjb25zdCB7ZGF0YX0gPSBhd2FpdCBzdXBhYmFzZUNsaWVudC5mcm9tKCdwaW5zJykuc2VsZWN0KCcqJykub3JkZXIoJ2NyZWF0ZWRfYXQnLCB7YXNjZW5kaW5nOiBmYWxzZX0pLmxpbWl0KDEwMCk7CiAgcmV0dXJuIGRhdGE7Cn0KYXN5bmMgZnVuY3Rpb24gYWRtaW5HZW5lcmF0ZVBpbnNXaXRoQm9udXMocXR5KSB7CiAgY29uc3QgYm9udXMgPSBNYXRoLmZsb29yKHF0eS8xMDApKjIwOyBjb25zdCB0b3RhbCA9IHF0eSArIGJvbnVzOwogIGlmICghc3VwYWJhc2VDbGllbnQpIHsgYWxlcnQoJ0RlbW86IEdlbmVyYXRlZCAnK3RvdGFsKycgUGlucy9Ub2tlbnMgLSAyMDAwIHBsYW4gLSAnK3F0eSsnICsgJytib251cysnIEJvbnVzJyk7IHJldHVybjsgfQogIGNvbnN0IHBpbnMgPSBbXTsKICBmb3IobGV0IGk9MDtpPHRvdGFsO2krKyl7CiAgICBjb25zdCBjb2RlID0gJ0ZMTScgKyAoaSA8IHF0eSA/ICdQSU4nIDogJ0JPTlVTJykgKyBNYXRoLmZsb29yKDEwMDAwMCArIE1hdGgucmFuZG9tKCkqOTAwMDAwKTsKICAgIHBpbnMucHVzaCh7cGluX2NvZGU6IGNvZGUsIHN0YXR1czogJ3VudXNlZCcsIGFtb3VudDogMjAwMCwgaXNfYm9udXM6IGk+PXF0eSwgYm9udXNfcGFyZW50X3F0eTogcXR5fSk7CiAgfQogIGNvbnN0IHtlcnJvcn0gPSBhd2FpdCBzdXBhYmFzZUNsaWVudC5mcm9tKCdwaW5zJykuaW5zZXJ0KHBpbnMpOwogIGlmKGVycm9yKSBhbGVydCgnRXJyb3I6ICcrZXJyb3IubWVzc2FnZSk7CiAgZWxzZSBhbGVydCgnR2VuZXJhdGVkICcrcXR5KycgKyAnK2JvbnVzKycgQm9udXMgPSAnK3RvdGFsKycgUGlucy9Ub2tlbnMgLSAyMDAwIHBsYW4gLSBMaXZlIERCJyk7Cn0KCjwvc2NyaXB0Pgo8dGl0bGU+RkxNIExvZ2luPC90aXRsZT4KPHN0eWxlPgoqe21hcmdpbjowO3BhZGRpbmc6MDtib3gtc2l6aW5nOmJvcmRlci1ib3g7Zm9udC1mYW1pbHk6SW50ZXIsc3lzdGVtLXVpfQpodG1sLGJvZHl7d2lkdGg6MTAwJTtvdmVyZmxvdy14OmhpZGRlbn0gYm9keXtiYWNrZ3JvdW5kOiNlZWYyZjc7bWluLWhlaWdodDoxMDB2aDtwYWRkaW5nOjE2cHh9Ci5jYXJke2JhY2tncm91bmQ6I2ZmZjtib3JkZXItcmFkaXVzOjIwcHg7cGFkZGluZzoyMHB4O2JveC1zaGFkb3c6MCAycHggMTJweCByZ2JhKDAsMCwwLC4wNik7bWFyZ2luLWJvdHRvbToxNnB4O2JvcmRlcjoxcHggc29saWQgI2U1ZTdlYn0KLmJ0bntwYWRkaW5nOjEycHggMjBweDtib3JkZXItcmFkaXVzOjEycHg7Ym9yZGVyOjA7Zm9udC13ZWlnaHQ6NzAwO2N1cnNvcjpwb2ludGVyO2ZvbnQtc2l6ZToxNHB4fQouYnRuLWJsdWV7YmFja2dyb3VuZDojMWU0MGFmO2NvbG9yOiNmZmZ9Ci5pbnB1dHt3aWR0aDoxMDAlO2hlaWdodDo1MnB4O2JvcmRlcjoxcHggc29saWQgI2U1ZTdlYjtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzowIDE2cHg7Zm9udC1zaXplOjE0cHg7YmFja2dyb3VuZDojZjlmYWZiO291dGxpbmU6bm9uZX0KLnRvYXN0e3Bvc2l0aW9uOmZpeGVkO2JvdHRvbToyMHB4O2xlZnQ6NTAlO3RyYW5zZm9ybTp0cmFuc2xhdGVYKC01MCUpO2JhY2tncm91bmQ6IzFlMjkzYjtjb2xvcjojZmZmO3BhZGRpbmc6MTJweCAxOHB4O2JvcmRlci1yYWRpdXM6MTJweDtmb250LXNpemU6MTNweDt6LWluZGV4Ojk5OTl9Cjwvc3R5bGU+PC9oZWFkPjxib2R5Pgo8ZGl2IGlkPSJsb2dpbldyYXAiIHN0eWxlPSJtYXgtd2lkdGg6NDQwcHg7bWFyZ2luOjAgYXV0byI+CjxkaXYgY2xhc3M9ImNhcmQiIHN0eWxlPSJwYWRkaW5nOjI0cHg7dGV4dC1hbGlnbjpjZW50ZXIiPgo8ZGl2IHN0eWxlPSJ3aWR0aDoyMDBweDtoZWlnaHQ6NjBweDtiYWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxMzVkZWcsI2RjMjYyNiAzNSUsIzFlNDBhZiAzNSUpO2JvcmRlci1yYWRpdXM6MTBweDttYXJnaW46MCBhdXRvO2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7anVzdGlmeS1jb250ZW50OmNlbnRlcjtjb2xvcjojZmZmO2ZvbnQtd2VpZ2h0OjkwMDtmb250LXNpemU6MTRweCI+RlJFRURPTTxicj5MT0FOUyBNQVJUPC9kaXY+CjxkaXYgc3R5bGU9ImNvbG9yOiNkYzI2MjY7Zm9udC1zaXplOjEycHg7Zm9udC13ZWlnaHQ6NzAwO2xldHRlci1zcGFjaW5nOjFweDttYXJnaW46MTJweCAwIDhweCI+RlJFRURPTSBMT0FOUzwvZGl2Pgo8aDEgc3R5bGU9ImZvbnQtc2l6ZToyOHB4O2ZvbnQtd2VpZ2h0OjgwMDtjb2xvcjojMGYxNzJhO2xpbmUtaGVpZ2h0OjEuMSI+U2VjdXJlIGFjY2VzcyB0byB5b3VyIGFjY291bnQuPC9oMT4KPHAgc3R5bGU9ImZvbnQtc2l6ZToxM3B4O2NvbG9yOiM2NDc0OGI7bWFyZ2luLXRvcDo4cHgiPlNpZ24gaW4gdG8gbWFuYWdlIHJlZmVycmFscywgd2FsbGV0LCBsb2FucywgcmV3YXJkcy48L3A+CjwvZGl2Pgo8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0icGFkZGluZzoyNHB4Ij4KPGRpdiBzdHlsZT0iY29sb3I6I2RjMjYyNjtmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7bGV0dGVyLXNwYWNpbmc6MS41cHg7bWFyZ2luLWJvdHRvbTo2cHgiPlNFQ1VSRSBBQ0NFU1M8L2Rpdj4KPGgyIHN0eWxlPSJmb250LXNpemU6MjRweDtmb250LXdlaWdodDo4MDA7Y29sb3I6IzBmMTcyYTttYXJnaW4tYm90dG9tOjIwcHgiPlNpZ24gaW48L2gyPgo8bGFiZWwgc3R5bGU9ImZvbnQtc2l6ZToxM3B4O2ZvbnQtd2VpZ2h0OjcwMDtkaXNwbGF5OmJsb2NrO21hcmdpbi1ib3R0b206OHB4Ij5Vc2VybmFtZSBvciBlbWFpbDwvbGFiZWw+CjxpbnB1dCBpZD0ibG9naW5JZCIgY2xhc3M9ImlucHV0IiBwbGFjZWhvbGRlcj0iYWRtaW4gb3IgbmFtZUBleGFtcGxlLmNvbSIgc3R5bGU9Im1hcmdpbi1ib3R0b206MTZweCI+CjxsYWJlbCBzdHlsZT0iZm9udC1zaXplOjEzcHg7Zm9udC13ZWlnaHQ6NzAwO2Rpc3BsYXk6YmxvY2s7bWFyZ2luLWJvdHRvbTo4cHgiPlBhc3N3b3JkPC9sYWJlbD4KPGlucHV0IGlkPSJsb2dpblBhc3MiIHR5cGU9InBhc3N3b3JkIiBjbGFzcz0iaW5wdXQiIHBsYWNlaG9sZGVyPSJFbnRlciBwYXNzd29yZCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MTZweCI+CjxkaXYgaWQ9ImVyciIgc3R5bGU9ImNvbG9yOiNkYzI2MjY7Zm9udC1zaXplOjEycHg7ZGlzcGxheTpub25lO2JhY2tncm91bmQ6I2ZlZjJmMjtwYWRkaW5nOjhweDtib3JkZXItcmFkaXVzOjhweDttYXJnaW4tYm90dG9tOjEycHgiPjwvZGl2Pgo8YnV0dG9uIGlkPSJsb2dpbkJ0biIgY2xhc3M9ImJ0biBidG4tYmx1ZSIgc3R5bGU9IndpZHRoOjEwMCU7aGVpZ2h0OjUycHgiPlNpZ24gSW48L2J1dHRvbj4KPGRpdiBzdHlsZT0idGV4dC1hbGlnbjpjZW50ZXI7bWFyZ2luLXRvcDoxMnB4Ij48YSBocmVmPSIjIiBvbmNsaWNrPSJkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZm9yZ290Qm94Jykuc3R5bGUuZGlzcGxheT0nYmxvY2snO3JldHVybiBmYWxzZSIgc3R5bGU9ImNvbG9yOiMyNTYzZWI7Zm9udC1zaXplOjEzcHg7Zm9udC13ZWlnaHQ6NjAwO3RleHQtZGVjb3JhdGlvbjpub25lIj5Gb3Jnb3QgcGFzc3dvcmQ/PC9hPjwvZGl2Pgo8ZGl2IHN0eWxlPSJkaXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmciAxZnI7Z2FwOjhweDttYXJnaW4tdG9wOjEycHgiPgo8YnV0dG9uIG9uY2xpY2s9ImRlbW9Mb2dpbignRkw5NzM1MzAnLCd0aGVqYTEyMycpIiBzdHlsZT0iYmFja2dyb3VuZDojZjhmYWZjO2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtwYWRkaW5nOjEycHg7Ym9yZGVyLXJhZGl1czoxMHB4O2ZvbnQtc2l6ZToxMnB4O2ZvbnQtd2VpZ2h0OjYwMDtjdXJzb3I6cG9pbnRlciI+8J+RpCBEZW1vOiBUaGVqYTwvYnV0dG9uPgo8YnV0dG9uIG9uY2xpY2s9ImRlbW9Mb2dpbignRkwxMDAwMDEnLCdhZG1pbjEyMycpIiBzdHlsZT0iYmFja2dyb3VuZDojMGYxNzJhO2NvbG9yOiNmZmY7Ym9yZGVyOjFweCBzb2xpZCAjMGYxNzJhO3BhZGRpbmc6MTJweDtib3JkZXItcmFkaXVzOjEwcHg7Zm9udC1zaXplOjEycHg7Zm9udC13ZWlnaHQ6NjAwO2N1cnNvcjpwb2ludGVyIj7wn5SRIEFkbWluIERlbW88L2J1dHRvbj4KPC9kaXY+CjxkaXYgc3R5bGU9InRleHQtYWxpZ246Y2VudGVyO21hcmdpbi10b3A6MTJweDtmb250LXNpemU6MTJweDtjb2xvcjojOTRhM2I4Ij5ObyBhY2NvdW50PyA8YSBocmVmPSIuL3JlZ2lzdGVyLmh0bWwiIHN0eWxlPSJjb2xvcjojMjU2M2ViO2ZvbnQtd2VpZ2h0OjYwMDt0ZXh0LWRlY29yYXRpb246bm9uZSI+UmVnaXN0ZXI8L2E+IHwgPGEgaHJlZj0iLi9hZG1pbi5odG1sIiBzdHlsZT0iY29sb3I6IzY0NzQ4YiI+QWRtaW48L2E+IHwgPGEgaHJlZj0iLi9pbmRleC5odG1sIiBzdHlsZT0iY29sb3I6IzY0NzQ4YiI+RGFzaGJvYXJkPC9hPjwvZGl2Pgo8ZGl2IGlkPSJmb3Jnb3RCb3giIHN0eWxlPSJkaXNwbGF5Om5vbmU7bWFyZ2luLXRvcDoxNnB4O2JvcmRlci10b3A6MXB4IHNvbGlkICNmMWY1Zjk7cGFkZGluZy10b3A6MTZweCI+CjxkaXYgc3R5bGU9ImZvbnQtd2VpZ2h0OjcwMDtmb250LXNpemU6MTRweDttYXJnaW4tYm90dG9tOjhweCI+Rm9yZ2V0IFBhc3N3b3JkIC0gTWFpbCBPVFA8L2Rpdj4KPGlucHV0IGlkPSJmb3Jnb3RFbWFpbCIgcGxhY2Vob2xkZXI9IkVudGVyIGVtYWlsIiB0eXBlPSJlbWFpbCIgY2xhc3M9ImlucHV0IiBzdHlsZT0ibWFyZ2luLWJvdHRvbTo4cHg7aGVpZ2h0OjQ0cHgiPgo8YnV0dG9uIG9uY2xpY2s9InNlbmRPdHAoKSIgY2xhc3M9ImJ0biIgc3R5bGU9IndpZHRoOjEwMCU7YmFja2dyb3VuZDojMGYxNzJhO2NvbG9yOiNmZmY7aGVpZ2h0OjQ0cHgiPlNlbmQgT1RQPC9idXR0b24+CjxkaXYgaWQ9Im90cEJveCIgc3R5bGU9ImRpc3BsYXk6bm9uZTttYXJnaW4tdG9wOjEwcHgiPgo8aW5wdXQgaWQ9Im90cElucHV0IiBwbGFjZWhvbGRlcj0iRW50ZXIgNi1kaWdpdCBPVFAiIGNsYXNzPSJpbnB1dCIgc3R5bGU9Im1hcmdpbi1ib3R0b206OHB4O2hlaWdodDo0NHB4Ij4KPGlucHV0IGlkPSJuZXdQYXNzIiB0eXBlPSJwYXNzd29yZCIgcGxhY2Vob2xkZXI9Ik5ldyBQYXNzd29yZCIgY2xhc3M9ImlucHV0IiBzdHlsZT0ibWFyZ2luLWJvdHRvbTo4cHg7aGVpZ2h0OjQ0cHgiPgo8YnV0dG9uIG9uY2xpY2s9ImRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdmb3Jnb3RNc2cnKS5pbm5lckhUTUw9JzxzcGFuIHN0eWxlPWNvbG9yOiMwNTk2Njk+UGFzc3dvcmQgcmVzZXQgc3VjY2VzcyE8L3NwYW4+JyIgY2xhc3M9ImJ0biIgc3R5bGU9IndpZHRoOjEwMCU7YmFja2dyb3VuZDojMDU5NjY5O2NvbG9yOiNmZmY7aGVpZ2h0OjQ0cHgiPlJlc2V0PC9idXR0b24+CjwvZGl2Pgo8ZGl2IGlkPSJmb3Jnb3RNc2ciIHN0eWxlPSJtYXJnaW4tdG9wOjhweDtmb250LXNpemU6MTFweCI+PC9kaXY+CjwvZGl2Pgo8L2Rpdj4KPC9kaXY+Cgo8ZGl2IGNsYXNzPSJtZW51IiBpZD0iZGFzaE1lbnUiIHN0eWxlPSJwb3NpdGlvbjpmaXhlZDtsZWZ0Oi0xMDAlO3RvcDowO3dpZHRoOjg1dnc7bWF4LXdpZHRoOjM0MHB4O2hlaWdodDoxMDBkdmg7YmFja2dyb3VuZDojZmZmO2NvbG9yOiMwZjE3MmE7ei1pbmRleDo5OTk5O3RyYW5zaXRpb246bGVmdCAwLjNzIGVhc2U7cGFkZGluZzoxNnB4O292ZXJmbG93LXk6YXV0bztib3gtc2hhZG93OjRweCAwIDIwcHggcmdiYSgwLDAsMCwwLjE1KSI+CjxkaXYgc3R5bGU9ImRpc3BsYXk6ZmxleDtqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjthbGlnbi1pdGVtczpjZW50ZXI7bWFyZ2luLWJvdHRvbToyMHB4Ij48Yj5GcmVlZG9tIExvYW5zIE1hcnQ8L2I+PHNwYW4gc3R5bGU9ImN1cnNvcjpwb2ludGVyO2JhY2tncm91bmQ6I2YxZjVmOTt3aWR0aDozMnB4O2hlaWdodDozMnB4O2JvcmRlci1yYWRpdXM6OHB4O2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7anVzdGlmeS1jb250ZW50OmNlbnRlciIgb25jbGljaz0idG9nZ2xlRGFzaE1lbnUoKSI+4pyVPC9zcGFuPjwvZGl2Pgo8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7ZmxleC1kaXJlY3Rpb246Y29sdW1uO2dhcDoxMHB4Ij4KPGRpdiBvbmNsaWNrPSJsb2NhdGlvbi5ocmVmPScuL2luZGV4Lmh0bWwnIiBzdHlsZT0iY3Vyc29yOnBvaW50ZXI7YmFja2dyb3VuZDojZjhmYWZjO3BhZGRpbmc6MTJweDtib3JkZXItcmFkaXVzOjEycHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7Z2FwOjEycHgiPjxkaXYgc3R5bGU9IndpZHRoOjQwcHg7aGVpZ2h0OjQwcHg7YmFja2dyb3VuZDojZGJlYWZlO2JvcmRlci1yYWRpdXM6MTBweDtkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2p1c3RpZnktY29udGVudDpjZW50ZXIiPvCfk4o8L2Rpdj48ZGl2PjxkaXYgc3R5bGU9ImZvbnQtd2VpZ2h0OjcwMCI+RnVsbCBEYXNoYm9hcmQ8L2Rpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTFweDtjb2xvcjojNjQ3NDhiIj5NZW1iZXJzLCBQaW5zLCBCaW5hcnksIFJPSTwvZGl2PjwvZGl2PjwvZGl2Pgo8ZGl2IG9uY2xpY2s9ImxvY2F0aW9uLmhyZWY9Jy4vcmVnaXN0ZXIuaHRtbCciIHN0eWxlPSJjdXJzb3I6cG9pbnRlcjtiYWNrZ3JvdW5kOiNmOGZhZmM7cGFkZGluZzoxMnB4O2JvcmRlci1yYWRpdXM6MTJweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7ZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6MTJweCI+PGRpdiBzdHlsZT0id2lkdGg6NDBweDtoZWlnaHQ6NDBweDtiYWNrZ3JvdW5kOiNkY2ZjZTc7Ym9yZGVyLXJhZGl1czoxMHB4O2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7anVzdGlmeS1jb250ZW50OmNlbnRlciI+4p6VPC9kaXY+PGRpdj48ZGl2IHN0eWxlPSJmb250LXdlaWdodDo3MDAiPlJlZ2lzdGVyIE1lbWJlcjwvZGl2PjxkaXYgc3R5bGU9ImZvbnQtc2l6ZToxMXB4O2NvbG9yOiM2NDc0OGIiPkFkZCBuZXcgbWVtYmVyIHdpdGggdG9rZW48L2Rpdj48L2Rpdj48L2Rpdj4KPGRpdiBvbmNsaWNrPSJsb2NhdGlvbi5ocmVmPScuL2xvZ2luLmh0bWwnIiBzdHlsZT0iY3Vyc29yOnBvaW50ZXI7YmFja2dyb3VuZDojZjhmYWZjO3BhZGRpbmc6MTJweDtib3JkZXItcmFkaXVzOjEycHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7Z2FwOjEycHgiPjxkaXYgc3R5bGU9IndpZHRoOjQwcHg7aGVpZ2h0OjQwcHg7YmFja2dyb3VuZDojZmVlMmUyO2JvcmRlci1yYWRpdXM6MTBweDtkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2p1c3RpZnktY29udGVudDpjZW50ZXIiPvCflJA8L2Rpdj48ZGl2PjxkaXYgc3R5bGU9ImZvbnQtd2VpZ2h0OjcwMCI+TG9naW48L2Rpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTFweDtjb2xvcjojNjQ3NDhiIj5Vc2VyIGxvZ2luPC9kaXY+PC9kaXY+PC9kaXY+CjxkaXYgb25jbGljaz0ibG9jYWxTdG9yYWdlLnJlbW92ZUl0ZW0oJ2ZsbV9zZXNzaW9uJyk7bG9jYXRpb24ucmVsb2FkKCkiIHN0eWxlPSJjdXJzb3I6cG9pbnRlcjtiYWNrZ3JvdW5kOiNmZWYzYzc7cGFkZGluZzoxMnB4O2JvcmRlci1yYWRpdXM6MTJweDtib3JkZXI6MXB4IHNvbGlkICNmNTllMGI7ZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6MTJweCI+PGRpdiBzdHlsZT0id2lkdGg6NDBweDtoZWlnaHQ6NDBweDtiYWNrZ3JvdW5kOiNmZWYzYzc7Ym9yZGVyLXJhZGl1czoxMHB4O2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7anVzdGlmeS1jb250ZW50OmNlbnRlciI+8J+aqjwvZGl2PjxkaXY+PGRpdiBzdHlsZT0iZm9udC13ZWlnaHQ6NzAwIj5Mb2dvdXQ8L2Rpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTFweDtjb2xvcjojOTI0MDBlIj5DbGVhciBzZXNzaW9uPC9kaXY+PC9kaXY+PC9kaXY+CjwvZGl2Pgo8L2Rpdj4KPGRpdiBjbGFzcz0ib3ZlcmxheSIgaWQ9ImRhc2hPdmVybGF5IiBvbmNsaWNrPSJ0b2dnbGVEYXNoTWVudSgpIiBzdHlsZT0icG9zaXRpb246Zml4ZWQ7aW5zZXQ6MDtiYWNrZ3JvdW5kOnJnYmEoMCwwLDAsMC41KTtkaXNwbGF5Om5vbmU7ei1pbmRleDo5OTk4Ij48L2Rpdj4KCjxkaXYgaWQ9ImRhc2hWaWV3IiBzdHlsZT0iZGlzcGxheTpub25lO21heC13aWR0aDo0NDBweDttYXJnaW46MCBhdXRvO3BhZGRpbmc6MTZweDtiYWNrZ3JvdW5kOiNlZWYyZjc7bWluLWhlaWdodDoxMDB2aCI+CjxkaXYgc3R5bGU9InBvc2l0aW9uOnJlbGF0aXZlO2JvcmRlci1yYWRpdXM6MjRweDtvdmVyZmxvdzpoaWRkZW47aGVpZ2h0OjE4MHB4O21hcmdpbi1ib3R0b206MTZweDtiYWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxMzVkZWcsIzFlNDBhZiwjMGU3NDkwKTtkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO3BhZGRpbmc6MTZweDtjb2xvcjojZmZmIj4KPGRpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MjRweDtmb250LXdlaWdodDo4MDAiPk1lbWJlcnM8L2Rpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTZweCI+RGFzaGJvYXJkPC9kaXY+PC9kaXY+CjxkaXYgc3R5bGU9InBvc2l0aW9uOmFic29sdXRlO3JpZ2h0OjEycHg7dG9wOjEycHg7YmFja2dyb3VuZDojZmZmO3BhZGRpbmc6NnB4IDEwcHg7Ym9yZGVyLXJhZGl1czo4cHg7Y29sb3I6IzFlNDBhZjtmb250LXNpemU6OXB4O2ZvbnQtd2VpZ2h0OjgwMDt0ZXh0LWFsaWduOmNlbnRlciI+RlJFRURPTTxicj5MT0FOUyBNQVJUPC9kaXY+CjwvZGl2Pgo8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0iZGlzcGxheTpmbGV4O2p1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuO2FsaWduLWl0ZW1zOmNlbnRlcjtwYWRkaW5nOjE0cHggMTZweDtib3JkZXItcmFkaXVzOjIwcHgiPgo8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2dhcDoxMnB4Ij48c3BhbiBzdHlsZT0iZm9udC1zaXplOjIycHg7Y3Vyc29yOnBvaW50ZXIiIG9uY2xpY2s9InRvZ2dsZURhc2hNZW51KCkiPuKYsDwvc3Bhbj48c3BhbiBzdHlsZT0iZm9udC1zaXplOjE4cHg7Zm9udC13ZWlnaHQ6ODAwO2NvbG9yOiMxZTNhNWYiPkRhc2hib2FyZDwvc3Bhbj48L2Rpdj4KPGRpdiBzdHlsZT0iZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6OHB4O2JhY2tncm91bmQ6I2YxZjVmOTtwYWRkaW5nOjZweCAxMnB4O2JvcmRlci1yYWRpdXM6MTZweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjAiPjxkaXYgc3R5bGU9IndpZHRoOjMycHg7aGVpZ2h0OjI0cHg7YmFja2dyb3VuZDojMWU0MGFmO2JvcmRlci1yYWRpdXM6NnB4O2Rpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7anVzdGlmeS1jb250ZW50OmNlbnRlcjtjb2xvcjojZmZmO2ZvbnQtc2l6ZTo4cHg7Zm9udC13ZWlnaHQ6ODAwIj5GTE08L2Rpdj48ZGl2PjxkaXYgc3R5bGU9ImZvbnQtc2l6ZToxMnB4O2ZvbnQtd2VpZ2h0OjcwMCIgaWQ9ImRhc2hVc2VyTmFtZSI+VGhlamE8L2Rpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTBweDtjb2xvcjojNjQ3NDhiIiBpZD0iZGFzaEZsSWQiPkZMOTczNTMwPC9kaXY+PC9kaXY+PC9kaXY+CjwvZGl2Pgo8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxMzVkZWcsIzFlNGE3YSAwJSwjMmE3YThhIDUwJSwjM2FhOTllIDEwMCUpO2JvcmRlci1yYWRpdXM6MjhweDtwYWRkaW5nOjIwcHg7Y29sb3I6I2ZmZjttYXJnaW4tdG9wOjE2cHgiPgo8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjE0cHg7YWxpZ24taXRlbXM6Y2VudGVyO21hcmdpbi1ib3R0b206MjBweCI+PGRpdiBzdHlsZT0id2lkdGg6NTZweDtoZWlnaHQ6NTZweDtiYWNrZ3JvdW5kOiNmNTllMGI7Ym9yZGVyLXJhZGl1czo1MCU7ZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtqdXN0aWZ5LWNvbnRlbnQ6Y2VudGVyO2ZvbnQtc2l6ZToyNHB4O2ZvbnQtd2VpZ2h0OjgwMCIgaWQ9InVzZXJJbml0aWFsIj5UPC9kaXY+PGRpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTBweDtsZXR0ZXItc3BhY2luZzoycHg7b3BhY2l0eTouOCI+TUVNQkVSIERBU0hCT0FSRDwvZGl2PjxkaXYgc3R5bGU9ImZvbnQtc2l6ZToxNnB4O2ZvbnQtd2VpZ2h0OjcwMDttYXJnaW4tdG9wOjJweCIgaWQ9Im1lbWJlck5hbWUiPlRoZWphPC9kaXY+PGRpdiBzdHlsZT0iZm9udC1zaXplOjEycHg7b3BhY2l0eTouOSI+PHNwYW4gaWQ9Im1lbWJlckZsSWQyIj5GTDk3MzUzMDwvc3Bhbj4g4oCiIDxzcGFuIHN0eWxlPSJjb2xvcjojODZlZmFjIj5BY3RpdmU8L3NwYW4+PC9kaXY+PC9kaXY+PC9kaXY+CjxidXR0b24gY2xhc3M9ImJ0biIgc3R5bGU9IndpZHRoOjEwMCU7YmFja2dyb3VuZDojZmZmO2NvbG9yOiMxZTRhN2E7aGVpZ2h0OjQ0cHg7Ym9yZGVyLXJhZGl1czoxNHB4O2ZvbnQtd2VpZ2h0OjcwMDttYXJnaW4tYm90dG9tOjEwcHgiPkludml0ZSBtZW1iZXJzPC9idXR0b24+CjxidXR0b24gY2xhc3M9ImJ0biIgc3R5bGU9IndpZHRoOjEwMCU7YmFja2dyb3VuZDpyZ2JhKDI1NSwyNTUsMjU1LC4xNSk7Y29sb3I6I2ZmZjtib3JkZXI6MXB4IHNvbGlkIHJnYmEoMjU1LDI1NSwyNTUsLjMpO2hlaWdodDo0NHB4O2JvcmRlci1yYWRpdXM6MTRweCIgb25jbGljaz0ibG9jYXRpb24uaHJlZj0nLi9pbmRleC5odG1sJyI+VmlldyBGdWxsIERhc2hib2FyZDwvYnV0dG9uPgo8L2Rpdj4KPGRpdiBjbGFzcz0iY2FyZCIgc3R5bGU9Im1hcmdpbi10b3A6MTZweDtib3JkZXItcmFkaXVzOjIwcHg7cGFkZGluZzoxNnB4Ij48ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNkY2ZjZTc7Y29sb3I6IzE2NjUzNDtwYWRkaW5nOjZweCAxMHB4O2JvcmRlci1yYWRpdXM6OHB4O2ZvbnQtc2l6ZToxMHB4O2ZvbnQtd2VpZ2h0OjcwMDtkaXNwbGF5OmlubGluZS1ibG9jazttYXJnaW4tYm90dG9tOjhweCI+TUFUQ0hJTkcgQk9OVVM8L2Rpdj48ZGl2IHN0eWxlPSJmb250LXNpemU6MTVweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzFlM2E1ZiI+UnMuIDIwMCBmb3IgZXZlcnkgY29tcGxldGVkIGxlZnQgYW5kIHJpZ2h0IHBhaXI8L2Rpdj48YnV0dG9uIGNsYXNzPSJidG4iIHN0eWxlPSJ3aWR0aDoxMDAlO21hcmdpbi10b3A6MTJweDtiYWNrZ3JvdW5kOiMwZjE3MmE7Y29sb3I6I2ZmZjtoZWlnaHQ6NDRweDtib3JkZXItcmFkaXVzOjEycHgiIG9uY2xpY2s9ImxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKCdmbG1fc2Vzc2lvbicpO2xvY2F0aW9uLnJlbG9hZCgpIj5Mb2dvdXQ8L2J1dHRvbj48L2Rpdj4KPC9kaXY+CjxzY3JpcHQ+CmZ1bmN0aW9uIHRvZ2dsZURhc2hNZW51KCl7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rhc2hNZW51JykuY2xhc3NMaXN0LnRvZ2dsZSgnb3BlbicpO2NvbnN0IG92PWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdkYXNoT3ZlcmxheScpO292LnN0eWxlLmRpc3BsYXk9b3Yuc3R5bGUuZGlzcGxheT09PSdibG9jayc/J25vbmUnOidibG9jayc7aWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rhc2hNZW51JykuY2xhc3NMaXN0LmNvbnRhaW5zKCdvcGVuJykpe2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdkYXNoTWVudScpLnN0eWxlLmxlZnQ9JzAnO31lbHNle2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdkYXNoTWVudScpLnN0eWxlLmxlZnQ9Jy0xMDAlJzt9fQpmdW5jdGlvbiB0b2FzdChtKXtsZXQgdD1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTt0LmNsYXNzTmFtZT0ndG9hc3QnO3QuaW5uZXJUZXh0PW07ZG9jdW1lbnQuYm9keS5hcHBlbmRDaGlsZCh0KTtzZXRUaW1lb3V0KCgpPT50LnJlbW92ZSgpLDIwMDApO30KZnVuY3Rpb24gZGVtb0xvZ2luKGlkLHBhc3Mpewpkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbG9naW5JZCcpLnZhbHVlPWlkO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdsb2dpblBhc3MnKS52YWx1ZT1wYXNzOwpzZXRUaW1lb3V0KCgpPT57ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2xvZ2luQnRuJykuY2xpY2soKTt9LDIwMCk7Cn0KZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2xvZ2luQnRuJykuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCgpPT57CmNvbnN0IGlkPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdsb2dpbklkJykudmFsdWUudHJpbSgpO2NvbnN0IHBhc3M9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2xvZ2luUGFzcycpLnZhbHVlLnRyaW0oKTsKY29uc3QgZXJyPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdlcnInKTtpZighaWR8fCFwYXNzKXtlcnIuc3R5bGUuZGlzcGxheT0nYmxvY2snO2Vyci5pbm5lclRleHQ9J0VudGVyIElEIGFuZCBQYXNzd29yZCc7cmV0dXJuO31lcnIuc3R5bGUuZGlzcGxheT0nbm9uZSc7CmNvbnN0IHVzZXI9e2ZsSWQ6aWQudG9VcHBlckNhc2UoKSxuYW1lOmlkLmluY2x1ZGVzKCcxMDAwMDEnKT8nQWRtaW4nOmlkLmluY2x1ZGVzKCc5NzM1MzAnKT8nVGhlamEnOidVc2VyJyxtb2JpbGU6aWR9Owpsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnZmxtX3Nlc3Npb24nLEpTT04uc3RyaW5naWZ5KHVzZXIpKTsKZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2xvZ2luV3JhcCcpLnN0eWxlLmRpc3BsYXk9J25vbmUnO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdkYXNoVmlldycpLnN0eWxlLmRpc3BsYXk9J2Jsb2NrJzsKZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rhc2hVc2VyTmFtZScpLmlubmVyVGV4dD11c2VyLm5hbWU7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rhc2hGbElkJykuaW5uZXJUZXh0PXVzZXIuZmxJZDsKZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21lbWJlck5hbWUnKS5pbm5lclRleHQ9dXNlci5uYW1lO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtZW1iZXJGbElkMicpLmlubmVyVGV4dD11c2VyLmZsSWQ7CmRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCd1c2VySW5pdGlhbCcpLmlubmVyVGV4dD11c2VyLm5hbWUuY2hhckF0KDApLnRvVXBwZXJDYXNlKCk7CnRvYXN0KCdXZWxjb21lICcrdXNlci5uYW1lKychIERlbW8gbG9naW4gc3VjY2VzcyAtIENsaWVudCBraSBjaHVwaW5jaGVraScpOwp9KTsKZnVuY3Rpb24gc2VuZE90cCgpe2NvbnN0IGVtYWlsPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdmb3Jnb3RFbWFpbCcpLnZhbHVlLnRyaW0oKTtjb25zdCBtc2c9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2ZvcmdvdE1zZycpO2lmKCFlbWFpbCl7bXNnLmlubmVySFRNTD0nPHNwYW4gc3R5bGU9Y29sb3I6I2RjMjYyNj5FbnRlciBlbWFpbDwvc3Bhbj4nO3JldHVybjt9Y29uc3Qgb3RwPU1hdGguZmxvb3IoMTAwMDAwK01hdGgucmFuZG9tKCkqOTAwMDAwKTtsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnZmxtX290cF8nK2VtYWlsLG90cCk7bXNnLmlubmVySFRNTD0nT1RQOiA8Yj4nK290cCsnPC9iPiAoRGVtbykgLSA1IG1pbiB2YWxpZCc7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ290cEJveCcpLnN0eWxlLmRpc3BsYXk9J2Jsb2NrJzt9CihmdW5jdGlvbigpe2NvbnN0IHM9bG9jYWxTdG9yYWdlLmdldEl0ZW0oJ2ZsbV9zZXNzaW9uJyk7aWYocyl7dHJ5e2NvbnN0IHU9SlNPTi5wYXJzZShzKTtkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbG9naW5XcmFwJykuc3R5bGUuZGlzcGxheT0nbm9uZSc7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2Rhc2hWaWV3Jykuc3R5bGUuZGlzcGxheT0nYmxvY2snO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdkYXNoVXNlck5hbWUnKS5pbm5lclRleHQ9dS5uYW1lO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdkYXNoRmxJZCcpLmlubmVyVGV4dD11LmZsSWQ7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21lbWJlck5hbWUnKS5pbm5lclRleHQ9dS5uYW1lO2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtZW1iZXJGbElkMicpLmlubmVyVGV4dD11LmZsSWQ7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3VzZXJJbml0aWFsJykuaW5uZXJUZXh0PXUubmFtZS5jaGFyQXQoMCkudG9VcHBlckNhc2UoKTt9Y2F0Y2goZSl7fX19KSgpOwo8L3NjcmlwdD4KPC9ib2R5PjwvaHRtbD4K'" style="cursor:pointer;background:#fef3c7;padding:12px;border-radius:12px;border:1px solid #f59e0b;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center">🚪</div><div><div style="font-weight:700">Logout</div><div style="font-size:11px;color:#92400e">Clear session</div></div></div>
 </div>
-<div id="p-invite" style="display:none"><h2>Invite Members</h2><div class="card"><b>Left Referral Link</b><div style="display:flex;gap:6px;margin-top:6px"><input class="input" id="leftLink" value="https://freedomloans.in/register?side=left&sponsor=FL597130" readonly><button class="btn btn-blue" onclick="copyL()">Copy</button></div></div><div class="card"><b>Right Referral Link</b><div style="display:flex;gap:6px;margin-top:6px"><input class="input" id="rightLink" value="https://freedomloans.in/register?side=right&sponsor=FL597130" readonly><button class="btn btn-blue" onclick="copyR()">Copy</button></div></div><div class="card"><b>After 80:80 Rule:</b> For every loan and reward after 80:80 pairs, need 2 new referrals OR 2 plan renewals via referral link.</div></div>
-<div id="p-wallets" style="display:none"><h2>Wallets - 3 Types</h2><div class="card">ROI Wallet: Min 1000 for store product purchase<br>Matching Wallet: 5000+ or 40:40 → Store withdrawal with 20% deduction, amounts 200/500/1000/3000/5000 only, once per day<br>Loans Wallet: Cumulative 20% purchase logic - Total till date 20% must be purchased at store</div></div>
-<div id="p-withdraw" style="display:none"><h2>Withdrawals</h2><div class="card"><b>Store Withdrawal - Limited Amounts</b><div class="info">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction at store | Once per day | Remaining stays in wallet | Full loan amount withdrawable</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="selA(200)">Rs.200</button><button class="btn" onclick="selA(500)">Rs.500</button><button class="btn" onclick="selA(1000)">Rs.2000</button><button class="btn" onclick="selA(3000)">Rs.3000</button><button class="btn btn-blue" onclick="selA(5000)">Rs.5000</button></div><div id="wCalc" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:8px;font-size:12px">Select amount</div></div></div>
-<div id="p-store" style="display:none"><h2>Store Locator - 25KM Radius</h2><div class="card"><div style="display:flex;gap:6px"><input id="sp" class="input" placeholder="Pincode 500008" value="500008"><button class="btn btn-blue" onclick="findS()">Find Stores (25KM)</button></div><div id="sRes" style="margin-top:10px"></div></div></div>
-<div id="p-support" style="display:none"><h2>Support - WhatsApp & Web Connect</h2><div class="card"><b>WhatsApp Bot:</b> Hi → 4 buttons: Withdrawal Issue, Joining Issue, Product Store, Nearest Store<br><a href="https://wa.me/918309091326?text=Hi%20Support%20FL597130" target="_blank"><button class="btn btn-green" style="margin-top:8px">Chat on WhatsApp 8309091326</button></a></div></div>
-<div id="p-loans" style="display:none"><h2>Loans - 16 Levels</h2><div class="card"><div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e">
-<b>⚠️ IMPORTANT CONDITION - From 40 Pairs (Rs.8000 Loan) Onwards:</b><br>
-40 pairs = Rs.8000 loan nundi MUST ga new 2 referrals OR renewal of 2 IDs condition undi!<br>
-• Loan 1-3 (1,4,12 pairs): No referral condition<br>
-• Loan 4 onwards (40 pairs = Rs.8000): MUST 2 New Referrals OR 2 ID Renewals (2 plans renew via your referral link)<br>
-• Every next loan (80,160,320...200000 pairs): Same condition - 2 new referrals OR 2 renewals must<br>
-• Full amount withdrawable only after condition met
 </div>
-<div class="info">Remaining Logic: Loan1:1 pair Total 1 Prev 0 Rem 1, Loan2:4 total Prev 1 Rem 3, Loan3:12 total Prev 4 Rem 8, Loan4:40 total Prev 12 Rem 28 + 2 Referrals MUST, etc. Full amount withdrawable after condition.</div><div id="loansG" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px"></div></div></div>
-<div id="p-rewards" style="display:none"><h2>Rewards - 13 Rewards</h2><div id="rewardsG" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div></div>
-<div id="p-downline" style="display:none"><h2>Downline - Binary Tree</h2><div class="card">YOU - FL597130<br>LEFT Open | RIGHT Open<br>Matching History: Date, Left Tokens, Right Tokens, Pairs, Carry L/R, Income</div></div>
-<div id="p-kit" style="display:none"><h2>Sample Kit - Send Kit</h2><div class="card">Kit 1: Alkaline Jar Sample Kit Rs.2000 Stock 50<br>Kit 2: Business Starter Kit Rs.2500 Stock 30<br>Kit 3: Premium Kit Rs.5000 Stock 20<br><button class="btn btn-blue" style="margin-top:8px">Buy Kit - Store Pickup / Courier / Pin Point</button></div></div>
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<div id="sec-dashboard" style="display:none">
+<div class="card"><h3>📊 Dashboard - Real Data - Not Sample Amounts</h3><div style="font-size:12px;color:#64748b;margin-top:4px">Sample image amounts manaku avasaram ledu - Functionality manam iche dani pina run avvali - Real Supabase data</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><div style="background:#f8fafc;padding:12px;border-radius:10px;border-left:4px solid #2563eb"><div style="font-size:11px">Members</div><div style="font-size:18px;font-weight:800" id="dashMembers">0</div><div style="font-size:10px;color:#64748b">Real from users table</div></div><div style="background:#f8fafc;padding:12px;border-radius:10px;border-left:4px solid #059669"><div style="font-size:11px">Binary Pairs</div><div style="font-size:18px;font-weight:800" id="dashPairs">0</div><div style="font-size:10px;color:#64748b">Real from binary_summary</div></div></div></div>
 </div>
+
+<div id="sec-members">
+<div class="grid1">
+<div style="background:#0f172a;color:#fff;border-radius:16px;padding:16px"><div style="font-size:13px;opacity:.8">Total</div><div style="font-size:24px;font-weight:800;margin-top:6px" id="mTotal">0</div></div>
+<div style="background:#0f172a;color:#fff;border-radius:16px;padding:16px"><div style="font-size:13px;opacity:.8">Active</div><div style="font-size:24px;font-weight:800;margin-top:6px" id="mActive">0</div></div>
+<div style="background:#0f172a;color:#fff;border-radius:16px;padding:16px"><div style="font-size:13px;opacity:.8">Pending</div><div style="font-size:24px;font-weight:800;margin-top:6px">0</div></div>
+<div style="background:#0f172a;color:#fff;border-radius:16px;padding:16px"><div style="font-size:13px;opacity:.8">Suspended</div><div style="font-size:24px;font-weight:800;margin-top:6px">0</div></div>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+<div style="background:linear-gradient(90deg,#10b981,#0e7490);color:#fff;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:800;text-align:center;border-radius:16px 16px 0 0"><div style="display:flex;align-items:center;gap:8px"><span style="background:rgba(255,255,255,.2);padding:6px;border-radius:8px">📋</span> Member records</div><div style="font-size:12px;font-weight:500;opacity:.9;margin-top:4px" id="mFound">0 found - Real from Supabase</div></div>
+<div style="padding:16px">
+<div style="font-weight:700;font-size:14px;margin-bottom:8px;color:#1e3a8a">Search member</div>
+<input id="searchMember" placeholder="Name, code, phone, email" class="input" style="background:#f8fafc">
+<button class="btn-blue" style="margin-top:10px" onclick="searchMembers()">Search</button>
+<div style="margin-top:16px;overflow:auto">
+<table class="table"><thead><tr><th>MEMBER</th><th>CONTACT</th></tr></thead><tbody id="membersList"><tr><td>Loading real members from Supabase...</td><td></td></tr></tbody></table>
+</div>
+<div style="display:flex;justify-content:space-between;margin-top:12px;gap:8px"><button style="padding:8px 16px;border-radius:999px;border:1px solid #e2e8f0;background:#f1f5f9">Previous</button><button style="padding:8px 16px;border-radius:999px;border:1px solid #e2e8f0;background:#e0f7ff;font-weight:700" id="pageInfo">Page 1 of 1</button><button style="padding:8px 16px;border-radius:999px;border:1px solid #e2e8f0;background:#f1f5f9">Next</button></div>
+</div>
+</div>
+<div style="margin-top:8px;font-size:11px;color:#64748b;background:#f1f5f9;padding:8px;border-radius:8px">Sample image amounts manaku avasaram ledu - Ala undali but functionality manam iche dani pina run avvali - Real Supabase users - Not sample 12 - Real count</div>
+</div>
+
+<div id="sec-pins" style="display:none">
+<div class="card">
+<h3>🎫 My Pins - Generated - Town Wise - Light Theme</h3>
+<div style="margin-top:10px;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #2563eb"><div style="font-size:11px;color:#64748b">Total Pins</div><div style="font-size:18px;font-weight:800" id="uPinsTotal">0</div></div>
+<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #059669"><div style="font-size:11px;color:#64748b">Unused</div><div style="font-size:18px;font-weight:800;color:#059669" id="uPinsUnused">0</div></div>
+<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #dc2626"><div style="font-size:11px;color:#64748b">Used</div><div style="font-size:18px;font-weight:800;color:#dc2626" id="uPinsUsed">0</div></div>
+</div>
+</div>
+<div id="userPinsList" style="margin-top:12px">Loading real pins from Supabase...</div>
+</div>
+</div>
+
+<div id="sec-binary" style="display:none">
+<div class="card">
+<h3>🔗 Binary - Real Counts - Not Sample</h3>
+<div style="font-size:11px;color:#64748b;margin-top:4px">Test kosam 2 ids vesam - 0 lone undi - Real binary_summary nundi - Fix chesa</div>
+<div id="binaryList" style="margin-top:10px">Loading binary...</div>
+</div>
+</div>
+
+</div>
+
 <script>
-function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';}
-function copyL(){navigator.clipboard.writeText(document.getElementById('leftLink').value);alert('Left link copied!');}
-function copyR(){navigator.clipboard.writeText(document.getElementById('rightLink').value);alert('Right link copied!');}
-
-const loans=[
-{no:1,amt:1000,pairs:1,cond:"No referral needed - First loan - 1:1=1000 eligible ✅"},
-{no:2,amt:2000,pairs:4,cond:"No referral needed"},
-{no:3,amt:4000,pairs:12,cond:"No referral needed"},
-{no:4,amt:8000,pairs:40,cond:"⚠️ MUST: 2 New Referrals OR 2 ID Renewals"},
-{no:5,amt:16000,pairs:80,cond:"⚠️ MUST: 2 New Referrals"},
-{no:6,amt:30000,pairs:160,cond:"⚠️ MUST: 2 New Referrals"},
-{no:7,amt:60000,pairs:320,cond:"⚠️ MUST: 2 New Referrals"},
-{no:8,amt:120000,pairs:640,cond:"⚠️ MUST: 2 New Referrals"},
-{no:9,amt:250000,pairs:1280,cond:"⚠️ MUST: 2 New Referrals"},
-{no:10,amt:500000,pairs:2600,cond:"⚠️ MUST: 2 New Referrals"},
-{no:11,amt:1000000,pairs:5500,cond:"⚠️ MUST: 2 New Referrals"},
-{no:12,amt:2000000,pairs:11000,cond:"⚠️ MUST: 2 New Referrals"},
-{no:13,amt:4000000,pairs:23000,cond:"⚠️ MUST: 2 New Referrals"},
-{no:14,amt:8000000,pairs:46000,cond:"⚠️ MUST: 2 New Referrals"},
-{no:15,amt:15000000,pairs:100000,cond:"⚠️ MUST: 2 New Referrals"},
-{no:16,amt:30000000,pairs:200000,cond:"⚠️ MUST: 2 New Referrals"}
-];
-function renderLoansReal(pairs, containerId){
-  const cont=document.getElementById(containerId);
-  if(!cont) return;
-  let prev=0;
-  cont.innerHTML=loans.map(l=>{
-    const rem=l.pairs-prev;
-    const isEligible=pairs>=l.pairs;
-    const isMandatory=l.pairs>=40;
-    const bg=isEligible?'#dcfce7':'#f1f5f9';
-    const status=isEligible?'✅ Eligible - 1:1 reach = 1000 loan eligible - Working':'🔒 Locked';
-    const h=`<div class="card" style="background:${bg};border:${isMandatory?'2px solid #f59e0b':'1px solid #e2e8f0'}"><div style="font-size:11px">Loan ${l.no} - ${l.pairs} Pairs ${isMandatory?'<span style="background:#f59e0b;padding:2px 6px;border-radius:999px;font-size:9px">⚠️ 2 Referrals MUST</span>':''} <span style="float:right;background:${isEligible?'#059669':'#334155'};color:#fff;padding:2px 6px;border-radius:999px;font-size:10px">${status}</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Need ${l.pairs} pairs | You have ${pairs} | Remaining ${Math.max(0,l.pairs-pairs)} pairs | 1:1=${pairs>=1?'Yes 1000 Loan ✅':'Need 1 pair'}</div></div>`;
-    prev=l.pairs;
-    return h;
-  }).join('');
+function toggleMenu(){const menu=document.getElementById('menu');const overlay=document.getElementById('overlay');menu.classList.toggle('open');overlay.classList.toggle('show');if(menu.classList.contains('open')){menu.style.left='0';overlay.style.display='block';}else{menu.style.left='-100%';overlay.style.display='none';}}
+function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();if(id==='members') loadMembers();if(id==='pins') loadUserPins();if(id==='binary') loadBinary();if(id==='dashboard') loadDashboard();}
+async function loadMembers(){
+ if(!supabaseClient){document.getElementById('membersList').innerHTML='<tr><td>Demo - Supabase not connected - Real data kosam Supabase connect</td><td></td></tr>';return;}
+ try{
+   const {data,count}=await supabaseClient.from('users').select('*',{count:'exact'}).order('created_at',{ascending:false}).limit(100);
+   if(data){
+     document.getElementById('mTotal').innerText=count||data.length;
+     document.getElementById('mActive').innerText=data.filter(u=>u.status!=='suspended').length||data.length;
+     document.getElementById('mFound').innerText=data.length+' found - Real from Supabase';
+     document.getElementById('pageInfo').innerText='Page 1 of 1 - '+data.length+' members';
+     document.getElementById('menuMembers').innerText='Total '+data.length+' - Real DB';
+     document.getElementById('dashMembers').innerText=data.length;
+     document.getElementById('membersList').innerHTML=data.map(u=>`<tr><td><b>${u.full_name||'N/A'}</b><br><span style="font-size:11px;color:#64748b">${u.fl_id}</span><br><span style="font-size:10px;padding:2px 6px;border-radius:999px;background:#dcfce7">Active</span></td><td>${u.mobile||''}<br><span style="font-size:11px;color:#64748b">${u.email||''}</span><br><span style="font-size:10px;color:#64748b">Sponsor: ${u.sponsor_id||'None'}</span></td></tr>`).join('');
+   }
+ }catch(e){document.getElementById('membersList').innerHTML='<tr><td>Error: '+e.message+'</td><td></td></tr>';}
 }
-
-function calcD(){let l=parseInt(document.getElementById('dl').value)||0;let r=parseInt(document.getElementById('dr').value)||0;let c=Math.min(l,r,25);let inc=c*200;let lc=l-c;let rc=r-c;document.getElementById('dRes').innerHTML=`Pairs Counted: ${c} (capped at 25)<br>Income: Rs.${inc} (25x200 max Rs.5000)<br>Left Carry: ${lc} | Right Carry: ${rc} → Next day`;}
-function calcL(){let p=parseInt(document.getElementById('pw').value)||0;let l=parseInt(document.getElementById('lw').value)||0;let a=parseInt(document.getElementById('ap').value)||0;let total=p+l;let req=total*0.2;let rem=req-a;if(rem<0)rem=0;document.getElementById('lRes').innerHTML=`Total Till Date: Rs.${total} (${p}+${l})<br>Required 20%: Rs.${req}<br>Already Purchased: Rs.${a}<br>Remaining: Rs.${rem} → Inka ${rem} ki konnali, appude next portal unlock, monthly rotation`;}
-function selA(amt){let ded=amt*0.2;let net=amt-ded;let rem=6200-amt;document.getElementById('wCalc').innerHTML=`Selected: Rs.${amt}<br>Deduction 20%: Rs.${ded}<br>Net to User: Rs.${net}<br>Remaining in Wallet: Rs.${rem}<br>Once per day only`;}
-function findS(){let pin=document.getElementById('sp').value;let stores=[{n:'KPHB Store',a:'KPHB Road, Hyderabad',m:'9876543210',d:'2.1KM'},{n:'Ameerpet Store',a:'Ameerpet, Hyderabad',m:'9123456780',d:'5.4KM'},{n:'Secunderabad Store',a:'Secunderabad',m:'9988776655',d:'8.9KM'}];document.getElementById('sRes').innerHTML=stores.map(s=>`<div style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px"><b>${s.n} - ${s.d}</b> - Within 25KM ✅<br>${s.a} - ${s.m} <button class="btn btn-blue" style="font-size:10px">Call</button> <button class="btn" style="background:#fff;border:1px solid #e2e8f0;font-size:10px">Map</button></div>`).join('');}
-const loans=[
-{no:1,amt:1000,pairs:1,cond:"No referral needed - First loan"},
-{no:2,amt:2000,pairs:4,cond:"No referral needed"},
-{no:3,amt:4000,pairs:12,cond:"No referral needed"},
-{no:4,amt:8000,pairs:40,cond:"⚠️ MUST: 2 New Referrals OR 2 ID Renewals - From here mandatory"},
-{no:5,amt:16000,pairs:80,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:6,amt:30000,pairs:160,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:7,amt:60000,pairs:320,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:8,amt:120000,pairs:640,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:9,amt:250000,pairs:1280,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:10,amt:500000,pairs:2600,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:11,amt:1000000,pairs:5500,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:12,amt:2000000,pairs:11000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:13,amt:4000000,pairs:23000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:14,amt:8000000,pairs:46000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:15,amt:15000000,pairs:100000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
-{no:16,amt:30000000,pairs:200000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"}
-];
-let userPairs=parseInt(localStorage.getItem('flm_user_pairs')||'0'); let prev=0;document.getElementById('loansG').innerHTML=loans.map(l=>{
-let rem=l.pairs-prev;
-let isMandatory = l.pairs>=40;
-let bg = isMandatory ? '#fef3c7' : '#1e293b';
-let tc = isMandatory ? '#92400e' : '#fff';
-let h=`<div class="card" style="background:${bg};color:${tc};border:${isMandatory ? '2px solid #f59e0b' : 'none'}"><div style="font-size:11px">Loan ${l.no} - ${l.pairs} Pairs ${isMandatory ? '<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:999px;font-size:9px">⚠️ 2 Referrals MUST</span>' : ''} <span style="float:right;background:#334155;color:#fff;padding:2px 6px;border-radius:999px">Locked</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Total:${l.pairs} | Prev:${prev} | Rem:${rem} pairs</div><div style="font-size:9px;margin-top:4px">${l.cond}</div><div style="font-size:9px;margin-top:4px">Full amount withdrawable</div></div>`;
-prev=l.pairs;return h;}).join('');
-const rewards=[{n:'Alkaline Jar',p:40},{n:'Goa tour',p:80},{n:'Bangkok tour',p:160},{n:'Malaysia Tour',p:320},{n:'Dubai Tour',p:640},{n:'Sri Lanka Cruise',p:1280},{n:'Car Fund 3L',p:2600},{n:'Gold 4L',p:5500},{n:'Europe Trip',p:11000},{n:'DTCP Plot',p:23000},{n:'20L Open Plot',p:46000},{n:'2BHK Flat',p:100000},{n:'Jaguar/Benz 1Cr',p:200000}];
-document.getElementById('rewardsG').innerHTML=rewards.map(r=>`<div class="card"><div style="height:80px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</div><b style="font-size:12px">${r.n}</b><div style="font-size:10px">${r.p} pairs - LOCKED</div></div>`).join('');
-function toggleMenu(){let sb=document.querySelector('.sidebar');let ov=document.getElementById('overlay');sb.classList.toggle('open');ov.style.display=sb.classList.contains('open')?'block':'none';}
-calcD();calcL();
+async function loadUserPins(){
+ if(!supabaseClient){document.getElementById('userPinsList').innerHTML='Demo - No Supabase';return;}
+ try{
+   const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(100);
+   if(data){
+     const total=data.length; const unused=data.filter(p=>p.status==='unused').length; const used=data.filter(p=>p.status==='used').length;
+     document.getElementById('uPinsTotal').innerText=total;
+     document.getElementById('uPinsUnused').innerText=unused;
+     document.getElementById('uPinsUsed').innerText=used;
+     document.getElementById('userPinsList').innerHTML=data.map(p=>`<div style="padding:10px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div><b style="font-family:monospace">${p.pin_code}</b><div style="font-size:11px;color:#64748b">${p.status} - Rs.${p.amount||2000} ${p.town?'📍'+p.town:''} ${p.generated_for?'👤'+p.generated_for:''} ${p.used_by_mobile?'Used: '+p.used_by_mobile:''}</div></div><span style="padding:4px 8px;border-radius:999px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:11px">${p.status}</span></div>`).join('');
+   }
+ }catch(e){document.getElementById('userPinsList').innerHTML='Error: '+e.message;}
+}
+async function loadBinary(){
+ if(!supabaseClient){document.getElementById('binaryList').innerHTML='Demo';return;}
+ try{
+   const {data}=await supabaseClient.from('binary_summary').select('*').limit(50);
+   const {data:users}=await supabaseClient.from('users').select('fl_id,full_name').limit(50);
+   if(data){
+     document.getElementById('dashPairs').innerText=data.reduce((s,x)=>s+(x.total_pairs||0),0);
+     document.getElementById('binaryList').innerHTML=data.map(b=>{
+       const u=users.find(x=>x.fl_id===b.fl_id);
+       return `<div style="padding:10px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between"><div><b>${u?u.full_name:b.fl_id}</b> - ${b.fl_id}<br><span style="font-size:11px">Left ${b.left_own||b.left_tokens||0} Right ${b.right_own||b.right_tokens||0} Pairs ${b.total_pairs||0} Team ${b.team_size||0}</span></div><div style="font-size:11px;color:#64748b">Daily: ${b.daily_pairs_today||0} pairs</div></div>`;
+     }).join('')||'No binary data yet - Register with sponsor to get counts - Test kosam 2 ids vesam - Ippudu real counts vastayi - Sponsor update fix chesa';
+   }
+ }catch(e){document.getElementById('binaryList').innerHTML='Error: '+e.message;}
+}
+async function loadDashboard(){
+ await loadMembers();
+ await loadBinary();
+}
+function searchMembers(){
+ const q=document.getElementById('searchMember').value.toLowerCase();
+ const rows=document.querySelectorAll('#membersList tr');
+ rows.forEach(r=>{ r.style.display=r.innerText.toLowerCase().includes(q)?'':'none'; });
+}
+window.addEventListener('load',()=>{ loadMembers(); });
 </script>
 </body>
 </html>
