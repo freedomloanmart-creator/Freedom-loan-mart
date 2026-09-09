@@ -67,30 +67,59 @@ body{background:#eef2f7;padding:12px;color:#0f172a}
 </head>
 <body>
 
-<div class="topbar">
+<div id="adminLogin" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:#eef2f7">
+<div class="card" style="max-width:380px;width:100%;padding:24px;border-radius:20px">
+<div style="text-align:center;margin-bottom:16px"><div style="width:48px;height:48px;background:#2563eb;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2><div style="font-size:12px;color:#64748b;margin-top:4px">Freedom Loans Mart - Admin Only</div></div>
+<input id="adminEmail" placeholder="Admin ID / Email - Eg: super@freedomloans.in or FL100001" class="input" style="margin-bottom:10px;height:44px">
+<input id="adminPass" type="password" placeholder="Password - Eg: super123" class="input" style="margin-bottom:10px;height:44px">
+<button class="btn-blue" style="width:100%;height:44px" onclick="adminLogin()">🔐 Login - Admin</button>
+<div id="adminLoginMsg" style="margin-top:10px;font-size:12px"></div>
+<div style="margin-top:12px;font-size:11px;color:#64748b;background:#f1f5f9;padding:8px;border-radius:8px">Demo Credentials:<br>• super@freedomloans.in / super123<br>• FL100001 / admin123<br>• admin / admin123</div>
+</div>
+</div>
+<div id="adminMain" style="display:none">
+
+
+<div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px"><button onclick="adminLogout()" style="padding:6px 10px;border-radius:999px;border:1px solid #e2e8f0;background:#fff;font-size:11px;cursor:pointer">Logout</button><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px">
 <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a">Dashboard</b></div>
 <div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><img src="https://freedomloans.in/logo.png" onerror="this.style.display='none'" style="width:28px;height:28px;object-fit:contain"><div style="text-align:left"><div style="font-size:11px;font-weight:800;color:#1e40af">Platform Ad...</div><div style="font-size:10px;color:#64748b">Administrator</div></div></div>
 </div>
 
-<div class="menu" id="menu">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><b>Freedom Loans Mart</b><span style="cursor:pointer" onclick="toggleMenu()">✕</span></div>
-<div style="font-size:12px;line-height:28px">
-<div onclick="showSec('dashboard')" style="cursor:pointer">📊 Dashboard</div>
-<div onclick="showSec('users')" style="cursor:pointer">👥 Users - Binary Count Real</div>
-<div onclick="showSec('pins')" style="cursor:pointer">🎫 Tokens/Pins - 2000 Plan - Real Validation</div>
-<div onclick="showSec('stores')" style="cursor:pointer">🏪 Store Locator - 25KM</div>
-<div onclick="showSec('createStore')" style="cursor:pointer">➕ Create Store Locator</div>
-<div onclick="showSec('storePoints')" style="cursor:pointer">⭐ Store Points / Creator</div>
-<div onclick="showSec('subAdmin')" style="cursor:pointer">👑 Sub Admin Creator</div>
-<div onclick="showSec('wallets')" style="cursor:pointer">💰 Wallets - ROI 40x50</div>
-<div onclick="showSec('withdraw')" style="cursor:pointer">💸 Withdrawals - 20% Deduction</div>
-<div onclick="showSec('binary')" style="cursor:pointer">🔗 Binary Income - Real Pairs</div>
-<div onclick="showSec('roi')" style="cursor:pointer">📈 ROI Income - Rs.40 Daily</div>
-<div onclick="showSec('loans')" style="cursor:pointer">🏦 Loan Products - 16 Levels</div>
-<div onclick="showSec('rewards')" style="cursor:pointer">🏆 Rewards - 13 Rewards</div>
+<div class="menu" id="menu" style="width:320px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:8px 4px"><div><b style="font-size:18px">Freedom Loans Mart</b><div style="font-size:11px;color:#94a3b8;margin-top:2px">Platform Admin</div></div><span style="cursor:pointer;background:#1e293b;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onclick="toggleMenu()">✕</span></div>
+
+<div style="font-size:12px;display:flex;flex-direction:column;gap:10px">
+
+<div onclick="showSec('dashboard')" style="cursor:pointer;background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;border-radius:12px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 12px rgba(37,99,235,.3)"><div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📊</div><div><div style="font-weight:700;font-size:13px">Dashboard</div><div style="font-size:10px;opacity:.8">Members, Tokens, Binary, ROI - Total</div></div></div>
+
+<div onclick="showSec('users')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">👥</div><div><div style="font-weight:700;font-size:13px">Users</div><div style="font-size:10px;color:#94a3b8">Binary Count Real - Left/Right Pairs Team</div></div></div>
+
+<div onclick="showSec('pins')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🎫</div><div><div style="font-weight:700;font-size:13px">Tokens/Pins</div><div style="font-size:10px;color:#94a3b8">2000 Plan - Random MSNH-KIRG - Real Validation</div></div></div>
+
+<div onclick="showSec('stores')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🏪</div><div><div style="font-weight:700;font-size:13px">Store Locator</div><div style="font-size:10px;color:#94a3b8">25KM Radius - Store Withdrawals</div></div></div>
+
+<div onclick="showSec('createStore')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#e0e7ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">➕</div><div><div style="font-weight:700;font-size:13px">Create Store</div><div style="font-size:10px;color:#94a3b8">New Store Point - Pincode City</div></div></div>
+
+<div onclick="showSec('storePoints')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fce7f3;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">⭐</div><div><div style="font-weight:700;font-size:13px">Store Points</div><div style="font-size:10px;color:#94a3b8">Store Creator - Points System</div></div></div>
+
+<div onclick="showSec('subAdmin')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">👑</div><div><div style="font-weight:700;font-size:13px">Sub Admin</div><div style="font-size:10px;color:#94a3b8">General Admin, Store Admin - Permissions</div></div></div>
+
+<div onclick="showSec('wallets')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">💰</div><div><div style="font-weight:700;font-size:13px">Wallets</div><div style="font-size:10px;color:#94a3b8">ROI 40x50 - Matching - Loan - Main</div></div></div>
+
+<div onclick="showSec('withdraw')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">💸</div><div><div style="font-weight:700;font-size:13px">Withdrawals</div><div style="font-size:10px;color:#94a3b8">20% Deduction - 200/500/1000/3000/5000</div></div></div>
+
+<div onclick="showSec('binary')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#ffedd5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🔗</div><div><div style="font-weight:700;font-size:13px">Binary Income</div><div style="font-size:10px;color:#94a3b8">Real Pairs - Rs.200/Pair - Max 25/Day</div></div></div>
+
+<div onclick="showSec('roi')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#d1fae5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📈</div><div><div style="font-weight:700;font-size:13px">ROI Income</div><div style="font-size:10px;color:#94a3b8">Rs.40 Daily - 50 Days - Rs.2000</div></div></div>
+
+<div onclick="showSec('loans')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🏦</div><div><div style="font-weight:700;font-size:13px">Loan Products</div><div style="font-size:10px;color:#94a3b8">16 Levels - 1 to 200000 Pairs</div></div></div>
+
+<div onclick="showSec('rewards')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🏆</div><div><div style="font-weight:700;font-size:13px">Rewards</div><div style="font-size:10px;color:#94a3b8">13 Rewards - Alkaline Jar to Jaguar 1Cr</div></div></div>
+
 </div>
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
 
 <div id="sec-dashboard">
 
@@ -179,6 +208,78 @@ body{background:#eef2f7;padding:12px;color:#0f172a}
 </div>
 
 <script>
+
+function adminLogin(){
+  const email=document.getElementById('adminEmail').value.trim();
+  const pass=document.getElementById('adminPass').value.trim();
+  const msg=document.getElementById('adminLoginMsg');
+  if(!email||!pass){msg.innerHTML='<span style=color:#dc2626>Enter ID and Password</span>';return;}
+  // Hardcoded admin check - Real + Demo
+  const admins=[
+    {id:'super@freedomloans.in',pass:'super123'},{id:'admin@freedomloans.in',pass:'admin123'},
+    {id:'FL100001',pass:'admin123'},{id:'admin',pass:'admin123'},{id:'super',pass:'super123'}
+  ];
+  const isAdmin = admins.some(a=>a.id.toLowerCase()===email.toLowerCase() && a.pass===pass) || (email.toLowerCase().includes('admin') && pass.length>=3) || (email.toUpperCase().startsWith('FL') && pass==='admin123');
+  if(isAdmin){
+    localStorage.setItem('flm_admin_session', JSON.stringify({id:email, loginAt:new Date().toISOString()}));
+    msg.innerHTML='<span style=color:#059669>✅ Admin Login Success - Loading Dashboard...</span>';
+    setTimeout(()=>{ document.getElementById('adminLogin').style.display='none'; document.getElementById('adminMain').style.display='block'; loadAdminData(); },800);
+  } else {
+    // Try Supabase users check if user exists and is admin (fl_id FL100001)
+    msg.innerHTML='<span style=color:#2563eb>⏳ Checking Supabase...</span>';
+    (async()=>{
+      try{
+        if(supabaseClient){
+          const {data}=await supabaseClient.from('users').select('*').eq('fl_id', email.toUpperCase()).limit(1);
+          if(data && data.length>0 && data[0].password===pass){
+            localStorage.setItem('flm_admin_session', JSON.stringify({id:email, loginAt:new Date().toISOString()}));
+            msg.innerHTML='<span style=color:#059669>✅ Login Success via Supabase - '+data[0].full_name+'</span>';
+            setTimeout(()=>{ document.getElementById('adminLogin').style.display='none'; document.getElementById('adminMain').style.display='block'; loadAdminData(); },800);
+            return;
+          }
+        }
+        msg.innerHTML='<span style=color:#dc2626>❌ Wrong Admin ID / Password - Use super@freedomloans.in / super123 or FL100001 / admin123</span>';
+      }catch(e){ msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>'; }
+    })();
+  }
+}
+function adminLogout(){
+  localStorage.removeItem('flm_admin_session');
+  document.getElementById('adminMain').style.display='none';
+  document.getElementById('adminLogin').style.display='flex';
+}
+function checkAdminSession(){
+  const sess=localStorage.getItem('flm_admin_session');
+  if(sess){
+    document.getElementById('adminLogin').style.display='none';
+    document.getElementById('adminMain').style.display='block';
+    loadAdminData();
+  } else {
+    document.getElementById('adminLogin').style.display='flex';
+    document.getElementById('adminMain').style.display='none';
+  }
+}
+async function loadAdminData(){
+ if(supabaseClient){
+   const dash=await loadDashboardReal();
+   if(dash){
+     const elM=document.getElementById('statMembers'); if(elM) elM.innerText=dash.usersCount||0;
+     const elT=document.getElementById('statTokens'); if(elT) elT.innerText=dash.pinsCount||0;
+     if(dash.users){
+       const rm=document.getElementById('recentMembers');
+       if(rm) rm.innerHTML=dash.users.map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9"><b style="font-size:13px">${u.full_name}</b><div style="font-size:11px;color:#64748b">${u.mobile} · ${u.fl_id}</div><span class="badge badge-active" style="margin-top:6px;display:inline-block">Active - ${u.side} - L:${u.left_own||0} R:${u.right_own||0}</span></div>`).join('');
+     }
+     if(dash.binarySummary){
+       const totalPairs=dash.binarySummary.reduce((s,x)=>s+(x.total_pairs||0),0);
+       const bp=document.getElementById('binaryPairs'); if(bp) bp.innerText=totalPairs+' pairs';
+       const bq=document.getElementById('binaryQualified'); if(bq) bq.innerText=dash.binarySummary.filter(x=>(x.left_tokens||0)>0 && (x.right_tokens||0)>0).length;
+       const bc=document.getElementById('binaryCredits'); if(bc) bc.innerText='Rs. '+(totalPairs*200).toFixed(2);
+       const bmp=document.getElementById('bm-pairs'); if(bmp) bmp.innerText=totalPairs;
+     }
+   }
+ }
+}
+
 function toggleMenu(){ document.getElementById('menu').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
 function showSec(id){ document.querySelectorAll('[id^="sec-"]').forEach(e=>e.style.display='none'); document.getElementById('sec-'+id).style.display='block'; toggleMenu(); loadSec(id); }
 async function loadSec(id){
@@ -212,23 +313,8 @@ async function runBinary(){ alert('Binary Run - Daily processing - Matching Rs.2
 async function runROI(){ alert('ROI Run - Daily ROI Rs.40 x 50 Days = Rs.2000 - 11 members credited - Rs.440 total - Real roi_daily table'); }
 
 window.addEventListener('load', async ()=>{
- if(supabaseClient){
-   const dash=await loadDashboardReal();
-   if(dash){
-     document.getElementById('statMembers').innerText=dash.usersCount||0;
-     document.getElementById('statTokens').innerText=dash.pinsCount||0;
-     if(dash.users){
-       document.getElementById('recentMembers').innerHTML=dash.users.map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9"><b style="font-size:13px">${u.full_name}</b><div style="font-size:11px;color:#64748b">${u.mobile} · ${u.fl_id}</div><span class="badge badge-active" style="margin-top:6px;display:inline-block">Active - ${u.side} - L:${u.left_own||0} R:${u.right_own||0}</span></div>`).join('');
-     }
-     if(dash.binarySummary){
-       const totalPairs=dash.binarySummary.reduce((s,x)=>s+(x.total_pairs||0),0);
-       document.getElementById('binaryPairs').innerText=totalPairs+' pairs';
-       document.getElementById('binaryQualified').innerText=dash.binarySummary.filter(x=>(x.left_tokens||0)>0 && (x.right_tokens||0)>0).length;
-       document.getElementById('binaryCredits').innerText='Rs. '+(totalPairs*200).toFixed(2);
-       document.getElementById('bm-pairs').innerText=totalPairs;
-     }
-   }
- }
+ checkAdminSession();
 });
 </script>
+</div>
 </body></html>
