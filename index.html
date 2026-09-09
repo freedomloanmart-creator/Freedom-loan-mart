@@ -99,7 +99,7 @@ body{background:#eef2f7;color:#0f172a}
 <div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">My Pins - Tokens</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="pinsTopName">Theja</div><div style="font-size:10px;color:#64748b" id="pinsTopFl">FL ID</div></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎫</div><b style="color:#fff">Token status</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:12px;background:linear-gradient(135deg,#0f766e,#0e7490)" id="tokenTotalText">0 total</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Available</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenAvailable">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Used</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenUsed">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Expired</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenExpired">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Total</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenTotal">0</div></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #2563eb"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">💳</div><b style="color:#fff">Purchase Pins - Deposit</b></div><div style="text-align:center;padding:6px 0;color:#dbeafe;font-size:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8)">1 Pin = Rs. 2000 - Extra bonus: 25 pins=3 extra, 50 pins=9 extra, 100 pins=20 extra</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">How many pins you want? (1 pin also allowed)</div><input id="pinsWant" type="number" min="1" placeholder="Eg: 10" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px" oninput="calcPins()"></div><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#64748b">Payable Amount (pins × 2000):</span><b style="font-size:13px" id="payableAmount">Rs. 0</b></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-size:11px;color:#64748b">Extra Bonus Pins:</span><b style="font-size:13px;color:#059669" id="extraPins">0 extra</b></div><div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px dashed #bfdbfe;padding-top:6px"><span style="font-size:12px;font-weight:700">You Get Total:</span><b style="font-size:14px;color:#1e40af" id="totalPinsGet">0 pins</b></div><div style="margin-top:6px;font-size:10px;color:#2563eb" id="bonusMsg">Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px"><div style="font-weight:700;font-size:12px">Payment Options - UPI / USDT</div><div style="font-size:11px;margin-top:6px">UPI ID: <b>freedomloans@upi</b> <span style="background:#dbeafe;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="navigator.clipboard.writeText('freedomloans@upi');alert('UPI copied')">Copy</span></div><div style="font-size:11px;margin-top:4px">USDT TRC20: <b>TXabc...123</b> <span style="background:#dbeafe;padding:2px 6px;border-radius:4px;cursor:pointer" onclick="navigator.clipboard.writeText('TXabc123');alert('USDT copied')">Copy</span></div><div style="font-size:10px;color:#92400e;margin-top:4px">Same UPI/USDT as registration - Pay exact payable amount</div></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Payment Screenshot Upload</div><input id="payScreenshot" type="file" accept="image/*" style="width:100%;padding:10px;border:1px dashed #cbd5e1;border-radius:10px;font-size:12px"></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">UTR / Transaction Hash</div><input id="payUTR" placeholder="Enter UTR number or USDT Tx Hash" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><button id="submitDepositBtn" onclick="submitPinPurchase()" style="width:100%;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Submit Deposit - Enter Pins Count</button><div id="purchaseMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div></div>
-<div class="card" style="border:2px solid #2563eb;background:#f8fafc"><div style="font-weight:800;color:#1e40af">📋 Pin Purchase Status</div><div id="purchaseStatus" style="margin-top:10px;padding:12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;color:#64748b">Checking latest submission...</div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎟️</div><b style="color:#fff">Unused pins</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Ready to use - Green</div><div style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr;background:#f0f9ff;padding:10px 16px;font-size:12px;font-weight:700;color:#1e3a5a;border-bottom:1px solid #e2e8f0"><div>TOKEN</div><div>AMOUNT</div></div><div id="unusedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div></div></div></div>
+<div class="card" style="border:2px solid #2563eb;background:#f8fafc"><div style="font-weight:800;color:#1e40af">📋 Pin Purchase Status</div><div id="purchaseStatus" style="margin-top:10px;padding:12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;color:#64748b">Checking latest submission...</div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎟️</div><b style="color:#fff">Unused pins</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Ready to use - Green</div><div style="padding:0"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;background:#f0f9ff;padding:10px 16px;font-size:12px;font-weight:700;color:#1e3a5a;border-bottom:1px solid #e2e8f0"><div>TOKEN</div><div>AMOUNT</div></div><div id="unusedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎫</div><b style="color:#fff">Used pins</b></div><div style="text-align:center;padding:6px 0;color:#fef3c7;font-size:11px;background:linear-gradient(135deg,#b45309,#9f1239)">Already consumed - Brown</div><div style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff7ed;padding:10px 16px;font-size:12px;font-weight:700;color:#7c2d12;border-bottom:1px solid #fed7aa"><div>TOKEN</div><div>AMOUNT</div><div>USED IN</div></div><div id="usedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No used pins yet.</div></div></div></div>
 </div>
 <div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI Earnings</h3><div>Coming soon</div></div></div>
@@ -188,15 +188,28 @@ async function readScreenshot(file){
   reader.onerror=reject; reader.readAsDataURL(file);
  });
 }
+let latestPurchaseRequest=null;
+function resubmitRejectedPurchase(){
+ const req=latestPurchaseRequest;
+ const wantEl=document.getElementById('pinsWant');
+ if(req && req.requested_pins && wantEl){
+  wantEl.value=String(req.requested_pins);
+  calcPins();
+ }
+ const msg=document.getElementById('purchaseMsg');
+ if(msg){msg.style.color='#2563eb';msg.innerText='Resubmission: '+(req?.requested_pins||1)+' pin(s). Upload the new payment screenshot and enter the new/correct UTR.';}
+ document.getElementById('payScreenshot')?.scrollIntoView({behavior:'smooth',block:'center'});
+ setTimeout(()=>document.getElementById('payScreenshot')?.click(),250);
+}
 function setPurchaseStatus(text,type='info'){
  const el=document.getElementById('purchaseStatus'); if(!el)return;
  const styles={info:['#eff6ff','#1d4ed8'],pending:['#fffbeb','#92400e'],confirmed:['#f0fdf4','#166534'],rejected:['#fef2f2','#991b1b'],error:['#fef2f2','#991b1b']};
  const st=styles[type]||styles.info; el.style.background=st[0];el.style.color=st[1];el.innerText=text;
  if(type==='rejected'){
   const btn=document.createElement('button');
-  btn.type='button'; btn.innerText='↩️ Resubmit Screenshot + UTR';
+  btn.type='button'; btn.innerText='↩️ Resubmit Same Purchase';
   btn.style.cssText='display:block;width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:700;cursor:pointer';
-  btn.onclick=()=>{document.getElementById('payScreenshot')?.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('payScreenshot')?.click();};
+  btn.onclick=resubmitRejectedPurchase;
   el.appendChild(btn);
  }
 }
@@ -207,9 +220,10 @@ async function loadPurchaseStatus(){
   const r=await supabaseClient.from('pin_purchase_requests').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(1);
   if(r.error)throw r.error;
   const req=r.data?.[0];
+  latestPurchaseRequest=req||null;
   if(!req){setPurchaseStatus('No pin purchase submitted yet.','info');return;}
   if(req.status==='pending')setPurchaseStatus(`⏳ Already submitted. Waiting for admin approval.\nUTR: ${req.utr||'—'} · Requested: ${req.requested_pins||0} pins`,'pending');
-  else if(req.status==='confirmed')setPurchaseStatus(`✅ Approved — ${req.total_pins||req.requested_pins||0} pins added to My Pins.\nApproved: ${req.reviewed_at?new Date(req.reviewed_at).toLocaleString():'Recently'}`,'confirmed');
+  else if(req.status==='confirmed')setPurchaseStatus(`✅ Approved — ${req.total_pins||req.requested_pins||0} pins added to My Pins.\nYou can purchase more pins anytime. Approved: ${req.reviewed_at?new Date(req.reviewed_at).toLocaleString():'Recently'}`,'confirmed');
   else if(req.status==='rejected')setPurchaseStatus(`❌ Rejected — Please check the screenshot / UTR and resubmit the payment proof, or contact admin.\nReason: ${req.rejection_reason||'Please verify the payment proof.'}`,'rejected');
  }catch(e){setPurchaseStatus('Could not load purchase status. Please refresh.','error');}
 }
@@ -227,7 +241,8 @@ async function submitPinPurchase(){
   if(latest.error)throw latest.error;
   const last=latest.data?.[0];
   if(last?.status==='pending'){setPurchaseStatus('⏳ Already submitted. Waiting for admin approval.','pending');if(msgEl)msgEl.innerText='Already submitted. Please wait for admin approval.';return;}
-  if(last?.status==='confirmed'){setPurchaseStatus('✅ Approved — pins already added. No new submission is required.','confirmed');if(msgEl)msgEl.innerText='Your previous purchase was already approved.';return;}
+  // A confirmed purchase does NOT block a new purchase. Members can buy more pins anytime.
+  // A rejected purchase is also allowed to resubmit; the rejected quantity is restored by the Resubmit button.
   if(btn)btn.disabled=true;
   if(msgEl){msgEl.style.color='#2563eb';msgEl.innerText='Uploading screenshot and submitting...';}
   const screenshotData=await readScreenshot(fileEl.files[0]);
@@ -243,6 +258,15 @@ async function submitPinPurchase(){
   if(msgEl){msgEl.style.color='#dc2626';msgEl.innerText='Submission error: '+e.message;}
   setPurchaseStatus('Submission failed. Please try again.','error');
  }finally{if(btn)btn.disabled=false;}
+}
+async function copyUserPin(pinCode){
+ if(!pinCode)return;
+ try{await navigator.clipboard.writeText(pinCode);alert('PIN copied: '+pinCode);}
+ catch(e){
+  const ta=document.createElement('textarea');ta.value=pinCode;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');alert('PIN copied: '+pinCode);}catch(err){alert('Copy failed. Please copy the PIN manually.');}
+  document.body.removeChild(ta);
+ }
 }
 async function loadPins(){
  if(!requireLogin()) return;
@@ -265,7 +289,7 @@ async function loadPins(){
    var unusedList=document.getElementById('unusedPinsList');
    if(unusedList){
      var unused=pins.filter(p=>p.status==='unused');
-     if(unused.length>0){var html='';for(var i=0;i<unused.length;i++){var p=unused[i];html+='<div style="display:grid;grid-template-columns:1fr 1fr;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#f0fdf4"><div style="font-family:monospace;font-weight:700;font-size:12px">'+p.pin_code+'</div><div style="font-size:12px">Rs.'+(p.amount||2000)+'</div></div>';}unusedList.innerHTML=html;}
+     if(unused.length>0){var html='';for(var i=0;i<unused.length;i++){var p=unused[i];html+=`<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #f1f5f9;background:#f0fdf4"><div style="font-family:monospace;font-weight:700;font-size:12px;overflow-wrap:anywhere">${p.pin_code}</div><div style="font-size:12px;white-space:nowrap">Rs.${p.amount||2000}</div><button type="button" onclick="copyUserPin('${p.pin_code}')" style="background:#0f172a;color:#fff;border:0;border-radius:8px;padding:7px 9px;font-size:11px;font-weight:700;white-space:nowrap">📋 Copy</button></div>`;}unusedList.innerHTML=html;}
      else{unusedList.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div>';}
    }
    var usedList=document.getElementById('usedPinsList');
