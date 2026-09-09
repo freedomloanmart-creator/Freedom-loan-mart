@@ -256,22 +256,7 @@ async function loadAdminData(){
 function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);}
 async function loadSec(id){
- if(id==='users'&&supabaseClient){
-   const {data}=await supabaseClient.from('users').select('*, address, full_address, pincode, city').order('created_at',{ascending:false}).limit(50);
-   const {data:bin}=await supabaseClient.from('binary_summary').select('*');
-   document.getElementById('usersList').innerHTML=data.map(u=>{
-     const b=bin.find(x=>x.fl_id===u.fl_id)||{left_tokens:0,right_tokens:0,total_pairs:0,team_size:0};
-     const addr=u.address||u.full_address||'No address';
-     const pin=u.pincode||'No pincode';
-     const city=u.city||'';
-     return `<div style="padding:12px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:8px;border:1px solid #e2e8f0;cursor:pointer" onclick="showUserCourier('${u.fl_id}')">
-       <div style="display:flex;justify-content:space-between"><b>${u.full_name}</b><span style="background:#dbeafe;padding:2px 8px;border-radius:999px;font-size:10px">${u.fl_id}</span></div>
-       <div style="font-size:11px;color:#64748b;margin-top:4px">${u.mobile} · ${u.email||'No email'} · Sponsor: ${u.sponsor_id||'None'} - ${u.side||''}</div>
-       <div style="font-size:11px;margin-top:6px;background:#f8fafc;padding:6px;border-radius:6px"><b>📦 Courier Address:</b> ${addr}, ${city} - ${pin}</div>
-       <div style="font-size:11px;margin-top:4px">Left ${b.left_tokens} Right ${b.right_tokens} Pairs ${b.total_pairs} Team ${b.team_size}</div>
-     </div>`;
-   }).join('') + `<div style="margin-top:12px;background:#f0fdf4;padding:10px;border-radius:8px;border:1px solid #dcfce7"><b>📦 Courier Help:</b> Click on user card to see full address, pincode for product delivery. Address saved from profile page - Full address + pincode - Supabase users table - For courier.</div>`;
- }
+ if(id==='users'&&supabaseClient){const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);const {data:bin}=await supabaseClient.from('binary_summary').select('*');document.getElementById('usersList').innerHTML=data.map(u=>{const b=bin.find(x=>x.fl_id===u.fl_id)||{left_tokens:0,right_tokens:0,total_pairs:0,team_size:0};return `<div style="padding:8px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id} - Left ${b.left_tokens} Right ${b.right_tokens} Pairs ${b.total_pairs}</div>`;}).join('');}
  if(id==='pins'&&supabaseClient){
    const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(100);
    if(data){
@@ -297,11 +282,6 @@ async function loadSec(id){
  }
 }
 async function checkPinReal(){const pin=document.getElementById('checkPinInput').value.trim();const res=document.getElementById('pinCheckResult');if(!pin){res.innerHTML='Enter pin';return;}res.innerHTML='⏳ Checking...';const {data,error}=await supabaseClient.from('pins').select('*').eq('pin_code',pin.toUpperCase()).limit(1);if(error){res.innerHTML='❌ '+error.message;return;}if(!data||data.length===0){res.innerHTML='❌ Pin Wrong - Not found';return;}const p=data[0];if(p.status==='used'){res.innerHTML='⚠️ Already Used - '+p.used_by_mobile;return;}if(p.status==='unused'){res.innerHTML='✅ Correct - Valid Rs.'+p.amount;return;}}
-
-function showUserCourier(flId){
-  alert('Courier details for '+flId+' - Click user in list to see full address. Address from profile page - Full address + pincode saved in Supabase users table - For product courier delivery. Dashboard not disturbed - Profile page only.');
-}
-
 function runBinary(){alert('Binary Run - Rs.200/pair');}
 function runROI(){alert('ROI Run - Rs.40 Daily');}
 window.addEventListener('load',()=>{checkAdminSession();});

@@ -204,24 +204,34 @@ body{background:#eef2f7;color:#0f172a}
 <!-- Profile Header -->
 <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
 <div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Profile</b></div>
-<div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL241190</div></div></div>
+<div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL ID</div></div></div>
 </div>
 
-<!-- Profile Card -->
+<!-- Profile Card - Admin Only Fields -->
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px">
 <div style="background:linear-gradient(135deg,#c17a2a,#9c4a4a);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👤</div><b style="color:#fff">Profile</b></div>
 <div style="text-align:center;padding:8px 0;color:#64748b;font-size:12px" id="profFlId">FL ID</div>
 <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name</div><input id="profName" placeholder="Enter full name" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
-<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone</div><input id="profPhone" placeholder="Enter phone" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
-<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email</div><input id="profEmail" placeholder="Enter email" type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only - Contact support to change</span></div><input id="profName" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profPhone" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div>
+<div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profEmail" disabled type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div>
+<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px"><div style="font-size:10px;color:#92400e">🔒 Name, Phone, Email change admin valla matrame - Contact support - Admin only edit</div></div>
+</div>
+</div>
+
+<!-- Address Card - One Time Edit Only -->
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px">
+<div style="background:linear-gradient(135deg,#059669,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📦</div><b style="color:#fff">Delivery Address - One Time Only</b></div>
+<div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px">For product courier - One time entry - No edit after save</div>
+<div style="padding:16px;display:flex;flex-direction:column;gap:12px">
 <div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Full Address - For Courier Delivery</div><textarea id="profAddress" placeholder="Enter full address - House no, street, area, landmark" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;min-height:80px;resize:none"></textarea></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
 <div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Pincode</div><input id="profPincode" placeholder="Eg: 506101" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
 <div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">City</div><input id="profCity" placeholder="Eg: Mahbubabad" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div>
 </div>
-<button onclick="saveProfile()" style="width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;margin-top:8px;cursor:pointer">Save profile</button>
+<button id="saveProfBtn" onclick="saveProfile()" style="width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;margin-top:8px;cursor:pointer">Save address</button>
 <div id="profMsg" style="font-size:11px;text-align:center;margin-top:8px"></div>
+<div id="addrLockedMsg" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:12px;font-weight:700;color:#166534">🔒 Address locked - One time entry done</div><div style="font-size:10px;color:#15803d;margin-top:4px">Edit cheyali ante contact support - Admin will edit - No edit option after save - Courier will be delivered to saved address</div></div>
 </div>
 </div>
 
@@ -347,9 +357,37 @@ async function loadProfile(){
     document.getElementById('profName').value=user.full_name||'';
     document.getElementById('profPhone').value=user.mobile||'';
     document.getElementById('profEmail').value=user.email||'';
-    document.getElementById('profAddress').value=user.address||user.full_address||'';
-    document.getElementById('profPincode').value=user.pincode||'';
-    document.getElementById('profCity').value=user.city||'';
+    // Address - one time logic
+    var addr=user.address||user.full_address||'';
+    var pin=user.pincode||'';
+    var city=user.city||'';
+    var addrInput=document.getElementById('profAddress');
+    var pinInput=document.getElementById('profPincode');
+    var cityInput=document.getElementById('profCity');
+    var saveBtn=document.getElementById('saveProfBtn');
+    var lockedMsg=document.getElementById('addrLockedMsg');
+    var profMsg=document.getElementById('profMsg');
+    if(addr && pin){
+      // Already saved - lock - no edit
+      addrInput.value=addr;
+      pinInput.value=pin;
+      cityInput.value=city;
+      addrInput.disabled=true; pinInput.disabled=true; cityInput.disabled=true;
+      addrInput.style.background='#f8fafc'; pinInput.style.background='#f8fafc'; cityInput.style.background='#f8fafc';
+      addrInput.style.color='#64748b'; pinInput.style.color='#64748b'; cityInput.style.color='#64748b';
+      saveBtn.style.display='none';
+      lockedMsg.style.display='block';
+      profMsg.innerText='';
+    } else {
+      // Not saved yet - allow one time entry
+      addrInput.value=addr;
+      pinInput.value=pin;
+      cityInput.value=city;
+      addrInput.disabled=false; pinInput.disabled=false; cityInput.disabled=false;
+      addrInput.style.background='#fff'; pinInput.style.background='#fff'; cityInput.style.background='#fff';
+      saveBtn.style.display='block';
+      lockedMsg.style.display='none';
+    }
     document.getElementById('accStatus').innerText='Active';
     document.getElementById('accSponsor').innerText=user.sponsor_id||'None';
     document.getElementById('accPlacementParent').innerText=user.sponsor_id||'None';
@@ -361,26 +399,40 @@ async function loadProfile(){
 
 async function saveProfile(){
  var flId=getFlId();
- var name=document.getElementById('profName').value.trim();
- var phone=document.getElementById('profPhone').value.trim();
- var email=document.getElementById('profEmail').value.trim();
  var address=document.getElementById('profAddress').value.trim();
  var pincode=document.getElementById('profPincode').value.trim();
  var city=document.getElementById('profCity').value.trim();
  var msg=document.getElementById('profMsg');
- if(!name){msg.style.color='#dc2626';msg.innerText='Enter name';return;}
- msg.style.color='#2563eb';msg.innerText='Saving...';
+ var saveBtn=document.getElementById('saveProfBtn');
+ var lockedMsg=document.getElementById('addrLockedMsg');
+ if(!address){msg.style.color='#dc2626';msg.innerText='Enter full address - For courier';return;}
+ if(!pincode){msg.style.color='#dc2626';msg.innerText='Enter pincode - For courier';return;}
+ msg.style.color='#2563eb';msg.innerText='Saving... - One time save - No edit after';
  try{
   if(supabaseClient){
-   var {error}=await supabaseClient.from('users').update({full_name:name,mobile:phone,email:email,address:address,full_address:address,pincode:pincode,city:city}).eq('fl_id',flId);
+   // Only update address fields - NOT name, phone, email - Admin only
+   var {error}=await supabaseClient.from('users').update({address:address,full_address:address,pincode:pincode,city:city}).eq('fl_id',flId);
    if(error) throw error;
-   // Update session name
-   try{var sess=JSON.parse(localStorage.getItem('flm_session'));sess.name=name;sess.full_name=name;localStorage.setItem('flm_session',JSON.stringify(sess));document.getElementById('topName').innerText=name;document.getElementById('dashName').innerText=name;}catch(e){}
-   msg.style.color='#059669';msg.innerText='Profile saved! Address and pincode saved for courier.';
+   msg.style.color='#059669';msg.innerText='Address saved! Locked - Contact support to edit.';
+   // Lock after save - No edit option
+   document.getElementById('profAddress').disabled=true;
+   document.getElementById('profPincode').disabled=true;
+   document.getElementById('profCity').disabled=true;
+   document.getElementById('profAddress').style.background='#f8fafc';
+   document.getElementById('profPincode').style.background='#f8fafc';
+   document.getElementById('profCity').style.background='#f8fafc';
+   saveBtn.style.display='none';
+   lockedMsg.style.display='block';
   } else {
-   msg.style.color='#059669';msg.innerText='Demo saved - Connect Supabase for real save';
+   msg.style.color='#059669';msg.innerText='Demo saved';
   }
- }catch(e){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}
+ }catch(e){
+   if(e.message.includes('duplicate')||e.message.includes('unique')){
+     msg.style.color='#dc2626';msg.innerText='Error: Mobile/email already exists - Contact admin';
+   } else {
+     msg.style.color='#dc2626';msg.innerText='Error: '+e.message;
+   }
+ }
 }
 
 async function changePassword(){
