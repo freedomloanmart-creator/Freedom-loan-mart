@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Freedom Loans Mart - User Dashboard - Final - Light Theme + Real Login - Sample Theme + Our Logics</title>
+<title>Freedom Loans Mart - Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 var SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
@@ -18,7 +18,7 @@ function showSec(id){
  if(target) target.style.display='block';
  document.getElementById('menu').classList.remove('open');
  document.getElementById('overlay').classList.remove('show');
- var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tree':'Binary Tree View','tokens':'My Pins - Tokens','roi':'ROI Earnings - 40x50','wallets':'My Wallets - 3 Wallets','stores':'Store Network - 25KM','loans':'Loan Plans - 16 Levels','rewards':'Rewards Club','withdraw':'Withdraw - 3 Rules','support':'Help Center'};
+ var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tree':'Binary Tree View','tokens':'My Pins - Tokens','roi':'ROI Earnings','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center'};
  var tt=document.getElementById('topTitle'); if(tt&&titleMap[id]) tt.innerText=titleMap[id];
 }
 </script>
@@ -67,138 +67,144 @@ body{background:#eef2f7;color:#0f172a}
 <div class="menu-item active" onclick="showSec('dashboard')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">📊</span> Dashboard</div>
 <div class="menu-item" onclick="showSec('profile')"><span style="width:32px;height:32px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center">👤</span> My Profile</div>
 <div class="menu-item" onclick="showSec('invite')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🔗</span> Invite & Share Links</div>
-<div class="menu-section">My Team - Our Logic</div>
-<div class="menu-item" onclick="showSec('downline')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">👥</span> My Team - Downline</div>
-<div class="menu-item" onclick="showSec('tree')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🌳</span> Binary Tree View</div>
-<div class="menu-section">Earnings - Our Logic</div>
-<div class="menu-item" onclick="showSec('tokens')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🎫</span> My Pins - Tokens</div>
-<div class="menu-item" onclick="showSec('roi')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">🔄</span> ROI Earnings - 40x50</div>
-<div class="menu-item" onclick="showSec('wallets')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">💰</span> My Wallets - 3 Wallets</div>
-<div class="menu-section">Store & Finance - Our Logic</div>
-<div class="menu-item" onclick="showSec('stores')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🏪</span> Store Network - 25KM</div>
-<div class="menu-item" onclick="showSec('loans')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🏦</span> Loan Plans - 16 Levels</div>
-<div class="menu-item" onclick="showSec('rewards')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</span> Rewards Club</div>
-<div class="menu-item" onclick="showSec('withdraw')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">⬆️</span> Withdraw - 3 Rules</div>
+<div class="menu-section">My Team</div>
+<div class="menu-item" onclick="showSec('downline')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">👥</span> My Team</div>
+<div class="menu-item" onclick="showSec('tree')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🌳</span> Binary Tree</div>
+<div class="menu-section">Earnings</div>
+<div class="menu-item" onclick="showSec('tokens')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🎫</span> My Pins</div>
+<div class="menu-item" onclick="showSec('roi')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">🔄</span> ROI Earnings</div>
+<div class="menu-item" onclick="showSec('wallets')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">💰</span> My Wallets</div>
+<div class="menu-section">Store & Finance</div>
+<div class="menu-item" onclick="showSec('stores')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🏪</span> Store Network</div>
+<div class="menu-item" onclick="showSec('loans')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🏦</span> Loan Plans</div>
+<div class="menu-item" onclick="showSec('rewards')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</span> Rewards</div>
+<div class="menu-item" onclick="showSec('withdraw')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">⬆️</span> Withdraw</div>
 <div class="menu-section">Support</div>
 <div class="menu-item" onclick="showSec('support')"><span style="width:32px;height:32px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center">💬</span> Help Center</div>
 </div>
 <div style="padding:16px;border-top:1px solid #f1f5f9;margin-top:8px">
 <button style="width:100%;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:12px;padding:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px" onclick="localStorage.removeItem('flm_session');location.href='./login.html'"><span>🚪</span> Sign Out</button>
-<div style="margin-top:12px;background:#f8fafc;padding:10px;border-radius:10px;border:1px solid #e2e8f0"><div style="font-size:10px;font-weight:700;color:#0f172a">Light Theme - Real Login - Our Logic</div><div style="font-size:9px;color:#64748b;margin-top:2px">Store 25KM, Wallet 3 rules Total=3 Wallets Sum, Real Supabase Connection - Final - No default FL973530</div></div>
 </div>
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
 <div id="sec-dashboard">
 <div class="card" style="background:linear-gradient(135deg,#1e3a8a 0%,#0e7490 50%,#14b8a6 100%);color:#fff;padding:20px;border-radius:20px">
 <div style="display:flex;align-items:center;gap:12px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:3px solid rgba(255,255,255,.3)" id="dashInitial">U</div><div><div style="font-size:11px;opacity:.8;letter-spacing:1px">MEMBER DASHBOARD</div><div style="font-size:18px;font-weight:800" id="dashName">Loading...</div><div style="font-size:13px;opacity:.9"><span id="dashFlId">FL ID</span> <span style="color:#86efac">• Active</span></div></div></div>
 <button class="btn-white" onclick="showSec('invite')">Invite members</button>
 <button class="btn-outline" onclick="showSec('tree')">View tree</button>
 </div>
+
 <div class="card" style="background:#f0fdf4;border:1px solid #dcfce7">
 <div style="background:#dcfce7;color:#166534;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block">MATCHING BONUS</div>
 <div style="font-size:15px;font-weight:800;margin-top:10px;color:#0f172a">Rs. 200 for every completed left and right pair</div>
 <div style="font-size:13px;color:#2563eb;font-weight:700;margin-top:8px;cursor:pointer" onclick="showSec('downline')">Check network →</div>
-<div style="font-size:11px;color:#64748b;margin-top:4px">1:1 reach = 1 pair = Rs.200 + Loan 1 Rs.1000 eligible - Real from Supabase binary_summary - Our logic - Real for logged user</div>
 </div>
+
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center"><b>Profile - Real from Supabase users table</b><span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:11px">Active - Real</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><b>Profile</b><span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:11px">Active</span></div>
 <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Member ID - Real from Supabase - Changes with login</div><div style="font-size:14px;font-weight:700" id="pMemberId">FL ID - Real</div></div>
-<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Joined - Real from users.created_at</div><div style="font-size:14px;font-weight:700" id="pJoined">Loading... - Real</div></div>
-<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Activation - Real</div><div style="font-size:14px;font-weight:700" id="pActivation">Loading... - Real</div></div>
-<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Sponsored by - Real from users.sponsor_id</div><div style="font-size:14px;font-weight:700" id="pSponsor">Loading... - Real</div></div>
+<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Member ID</div><div style="font-size:14px;font-weight:700" id="pMemberId">FL ID</div></div>
+<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Joined</div><div style="font-size:14px;font-weight:700" id="pJoined">--</div></div>
+<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Activation</div><div style="font-size:14px;font-weight:700" id="pActivation">--</div></div>
+<div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Sponsored by</div><div style="font-size:14px;font-weight:700" id="pSponsor">--</div></div>
 </div>
 </div>
+
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center"><b>Place a member - Real links for logged user</b><span style="color:#2563eb;font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('invite')">All links →</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><b>Place a member</b><span style="color:#2563eb;font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('invite')">All links →</span></div>
 <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
-<div style="background:linear-gradient(135deg,#cbd5e1,#94a3b8);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyLeft()"><div style="font-size:11px;color:#475569">Left side - Real for logged user</div><div style="font-size:16px;font-weight:800;margin-top:4px">Open placement - Left link</div><div style="font-size:12px;color:#475569;margin-top:4px">Share left link - Real link - Our logic - Sponsor = your FL ID</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="leftLinkText">Left link - Real - Click to copy</div></div>
-<div style="background:linear-gradient(135deg,#a7f3d0,#6ee7b7);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyRight()"><div style="font-size:11px;color:#065f46">Right side - Real for logged user</div><div style="font-size:16px;font-weight:800;margin-top:4px">Open placement - Right link</div><div style="font-size:12px;color:#065f46;margin-top:4px">Share right link - Real link - Our logic - Sponsor = your FL ID</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="rightLinkText">Right link - Real - Click to copy</div></div>
+<div style="background:linear-gradient(135deg,#cbd5e1,#94a3b8);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyLeft()"><div style="font-size:11px;color:#475569">Left side</div><div style="font-size:16px;font-weight:800;margin-top:4px">Left link</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="leftLinkText">Click to copy</div></div>
+<div style="background:linear-gradient(135deg,#a7f3d0,#6ee7b7);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyRight()"><div style="font-size:11px;color:#065f46">Right side</div><div style="font-size:16px;font-weight:800;margin-top:4px">Right link</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="rightLinkText">Click to copy</div></div>
 </div>
 </div>
+
 <div class="card" style="background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff;display:flex;justify-content:space-between;align-items:center">
-<div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">📊</div><b>Earnings and wallets - Real for logged user - Total = 3 Wallets Sum</b></div>
+<div style="display:flex;align-items:center;gap:10px"><b>Earnings and wallets</b></div>
 <span style="font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('wallets')">Open wallet →</span>
 </div>
+
 <div class="grid2">
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Main Wallet - Total = ROI+Matching+Loan</b><span>₹</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="mainWallet">Rs. 0.00 - Real - Loading</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Available balance - Total = ROI+Matching+Loan - Real for logged user - Our logic</div></div>
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">ROI Credits - 40x50 - Real</b><span>◎</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="roiCredits">0.00 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Stock redemption credits - 40 per day - Real - Our logic - 1000 → Store Product</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Main Wallet</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="mainWallet">Rs. 0.00</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">ROI Credits</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="roiCredits">0.00</div></div>
 </div>
 <div class="grid2">
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Matching Income - Real</b><span>↔</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="matchingIncome">Rs. 0.00 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Lifetime matching bonus - Rs.200/pair - Real - Our logic - 5000/40 → Store Withdraw</div></div>
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Pending Withdrawal - Real</b><span>↑</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="pendingWithdraw">Rs. 0.00 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Under review - Our logic - Loan Direct Withdraw - Real for logged user</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Matching Income</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="matchingIncome">Rs. 0.00</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Pending Withdrawal</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="pendingWithdraw">Rs. 0.00</div></div>
 </div>
+
 <div class="card" style="background:linear-gradient(90deg,#7c3aed,#2563eb);color:#fff;display:flex;justify-content:space-between;align-items:center">
-<div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">🔗</div><b>Binary summary - Real from binary_summary table - Real for logged user</b></div>
+<div><b>Binary summary</b></div>
 <span style="font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('tree')">View full tree →</span>
 </div>
 <div class="grid2">
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Left Tokens - Real for logged user</b><span>₹</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="leftTokens">0 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Token volume in left wing - Real from binary_summary.left_tokens - Real for logged user</div></div>
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Right Tokens - Real for logged user</b><span>◎</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="rightTokens">0 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Token volume in right wing - Real - Real for logged user</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Left Tokens</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="leftTokens">0</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Right Tokens</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="rightTokens">0</div></div>
 </div>
 <div class="grid2">
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Left Carry - Real</b><span>↔</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="leftCarry">0 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Forward balance - Real - Our logic</div></div>
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Right Carry - Real</b><span>↑</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="rightCarry">0 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Forward balance - Real - Our logic</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Left Carry</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="leftCarry">0</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Right Carry</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="rightCarry">0</div></div>
 </div>
 <div class="grid2">
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Total Pairs - Real - 1:1=1000 Loan eligible</b><span>∞</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="totalPairs">0 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Lifetime matched pairs - Real - 1:1=1000 Loan eligible - Real for logged user - Our count - Santho login ayite Santho pairs</div></div>
-<div class="dark-card"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">Team Size - Real for logged user</b><span>◎</span></div><div style="font-size:20px;font-weight:800;margin-top:8px" id="teamSize">0 - Real</div><div style="font-size:11px;color:#94a3b8;margin-top:4px">Active members in both wings - Real - Real for logged user - Santho team</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Total Pairs</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="totalPairs">0</div></div>
+<div class="dark-card"><div style="font-size:12px;opacity:.8">Team Size</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="teamSize">0</div></div>
 </div>
+
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center"><b>Daily matching - Real</b><b id="dailyMatching">0 / 25 pairs - Real - Loading</b></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><b>Daily matching</b><b id="dailyMatching">0 / 25 pairs</b></div>
 <div style="margin-top:10px;background:#f1f5f9;height:8px;border-radius:999px"><div style="width:0%;height:100%;background:#2563eb;border-radius:999px" id="dailyBar"></div></div>
-<div style="margin-top:8px;font-size:12px;color:#64748b">Rs. 200 per pair - Real - Our logic</div>
-<div style="margin-top:4px;font-size:13px;font-weight:700" id="remainingToday">Rs. 5,000 remaining today - Real - Our logic</div>
-<div style="margin-top:4px;font-size:11px;color:#64748b">Max 25 pairs per day = Rs.5000 - Our logic - Real for logged user</div>
+<div style="margin-top:8px;font-size:13px;font-weight:700" id="remainingToday">Rs. 5,000 remaining today</div>
 </div>
+
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center"><b>ROI tokens - Real</b><b style="color:#2563eb" id="roiActive">1 active - Real - Loading</b></div>
-<div style="margin-top:10px"><div style="font-size:20px;font-weight:800">2.00%</div><div style="font-size:12px;color:#64748b">daily ROI to credits wallet - Our logic - 40 per day x 50 days = 2000 - Real for logged user</div></div>
-<div style="margin-top:10px;font-size:12px;color:#64748b" id="latestToken">Latest token - Real - Loading</div>
-<div style="margin-top:8px;font-size:13px;font-weight:700" id="roiActive2">1 active - Real count - Our logic - Real for logged user</div>
-<div style="margin-top:8px;background:#f8fafc;padding:8px;border-radius:8px;font-size:11px"><b>Our Logic:</b> ROI 1000 ayite store lo product ke use chayali - Cash kadu - Store product mandatory - Final - Real for logged user</div>
+<div style="display:flex;justify-content:space-between;align-items:center"><b>ROI tokens</b><b style="color:#2563eb" id="roiActive">1 active</b></div>
+<div style="margin-top:10px"><div style="font-size:20px;font-weight:800">2.00%</div><div style="font-size:12px;color:#64748b">daily ROI to credits wallet</div></div>
 </div>
+
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center"><b>Next reward - Real</b><span style="color:#2563eb;font-weight:700;cursor:pointer" onclick="showSec('rewards')">Rewards →</span></div>
-<div style="margin-top:10px"><b>Alkaline Jar</b><div style="font-size:13px;color:#64748b" id="nextRewardPairs">0 / 40 pairs - Real - Loading</div><div style="margin-top:8px;background:#f1f5f9;height:8px;border-radius:999px"><div style="width:0%;height:100%;background:#10b981;border-radius:999px" id="rewardBar"></div></div></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><b>Next reward</b><span style="color:#2563eb;font-weight:700;cursor:pointer" onclick="showSec('rewards')">Rewards →</span></div>
+<div style="margin-top:10px"><b>Alkaline Jar</b><div style="font-size:13px;color:#64748b" id="nextRewardPairs">0 / 40 pairs</div><div style="margin-top:8px;background:#f1f5f9;height:8px;border-radius:999px"><div style="width:0%;height:100%;background:#10b981;border-radius:999px" id="rewardBar"></div></div></div>
 </div>
+
 <div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center"><b>Loan progression - Real</b><span style="color:#2563eb;font-weight:700;cursor:pointer" onclick="showSec('loans')">Loan levels →</span></div>
-<div style="margin-top:10px"><b id="loanProgress">Loan 1: Rs. 1,000 - Real</b><div style="font-size:13px;color:#64748b" id="loanPairs">0 / 1 pairs - Real - 1:1=1000 Loan eligible - Our logic - Real for logged user - Loading</div><div style="margin-top:8px;background:#f1f5f9;height:8px;border-radius:999px"><div style="width:0%;height:100%;background:#f59e0b;border-radius:999px" id="loanBar"></div></div><div style="margin-top:8px;background:#fef3c7;padding:6px;border-radius:8px;font-size:11px"><b>Our Logic:</b> Loan direct withdraw chesukovachu - From 40 pairs onwards 2 referrals MUST - Final - Real for logged user</div></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><b>Loan progression</b><span style="color:#2563eb;font-weight:700;cursor:pointer" onclick="showSec('loans')">Loan levels →</span></div>
+<div style="margin-top:10px"><b id="loanProgress">Loan 1: Rs. 1,000</b><div style="font-size:13px;color:#64748b" id="loanPairs">0 / 1 pairs</div><div style="margin-top:8px;background:#f1f5f9;height:8px;border-radius:999px"><div style="width:0%;height:100%;background:#f59e0b;border-radius:999px" id="loanBar"></div></div></div>
 </div>
-<div class="card" style="background:linear-gradient(90deg,#0f172a,#1e293b);color:#fff">
-<div style="font-size:12px;font-weight:700">🏪 Store Network - Our Logic - 25KM - Final - Real stores from Supabase</div>
-<div style="font-size:11px;opacity:.8;margin-top:4px">Find store within 25KM - Our logic - Pins pickup - Real stores - KPHB, Ameerpet, Mahbubabad</div>
-<button style="margin-top:10px;background:#fff;color:#0f172a;border:0;border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer" onclick="showSec('stores')">Find Stores - 25KM - Our Logic - Real</button>
+
+<div class="card" style="background:#0f172a;color:#fff">
+<div style="font-size:12px;font-weight:700">🏪 Store Network</div>
+<div style="font-size:11px;opacity:.8;margin-top:4px">Find store within 25KM</div>
+<button style="margin-top:10px;background:#fff;color:#0f172a;border:0;border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer" onclick="showSec('stores')">Find Stores</button>
 </div>
-<div class="card" style="background:linear-gradient(90deg,#059669,#047857);color:#fff">
-<div style="font-size:12px;font-weight:700">💰 Wallets - 3 Wallets + Total - Our Logic - Final - Real for logged user - Total = 3 Wallets Sum</div>
-<div style="font-size:11px;opacity:.9;margin-top:4px">ROI 1000 → Store Product, Matching 5000/40 → Store Withdraw, Loan Direct Withdraw, Total = ROI+Matching+Loan - Our logic - Real - Santho login ayite Santho total</div>
-<div style="margin-top:8px;background:rgba(255,255,255,.2);padding:8px;border-radius:8px;font-size:11px">Total Amount = 3 Wallets Sum - Total amount lo chupinchali - Our logic - Final - Real for logged user - No default FL973530</div>
-<button style="margin-top:10px;background:#fff;color:#059669;border:0;border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer" onclick="showSec('wallets')">Open Wallets - Our Logic - Real - Final</button>
+
+<div class="card" style="background:#059669;color:#fff">
+<div style="font-size:12px;font-weight:700">💰 Wallets</div>
+<div style="font-size:11px;opacity:.9;margin-top:4px">Total = ROI + Matching + Loan</div>
+<button style="margin-top:10px;background:#fff;color:#059669;border:0;border-radius:999px;padding:8px 16px;font-weight:700;cursor:pointer" onclick="showSec('wallets')">Open Wallets</button>
 </div>
 </div>
+
 <div id="sec-wallets" style="display:none">
-<div class="card"><h3>💰 Wallets - 3 Wallets + Total - Our Logic - Sample Theme Lo - Real for logged user</h3><div style="font-size:11px;color:#64748b">ROI 1000 Store Product, Matching 5000/40 Store Withdraw, Loan Direct Withdraw - Total = 3 Wallets Sum - Sample theme design + Our logics - Final - Real - No default FL973530 - Santho login ayite Santho wallets</div>
-<div style="margin-top:12px;background:linear-gradient(135deg,#1e40af,#0e7490);color:#fff;padding:16px;border-radius:16px"><div style="font-size:11px;opacity:.8">TOTAL AMOUNT - 3 Wallets Sum - Our Logic - Real for logged user</div><div style="font-size:24px;font-weight:800" id="totalAmount">Rs.0 Total - Real - Loading</div><div style="font-size:11px;opacity:.9">ROI + Matching + Loan = Total - Real - Our logic - Real for logged user - Santho total</div></div>
+<div class="card"><h3>💰 My Wallets</h3>
+<div style="margin-top:12px;background:linear-gradient(135deg,#1e40af,#0e7490);color:#fff;padding:16px;border-radius:16px"><div style="font-size:11px;opacity:.8">TOTAL AMOUNT</div><div style="font-size:24px;font-weight:800" id="totalAmount">Rs.0</div></div>
 <div style="margin-top:12px;display:grid;grid-template-columns:1fr;gap:10px">
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;border-left:4px solid #2563eb"><div style="display:flex;justify-content:space-between"><div><div style="font-size:11px;color:#64748b">ROI Wallet - Daily 40x50 - Real for logged user</div><div style="font-size:20px;font-weight:800" id="roiWallet">Rs.0 - Real - Loading</div></div><div style="background:#dbeafe;padding:8px;border-radius:10px;font-size:11px;text-align:center"><b>Rule</b><br>1000 → Store Product</div></div><div style="margin-top:8px;background:#f8fafc;padding:8px;border-radius:8px;font-size:11px"><b>Our Logic:</b> ROI di 1000 ayite store lo product ke use chayali - Cash kadu - Store product mandatory - Final - Real</div></div>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;border-left:4px solid #059669"><div style="display:flex;justify-content:space-between"><div><div style="font-size:11px;color:#64748b">Matching Wallet - Rs.200/pair - Real</div><div style="font-size:20px;font-weight:800" id="matchingWallet">Rs.0 - Real - Loading</div><div style="font-size:10px" id="matchingPairs">0 pairs - Real - Loading</div></div><div style="background:#dcfce7;padding:8px;border-radius:10px;font-size:11px;text-align:center"><b>Rule</b><br>5000/40 → Store Withdraw</div></div><div style="margin-top:8px;background:#f0fdf4;padding:8px;border-radius:8px;font-size:11px"><b>Our Logic:</b> Store lo 5000 or 40 matching akada withdraw tisukovali - 5000 or 40 pairs → Store withdraw - 20% ded - Once per day - Final - Real</div></div>
-<div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;border-left:4px solid #f59e0b"><div style="display:flex;justify-content:space-between"><div><div style="font-size:11px;color:#64748b">Loan Wallet - Direct - Real</div><div style="font-size:20px;font-weight:800" id="loanWallet">Rs.0 - Real - Loading</div><div style="font-size:10px" id="loanEligible">Loan eligible - Real - Loading</div></div><div style="background:#fef3c7;padding:8px;border-radius:10px;font-size:11px;text-align:center"><b>Rule</b><br>Direct Withdraw</div></div><div style="margin-top:8px;background:#fffbeb;padding:8px;border-radius:8px;font-size:11px"><b>Our Logic:</b> Loan direct withdraw chesukovachu - No store condition - Direct - Final - Real</div></div>
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;border-left:4px solid #2563eb"><div style="font-size:11px;color:#64748b">ROI Wallet</div><div style="font-size:20px;font-weight:800" id="roiWallet">Rs.0</div></div>
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;border-left:4px solid #059669"><div style="font-size:11px;color:#64748b">Matching Wallet</div><div style="font-size:20px;font-weight:800" id="matchingWallet">Rs.0</div><div style="font-size:10px" id="matchingPairs">0 pairs</div></div>
+<div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px;border-left:4px solid #f59e0b"><div style="font-size:11px;color:#64748b">Loan Wallet</div><div style="font-size:20px;font-weight:800" id="loanWallet">Rs.0</div><div style="font-size:10px" id="loanEligible">--</div></div>
 </div>
 </div>
 </div>
-<div id="sec-stores" style="display:none"><div class="card"><h3>🏪 Store Network - 25KM - Our Logic - Sample Theme Lo - Real stores</h3><div style="font-size:11px;color:#64748b">Find store within 25KM - Our logic - Store locator and withdraw and wallet lo manam already Anukuna logic apply - Final - Real stores KPHB, Ameerpet, Mahbubabad</div><div style="margin-top:10px;display:grid;grid-template-columns:2fr 1fr;gap:8px"><input id="sp" placeholder="Pincode or Town - Eg: Mahbubabad" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px"><button style="background:#0f172a;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer" onclick="findS()">Find Stores - 25KM - Our Logic - Real</button></div><div id="sRes" style="margin-top:10px">Enter pincode - Find stores within 25KM - KPHB, Ameerpet, Mahbubabad - Real from Supabase stores table - Our logic - Final</div></div></div>
-<div id="sec-withdraw" style="display:none"><div class="card"><h3>⬆️ Withdraw - 3 Rules - Our Logic - Final - Real for logged user</h3><div style="font-size:11px;color:#64748b">ROI 1000 → Store Product, Matching 5000/40 → Store Withdraw at Store, Loan Direct Withdraw - Total 3 wallets lo unde amount total amount lo chupinchali - Our logic - Final - Real - Santho total</div><div style="margin-top:10px;background:#f8fafc;padding:12px;border-radius:12px"><div style="font-weight:700">Withdraw Rules - Our Logic - Final - Real</div><div style="margin-top:8px;font-size:12px"><b>1. ROI Wallet:</b> 1000 ayite store lo product ke use chayali - Cash kadu<br><b>2. Matching Wallet:</b> Store lo 5000 or 40 matching akada withdraw tisukovali - Store ki velli withdraw<br><b>3. Loan Wallet:</b> Direct withdraw chesukovachu<br><b>4. Total:</b> 3 wallets sum = Total Amount lo chupinchali - Real for logged user - No default</div></div></div></div>
-<div id="sec-downline" style="display:none"><div class="card"><h3>👥 My Team - Downline - My Team Only - Real for logged user - Our Logic</h3><div id="downlineList">Loading my team only - Real - Our count - Real for logged user - Santho team if Santho login</div></div></div>
-<div id="sec-tree" style="display:none"><div class="card"><h3>🌳 Binary Tree View - Real for logged user</h3><div id="treeView">Loading tree - Real - Our count - Real for logged user</div></div></div>
-<div id="sec-loans" style="display:none"><div class="card"><h3>🏦 Loan Plans - 16 Levels - Our Logic - Real for logged user</h3><div id="loansG">Loading loans - 1:1=1000 - Real for logged user - Our count</div></div></div>
-<div id="sec-profile" style="display:none"><div class="card"><h3>👤 My Profile - Real from Supabase users table - Real for logged user</h3><div id="profileDetails">Loading profile - Real - Santho profile if Santho login</div></div></div>
-<div id="sec-invite" style="display:none"><div class="card"><h3>🔗 Invite & Share Links - Real for logged user</h3><div id="inviteLinks">Loading invite links - Real - Sponsor = your FL ID - Real for logged user</div></div></div>
-<div id="sec-tokens" style="display:none"><div class="card"><h3>🎫 My Pins - Tokens - Real for logged user</h3><div id="tokensList">Loading pins - Only mine - Real - Real for logged user</div></div></div>
-<div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI Earnings - 40x50 - Real for logged user</h3><div id="roiList">Loading ROI - 40 per day x 50 days - Real for logged user</div></div></div>
-<div id="sec-rewards" style="display:none"><div class="card"><h3>🏆 Rewards Club - Real for logged user</h3><div id="rewardsList">Loading rewards - 0/40 pairs Alkaline Jar - Real for logged user</div></div></div>
-<div id="sec-support" style="display:none"><div class="card"><h3>💬 Help Center - Support</h3><div>Support tickets - Real - Help center</div></div></div>
+<div id="sec-stores" style="display:none"><div class="card"><h3>🏪 Store Network - 25KM</h3><div style="margin-top:10px;display:grid;grid-template-columns:2fr 1fr;gap:8px"><input id="sp" placeholder="Pincode or Town" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px"><button style="background:#0f172a;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer" onclick="findS()">Find Stores</button></div><div id="sRes" style="margin-top:10px">Enter pincode</div></div></div>
+<div id="sec-withdraw" style="display:none"><div class="card"><h3>⬆️ Withdraw</h3><div style="margin-top:10px;background:#f8fafc;padding:12px;border-radius:12px"><div style="font-weight:700">Withdraw Rules</div><div style="margin-top:8px;font-size:12px"><b>1. ROI Wallet:</b> 1000 → Store Product<br><b>2. Matching Wallet:</b> 5000 or 40 → Store Withdraw<br><b>3. Loan Wallet:</b> Direct Withdraw<br><b>4. Total:</b> 3 wallets sum = Total Amount</div></div></div></div>
+<div id="sec-downline" style="display:none"><div class="card"><h3>👥 My Team</h3><div id="downlineList">Loading...</div></div></div>
+<div id="sec-tree" style="display:none"><div class="card"><h3>🌳 Binary Tree</h3><div id="treeView">Loading...</div></div></div>
+<div id="sec-loans" style="display:none"><div class="card"><h3>🏦 Loan Plans</h3><div id="loansG">Loading...</div></div></div>
+<div id="sec-profile" style="display:none"><div class="card"><h3>👤 My Profile</h3><div id="profileDetails">Loading...</div></div></div>
+<div id="sec-invite" style="display:none"><div class="card"><h3>🔗 Invite Links</h3><div id="inviteLinks">Loading...</div></div></div>
+<div id="sec-tokens" style="display:none"><div class="card"><h3>🎫 My Pins</h3><div id="tokensList">Loading...</div></div></div>
+<div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI Earnings</h3><div id="roiList">Loading...</div></div></div>
+<div id="sec-rewards" style="display:none"><div class="card"><h3>🏆 Rewards</h3><div id="rewardsList">Loading...</div></div></div>
+<div id="sec-support" style="display:none"><div class="card"><h3>💬 Help Center</h3><div>Support tickets</div></div></div>
 </div>
 <script>
 async function initDashboard(){
@@ -221,57 +227,57 @@ async function initDashboard(){
     document.getElementById('topName').innerText=realName;
     document.getElementById('dashName').innerText=realName;
     if(dashInit) dashInit.innerText=realName.charAt(0).toUpperCase();
-    document.getElementById('pJoined').innerText=new Date(user.created_at).toLocaleDateString()+' - Real - Mobile: '+user.mobile+' - Real from Supabase - '+flId;
-    document.getElementById('pActivation').innerText=new Date(user.created_at).toLocaleDateString()+' - Real - Joined - '+flId;
-    document.getElementById('pSponsor').innerText=(user.sponsor_id||'None')+' - Real from Supabase users.sponsor_id - Real for '+flId;
+    document.getElementById('pJoined').innerText=new Date(user.created_at).toLocaleDateString();
+    document.getElementById('pActivation').innerText=new Date(user.created_at).toLocaleDateString();
+    document.getElementById('pSponsor').innerText=user.sponsor_id||'None';
     try{var sess=JSON.parse(localStorage.getItem('flm_session'));sess.name=realName;sess.full_name=realName;localStorage.setItem('flm_session',JSON.stringify(sess));}catch(e){}
    }
    var r2=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();
    var bin=r2.data;
    if(bin){
-    document.getElementById('leftTokens').innerText=bin.left_tokens||0+' - Real for '+flId;
-    document.getElementById('rightTokens').innerText=bin.right_tokens||0+' - Real for '+flId;
-    document.getElementById('leftCarry').innerText=bin.left_carry||0+' - Real';
-    document.getElementById('rightCarry').innerText=bin.right_carry||0+' - Real';
-    document.getElementById('totalPairs').innerText=bin.total_pairs||0+' - Real for '+flId;
-    document.getElementById('teamSize').innerText=bin.team_size||0+' - Real for '+flId;
-    document.getElementById('dailyMatching').innerText=(bin.daily_pairs_today||0)+' / 25 pairs - Real for '+flId;
+    document.getElementById('leftTokens').innerText=bin.left_tokens||0;
+    document.getElementById('rightTokens').innerText=bin.right_tokens||0;
+    document.getElementById('leftCarry').innerText=bin.left_carry||0;
+    document.getElementById('rightCarry').innerText=bin.right_carry||0;
+    document.getElementById('totalPairs').innerText=bin.total_pairs||0;
+    document.getElementById('teamSize').innerText=bin.team_size||0;
+    document.getElementById('dailyMatching').innerText=(bin.daily_pairs_today||0)+' / 25 pairs';
     var dailyBar=document.getElementById('dailyBar'); if(dailyBar) dailyBar.style.width=((bin.daily_pairs_today||0)/25*100)+'%';
     var remaining=5000-(bin.daily_income_today||0); if(remaining<0) remaining=0;
-    document.getElementById('remainingToday').innerText='Rs. '+remaining+' remaining today - Real - Our logic - Real for '+flId;
-    document.getElementById('loanPairs').innerText=(bin.total_pairs||0)+' / 1 pairs - Real for '+flId+' - 1:1='+(bin.total_pairs>=1?'1000 Eligible ✅':'Need 1:1')+' - Our count';
+    document.getElementById('remainingToday').innerText='Rs. '+remaining+' remaining today';
+    document.getElementById('loanPairs').innerText=(bin.total_pairs||0)+' / 1 pairs';
     var loanBar=document.getElementById('loanBar'); if(loanBar) loanBar.style.width=Math.min((bin.total_pairs||0)/1*100,100)+'%';
-    document.getElementById('nextRewardPairs').innerText=(bin.total_pairs||0)+' / 40 pairs - Real for '+flId+' - Our count';
+    document.getElementById('nextRewardPairs').innerText=(bin.total_pairs||0)+' / 40 pairs';
     var rewardBar=document.getElementById('rewardBar'); if(rewardBar) rewardBar.style.width=Math.min((bin.total_pairs||0)/40*100,100)+'%';
    }
    var r3=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();
    var wallet=r3.data;
    if(wallet){
     var roi=wallet.roi_wallet||0; var matching=wallet.matching_wallet||0; var loan=wallet.loan_wallet||0; var total=roi+matching+loan;
-    document.getElementById('mainWallet').innerText='Rs. '+total+'.00 - Real for '+flId+' - Total = 3 Wallets - Santho total if Santho login';
-    document.getElementById('roiCredits').innerText=roi+'.00 - Real for '+flId+' - 40 per day - Our count';
-    document.getElementById('matchingIncome').innerText='Rs. '+matching+'.00 - Real for '+flId+' - Our count';
-    document.getElementById('pendingWithdraw').innerText='Rs. 0.00 - Under review - Real for '+flId;
-    var roiW=document.getElementById('roiWallet'); if(roiW) roiW.innerText='Rs.'+roi+' - Real for '+flId;
-    var matchW=document.getElementById('matchingWallet'); if(matchW) matchW.innerText='Rs.'+matching+' - Real for '+flId;
-    var loanW=document.getElementById('loanWallet'); if(loanW) loanW.innerText='Rs.'+loan+' - Real for '+flId;
-    var totalA=document.getElementById('totalAmount'); if(totalA) totalA.innerText='Rs.'+total+' Total - ROI '+roi+' + Matching '+matching+' + Loan '+loan+' - Real for '+flId+' - Our count - Santho total if Santho';
-    var matchP=document.getElementById('matchingPairs'); if(matchP) matchP.innerText=(bin?bin.total_pairs||0:0)+' pairs - Real for '+flId;
-    var loanE=document.getElementById('loanEligible'); if(loanE) loanE.innerText='Pairs '+(bin?bin.total_pairs||0:0)+' - Real for '+flId+' - Direct withdraw';
+    document.getElementById('mainWallet').innerText='Rs. '+total+'.00';
+    document.getElementById('roiCredits').innerText=roi+'.00';
+    document.getElementById('matchingIncome').innerText='Rs. '+matching+'.00';
+    document.getElementById('pendingWithdraw').innerText='Rs. 0.00';
+    var roiW=document.getElementById('roiWallet'); if(roiW) roiW.innerText='Rs.'+roi;
+    var matchW=document.getElementById('matchingWallet'); if(matchW) matchW.innerText='Rs.'+matching;
+    var loanW=document.getElementById('loanWallet'); if(loanW) loanW.innerText='Rs.'+loan;
+    var totalA=document.getElementById('totalAmount'); if(totalA) totalA.innerText='Rs.'+total;
+    var matchP=document.getElementById('matchingPairs'); if(matchP) matchP.innerText=(bin?bin.total_pairs||0:0)+' pairs';
+    var loanE=document.getElementById('loanEligible'); if(loanE) loanE.innerText=(bin?bin.total_pairs||0:0)+' pairs';
    }
   }
- }catch(e){console.log('Dashboard load error for '+flId+': '+e.message);}
+ }catch(e){}
  var leftLink=window.location.origin+'/register.html?sponsor='+flId+'&side=left';
  var rightLink=window.location.origin+'/register.html?sponsor='+flId+'&side=right';
- var leftT=document.getElementById('leftLinkText'); if(leftT) leftT.innerText='Left link for '+flId+': '+leftLink.substring(0,30)+'... Click to copy - Real for '+flId;
- var rightT=document.getElementById('rightLinkText'); if(rightT) rightT.innerText='Right link for '+flId+': '+rightLink.substring(0,30)+'... Click to copy - Real for '+flId;
+ var leftT=document.getElementById('leftLinkText'); if(leftT) leftT.innerText='Left link: '+leftLink;
+ var rightT=document.getElementById('rightLinkText'); if(rightT) rightT.innerText='Right link: '+rightLink;
  window.leftLink=leftLink; window.rightLink=rightLink;
 }
-function copyLeft(){navigator.clipboard.writeText(window.leftLink);alert('Left link copied - Real - Sponsor = your FL ID - '+getFlId());}
-function copyRight(){navigator.clipboard.writeText(window.rightLink);alert('Right link copied - Real - Sponsor = your FL ID - '+getFlId());}
+function copyLeft(){navigator.clipboard.writeText(window.leftLink);alert('Left link copied');}
+function copyRight(){navigator.clipboard.writeText(window.rightLink);alert('Right link copied');}
 function findS(){
  var stores=[{n:'KPHB Store',a:'KPHB Road Hyderabad',m:'9876543210',d:'2.1KM'},{n:'Ameerpet Store',a:'Ameerpet Hyderabad',m:'9123456780',d:'5.4KM'},{n:'Mahbubabad Store',a:'Mahbubabad Main Road',m:'9000000001',d:'1.2KM'}];
- var html=''; for(var i=0;i<stores.length;i++){var s=stores[i]; html+='<div style="background:#f8fafc;padding:10px;border-radius:10px;margin-top:8px;border:1px solid #e2e8f0"><b>'+s.n+' - '+s.d+'</b> Within 25KM ✅ - Real<br><span style="font-size:11px">'+s.a+'</span><br><span style="font-size:11px;color:#64748b">'+s.m+'</span> <button style="background:#0f172a;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-size:10px">Call - Real for logged user</button></div>';}
+ var html=''; for(var i=0;i<stores.length;i++){var s=stores[i]; html+='<div style="background:#f8fafc;padding:10px;border-radius:10px;margin-top:8px;border:1px solid #e2e8f0"><b>'+s.n+' - '+s.d+'</b> Within 25KM<br><span style="font-size:11px">'+s.a+'</span><br><span style="font-size:11px;color:#64748b">'+s.m+'</span> <button style="background:#0f172a;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-size:10px">Call</button></div>';}
  document.getElementById('sRes').innerHTML=html;
 }
 window.addEventListener('load',initDashboard);

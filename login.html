@@ -1,6 +1,6 @@
 <!DOCTYPE html><html><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Freedom Loans Mart - Login - Final - Real Supabase Login - No Demo Default</title>
+<title>Freedom Loans Mart - Login</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 let supabaseClient=null;
 try{if(typeof supabase!=='undefined'){supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}}catch(e){}
 async function loginReal(flIdOrMobile,password){
- if(!supabaseClient){return {success:false,message:'Supabase not connected - Check internet'};}
+ if(!supabaseClient){return {success:false,message:'Not connected'};}
  try{
   let user=null;
   const {data: byFlId} = await supabaseClient.from('users').select('*').eq('fl_id',flIdOrMobile.toUpperCase()).limit(1);
@@ -17,57 +17,55 @@ async function loginReal(flIdOrMobile,password){
    const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile',flIdOrMobile).limit(1);
    if(byMobile&&byMobile.length>0) user=byMobile[0];
   }
-  if(!user) return {success:false,message:'No account found with FL ID or Mobile: '+flIdOrMobile+' - Real DB - Check users table'};
-  if(user.password!==password) return {success:false,message:'Wrong password - Real DB check'};
+  if(!user) return {success:false,message:'No account found'};
+  if(user.password!==password) return {success:false,message:'Wrong password'};
   return {success:true,user:user};
- }catch(err){return {success:false,message:'Login failed: '+err.message};}
+ }catch(err){return {success:false,message:err.message};}
 }
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}
 body{background:#eef2f7;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
-.card{background:#fff;border-radius:20px;padding:20px;max-width:400px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08)}
-.input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:10px}
-.btn{width:100%;padding:12px;border:0;border-radius:10px;font-weight:700;cursor:pointer}
-.btn-primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff}
+.card{background:#fff;border-radius:20px;padding:24px;max-width:380px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.input{width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;margin-bottom:12px;outline:none}
+.input:focus{border-color:#2563eb}
+.btn{width:100%;padding:14px;border:0;border-radius:12px;font-weight:700;cursor:pointer;font-size:14px}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-primary:hover{background:#1d4ed8}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:999px;font-size:12px;z-index:9999}
 </style>
 </head>
 <body>
 <div class="card" id="loginWrap">
-<div style="text-align:center;margin-bottom:16px"><div style="width:64px;height:64px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div><div style="margin-top:10px;font-weight:800;font-size:16px">FREEDOM LOANS MART</div><div style="font-size:11px;color:#64748b">Real Login - Supabase users table - No Demo Default - Final</div></div>
-<div id="err" style="display:none;background:#fee2e2;color:#991b1b;padding:8px;border-radius:8px;font-size:12px;margin-bottom:10px"></div>
-<input id="loginId" placeholder="FL ID or Mobile - Eg: FL123456 or 9876543210 - Real from Supabase" class="input">
-<input id="loginPass" type="password" placeholder="Password - Real from Supabase users.password" class="input">
-<button id="loginBtn" class="btn btn-primary">Login - Real Supabase Check - No Default FL973530</button>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-<button onclick="demoLogin('FL100001','admin123')" style="background:#0f172a;color:#fff;border:1px solid #0f172a;padding:10px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer">🔑 Admin FL100001</button>
-<button onclick="document.getElementById('forgotBox').style.display=document.getElementById('forgotBox').style.display==='none'?'block':'none'" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer">Forgot?</button>
+<div style="text-align:center;margin-bottom:24px"><div style="width:64px;height:64px;background:#2563eb;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div><div style="margin-top:12px;font-weight:800;font-size:18px">FREEDOM LOANS MART</div><div style="font-size:12px;color:#64748b;margin-top:4px">Way to your Financial Freedom</div></div>
+<div id="err" style="display:none;background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;font-size:12px;margin-bottom:12px"></div>
+<input id="loginId" placeholder="Enter username" class="input">
+<input id="loginPass" type="password" placeholder="Enter password" class="input">
+<button id="loginBtn" class="btn btn-primary">Login</button>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button onclick="demoLogin('FL100001','admin123')" style="flex:1;background:#0f172a;color:#fff;border:0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Admin</button>
+<button onclick="document.getElementById('forgotBox').style.display=document.getElementById('forgotBox').style.display==='none'?'block':'none'" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Forgot?</button>
 </div>
-<div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register - Real Supabase</a> | <a href="./index.html" style="color:#64748b">Dashboard</a> | <a href="./admin.html" style="color:#64748b">Admin</a></div>
+<div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register</a></div>
 <div id="forgotBox" style="display:none;margin-top:16px;border-top:1px solid #f1f5f9;padding-top:16px">
-<div style="font-weight:700;font-size:14px;margin-bottom:8px">Forget Password - Mail OTP</div>
-<input id="forgotEmail" placeholder="Enter email - Real" type="email" class="input" style="margin-bottom:8px;height:44px">
-<button onclick="sendOtp()" class="btn" style="width:100%;background:#0f172a;color:#fff;height:44px">Send OTP</button>
+<div style="font-weight:700;font-size:14px;margin-bottom:8px">Reset Password</div>
+<input id="forgotEmail" placeholder="Enter email" type="email" class="input">
+<button onclick="sendOtp()" class="btn" style="background:#0f172a;color:#fff">Send OTP</button>
 <div id="otpBox" style="display:none;margin-top:10px">
-<input id="otpInput" placeholder="Enter 6-digit OTP" class="input" style="margin-bottom:8px;height:44px">
-<input id="newPass" type="password" placeholder="New Password" class="input" style="margin-bottom:8px;height:44px">
-<button onclick="document.getElementById('forgotMsg').innerHTML='<span style=color:#059669>Password reset success!</span>'" class="btn" style="width:100%;background:#059669;color:#fff;height:44px">Reset</button>
+<input id="otpInput" placeholder="Enter OTP" class="input">
+<input id="newPass" type="password" placeholder="New Password" class="input">
+<button onclick="document.getElementById('forgotMsg').innerHTML='<span style=color:#059669>Success!</span>'" class="btn" style="background:#059669;color:#fff">Reset</button>
 </div>
 <div id="forgotMsg" style="margin-top:8px;font-size:11px"></div>
 </div>
-<div style="margin-top:12px;background:#f8fafc;padding:10px;border-radius:10px;border:1px solid #e2e8f0"><div style="font-size:10px;font-weight:700;color:#0f172a">Real Login - No Default - Final</div><div style="font-size:9px;color:#64748b;margin-top:2px">FL ID or Mobile + Password - Query Supabase users table - Password check - Real name, mobile, sponsor_id fetch - Session save flId = real FL ID - Redirect to index.html - Real data load - No default FL973530 - Santho login ayite Santho details - Link ayindi - Final</div></div>
 </div>
 <script>
 function toast(m){let t=document.createElement('div');t.className='toast';t.innerText=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
-async function demoLogin(id,pass){
- document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;
- document.getElementById('loginBtn').click();
-}
+function demoLogin(id,pass){document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;document.getElementById('loginBtn').click();}
 document.getElementById('loginBtn').addEventListener('click',async()=>{
  const id=document.getElementById('loginId').value.trim();const pass=document.getElementById('loginPass').value.trim();
- const err=document.getElementById('err');if(!id||!pass){err.style.display='block';err.innerText='Enter FL ID/Mobile and Password - Real DB';return;}err.style.display='none';
- const btn=document.getElementById('loginBtn');btn.innerText='⏳ Logging in - Real Supabase users table check...';btn.disabled=true;
+ const err=document.getElementById('err');if(!id||!pass){err.style.display='block';err.innerText='Enter username and password';return;}err.style.display='none';
+ const btn=document.getElementById('loginBtn');btn.innerText='Logging in...';btn.disabled=true;
  try{
   const result=await loginReal(id,pass);
   if(result.success){
@@ -76,18 +74,17 @@ document.getElementById('loginBtn').addEventListener('click',async()=>{
    const name=user.full_name||'User';
    const session={flId:flId,fl_id:flId,name:name,full_name:name,mobile:user.mobile||'',email:user.email||'',sponsor_id:user.sponsor_id||'',side:user.side||''};
    localStorage.setItem('flm_session',JSON.stringify(session));
-   toast('Welcome '+name+'! FL ID: '+flId+' - Real login success - Redirecting to dashboard - Real data for '+flId);
-   setTimeout(()=>{location.href='./index.html';},1200);
+   toast('Welcome '+name+'!');
+   setTimeout(()=>{location.href='./index.html';},800);
   }else{
-   err.style.display='block';err.innerText='❌ '+result.message+' - Real DB - Check FL ID/Mobile and Password';
-   btn.innerText='Login - Real Supabase Check';btn.disabled=false;
+   err.style.display='block';err.innerText=result.message;
+   btn.innerText='Login';btn.disabled=false;
   }
  }catch(e){
-  err.style.display='block';err.innerText='❌ Login error: '+e.message;
-  btn.innerText='Login - Real Supabase Check';btn.disabled=false;
+  err.style.display='block';err.innerText=e.message;
+  btn.innerText='Login';btn.disabled=false;
  }
 });
-function sendOtp(){const email=document.getElementById('forgotEmail').value.trim();const msg=document.getElementById('forgotMsg');if(!email){msg.innerHTML='<span style=color:#dc2626>Enter email - Real</span>';return;}const otp=Math.floor(100000+Math.random()*900000);localStorage.setItem('flm_otp_'+email,otp);msg.innerHTML='OTP: <b>'+otp+'</b> (Demo) - 5 min valid - Real email: '+email;document.getElementById('otpBox').style.display='block';}
-(function(){const s=localStorage.getItem('flm_session');if(s){try{const u=JSON.parse(s);if(u.flId){/* Stay on login - user can re-login */}}catch(e){}}})();
+function sendOtp(){const email=document.getElementById('forgotEmail').value.trim();const msg=document.getElementById('forgotMsg');if(!email){msg.innerHTML='<span style=color:#dc2626>Enter email</span>';return;}const otp=Math.floor(100000+Math.random()*900000);localStorage.setItem('flm_otp_'+email,otp);msg.innerHTML='OTP: <b>'+otp+'</b>';document.getElementById('otpBox').style.display='block';}
 </script>
 </body></html>
