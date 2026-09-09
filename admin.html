@@ -27,11 +27,23 @@ function generateRandomPin(){
 }
 async function adminGeneratePinsWithBonus(qty){
   const bonus=Math.floor(qty/100)*20; const total=qty+bonus;
-  if(!supabaseClient){ alert('Demo: '+total+' Random Pins - Format MSNH-KIRG-PJH6-XBYI'); return; }
-  const pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000}); }
+  const genFor=document.getElementById('pinGenerateFor')?.value||'';
+  const town=document.getElementById('pinTown')?.value||'';
+  if(!supabaseClient){ alert('Demo: '+total+' Random Pins - For: '+genFor+' Town: '+town); return; }
+  const pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:genFor,town:town}); }
   const {error}=await supabaseClient.from('pins').insert(pins);
-  if(error) alert('Error: '+error.message); else { alert('Generated '+total+' Random Pins - MSNH-KIRG-PJH6-XBYI Format - Live DB\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')); loadSec('pins'); }
+  if(error) alert('Error: '+error.message+' - Note: generated_for/town columns lekapothe Supabase lo add chey'); else { alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nTown wise: '+town+'\nUser wise: '+genFor); loadSec('pins'); }
 }
+async function adminGeneratePinsWithTown(){
+  const qty=parseInt(document.getElementById('pinQty').value)||10;
+  const genFor=document.getElementById('pinGenerateFor').value.trim();
+  const town=document.getElementById('pinTown').value.trim();
+  if(!town){ if(!confirm('Town empty - General pins generate cheyala? Town specific kavali ante Town enter chey - Eg: Mahbubabad')) return; }
+  await adminGeneratePinsWithBonus(qty);
+}
+let currentPinsFilter='all';
+function filterPins(type){ currentPinsFilter=type; loadSec('pins'); }
+
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI}
@@ -100,13 +112,18 @@ body{color:#0f172a;min-height:100vh;-webkit-text-size-adjust:100%;padding:0}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><div><b style="font-size:18px">Freedom Loans Mart</b><div style="font-size:11px;color:#94a3b8;margin-top:2px">Platform Admin</div></div><span style="cursor:pointer;background:#1e293b;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onclick="toggleMenu()">✕</span></div>
 <div style="display:flex;flex-direction:column;gap:10px">
 <div onclick="showSec('dashboard')" style="cursor:pointer;background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;border-radius:12px;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center">📊</div><div><div style="font-weight:700;font-size:13px">Dashboard</div><div style="font-size:10px;opacity:.8">Members, Tokens, Binary, ROI</div></div></div>
-<div onclick="showSec('users')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center">👥</div><div><div style="font-weight:700;font-size:13px">Users</div><div style="font-size:10px;color:#94a3b8">Binary Count Real</div></div></div>
-<div onclick="showSec('pins')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">🎫</div><div><div style="font-weight:700;font-size:13px">Tokens/Pins</div><div style="font-size:10px;color:#94a3b8">Random MSNH-KIRG - Real Validation</div></div></div>
-<div onclick="showSec('stores')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center">🏪</div><div><div style="font-weight:700;font-size:13px">Store Locator</div><div style="font-size:10px;color:#94a3b8">25KM Radius</div></div></div>
-<div onclick="showSec('wallets')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">💰</div><div><div style="font-weight:700;font-size:13px">Wallets</div><div style="font-size:10px;color:#94a3b8">ROI 40x50 - Matching</div></div></div>
-<div onclick="showSec('withdraw')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center">💸</div><div><div style="font-weight:700;font-size:13px">Withdrawals</div><div style="font-size:10px;color:#94a3b8">20% Deduction</div></div></div>
-<div onclick="showSec('binary')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#ffedd5;border-radius:10px;display:flex;align-items:center;justify-content:center">🔗</div><div><div style="font-weight:700;font-size:13px">Binary Income</div><div style="font-size:10px;color:#94a3b8">Real Pairs Rs.200</div></div></div>
-<div onclick="showSec('roi')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#d1fae5;border-radius:10px;display:flex;align-items:center;justify-content:center">📈</div><div><div style="font-weight:700;font-size:13px">ROI Income</div><div style="font-size:10px;color:#94a3b8">Rs.40 Daily</div></div></div>
+<div onclick="showSec('users')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center">👥</div><div><div style="font-weight:700;font-size:13px">Users</div><div style="font-size:10px;color:#94a3b8">Binary Count Real - Left/Right</div></div></div>
+<div onclick="showSec('pins')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">🎫</div><div><div style="font-weight:700;font-size:13px">Tokens/Pins</div><div style="font-size:10px;color:#94a3b8">Random MSNH-KIRG - Analytics</div></div></div>
+<div onclick="showSec('stores')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center">🏪</div><div><div style="font-weight:700;font-size:13px">Store Locator</div><div style="font-size:10px;color:#94a3b8">25KM Radius - Town Wise</div></div></div>
+<div onclick="showSec('createStore')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#e0e7ff;border-radius:10px;display:flex;align-items:center;justify-content:center">➕</div><div><div style="font-weight:700;font-size:13px">Create Store</div><div style="font-size:10px;color:#94a3b8">New Store - Town Pincode</div></div></div>
+<div onclick="showSec('storePoints')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fce7f3;border-radius:10px;display:flex;align-items:center;justify-content:center">⭐</div><div><div style="font-weight:700;font-size:13px">Store Points</div><div style="font-size:10px;color:#94a3b8">Store Creator - Points</div></div></div>
+<div onclick="showSec('subAdmin')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center">👑</div><div><div style="font-weight:700;font-size:13px">Sub Admin</div><div style="font-size:10px;color:#94a3b8">General/Store Admin</div></div></div>
+<div onclick="showSec('wallets')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">💰</div><div><div style="font-weight:700;font-size:13px">Wallets</div><div style="font-size:10px;color:#94a3b8">ROI 40x50 - Matching - Loan</div></div></div>
+<div onclick="showSec('withdraw')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center">💸</div><div><div style="font-weight:700;font-size:13px">Withdrawals</div><div style="font-size:10px;color:#94a3b8">20% Deduction - Town Wise</div></div></div>
+<div onclick="showSec('binary')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#ffedd5;border-radius:10px;display:flex;align-items:center;justify-content:center">🔗</div><div><div style="font-weight:700;font-size:13px">Binary Income</div><div style="font-size:10px;color:#94a3b8">Real Pairs Rs.200 - Town</div></div></div>
+<div onclick="showSec('roi')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#d1fae5;border-radius:10px;display:flex;align-items:center;justify-content:center">📈</div><div><div style="font-weight:700;font-size:13px">ROI Income</div><div style="font-size:10px;color:#94a3b8">Rs.40 Daily - Town Wise</div></div></div>
+<div onclick="showSec('loans')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center">🏦</div><div><div style="font-weight:700;font-size:13px">Loan Products</div><div style="font-size:10px;color:#94a3b8">16 Levels - Town Wise</div></div></div>
+<div onclick="showSec('rewards')" style="cursor:pointer;background:#1e293b;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px;border:1px solid #334155"><div style="width:40px;height:40px;background:#fef3c7;border-radius:10px;display:flex;align-items:center;justify-content:center">🏆</div><div><div style="font-weight:700;font-size:13px">Rewards</div><div style="font-size:10px;color:#94a3b8">13 Rewards - Alkaline to Jaguar</div></div></div>
 </div>
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
@@ -144,7 +161,54 @@ body{color:#0f172a;min-height:100vh;-webkit-text-size-adjust:100%;padding:0}
 </div>
 
 <div id="sec-users" style="display:none"><div class="card"><h3>👥 Users - Real Binary Counts</h3><div id="usersList" style="margin-top:10px"></div></div></div>
-<div id="sec-pins" style="display:none"><div class="card"><h3>🎫 Tokens/Pins - Random MSNH-KIRG - Real Validation</h3><div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="checkPinInput" placeholder="Enter Pin" class="input"><button class="btn-blue" onclick="checkPinReal()">Check Valid?</button></div><div id="pinCheckResult" style="margin-top:8px;font-size:12px"></div><div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="pinQty" type="number" value="10" class="input" placeholder="Qty"><button class="btn-blue" onclick="adminGeneratePinsWithBonus(parseInt(document.getElementById('pinQty').value)||10)">Generate Random Pins</button></div><div id="pinsList" style="margin-top:10px"></div></div></div>
+<div id="sec-pins" style="display:none">
+<div class="card">
+<h3>🎫 Tokens/Pins - Random MSNH-KIRG - Real Validation - Town Wise</h3>
+<div style="margin-top:12px;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0">
+<div style="font-weight:700;font-size:13px;margin-bottom:8px">📊 Pins Analytics - Client Dashboard</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #2563eb"><div style="font-size:11px;color:#64748b">Total Generated</div><div style="font-size:18px;font-weight:800" id="pinsTotal">0</div></div>
+<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #059669"><div style="font-size:11px;color:#64748b">Unused</div><div style="font-size:18px;font-weight:800;color:#059669" id="pinsUnused">0</div></div>
+<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #dc2626"><div style="font-size:11px;color:#64748b">Used</div><div style="font-size:18px;font-weight:800;color:#dc2626" id="pinsUsed">0</div></div>
+</div>
+<div style="margin-top:8px;font-size:11px;color:#64748b">Client ki yemi user ki generate chesam, yenni pins generate chesam, yenni use chesaru - Analytics</div>
+</div>
+
+<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="checkPinInput" placeholder="Enter Pin - FLMPIN... or MSNH-KIRG..." class="input"><button class="btn-blue" onclick="checkPinReal()">Check Valid?</button></div>
+<div id="pinCheckResult" style="margin-top:8px;font-size:12px"></div>
+
+<div style="margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px">
+<div style="font-weight:700;font-size:13px;margin-bottom:8px">➕ Generate Pins - Town Wise - User Wise</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+<input id="pinGenerateFor" placeholder="Generate For - FL ID or User Name - Eg: FL100001 or Ramesh" class="input">
+<input id="pinTown" placeholder="Town/City - Eg: Hyderabad, KPHB, Mahbubabad" class="input">
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<input id="pinQty" type="number" value="10" class="input" placeholder="Qty - Eg: 10">
+<button class="btn-blue" onclick="adminGeneratePinsWithTown()">Generate Random Pins - Town Wise</button>
+</div>
+<div style="margin-top:8px;font-size:11px;color:#64748b;background:#fef3c7;padding:6px;border-radius:6px">Town ye user ki generate chayali - Town/City enter chey - Eg: Mahbubabad user ki 10 pins - Random MSNH-KIRG-PJH6-XBYI - Not guessable</div>
+</div>
+
+<div style="margin-top:12px">
+<div style="font-weight:700;font-size:13px;margin-bottom:8px">📋 Pins List - Town Wise - User Wise - Used/Unused - Real DB</div>
+<div style="background:#f1f5f9;padding:8px;border-radius:8px;font-size:11px;margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap"><span>Filter:</span><button onclick="filterPins('all')" style="padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;font-size:11px">All</button><button onclick="filterPins('unused')" style="padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#dcfce7;font-size:11px">Unused</button><button onclick="filterPins('used')" style="padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#fee2e2;font-size:11px">Used</button></div>
+<div id="pinsList" style="margin-top:8px;max-height:400px;overflow:auto"></div>
+</div>
+</div>
+</div>
+
+
+<div id="sec-createStore" style="display:none"><div class="card"><h3>➕ Create Store - Town Wise - Pincode</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input placeholder="Store Name - KPHB Store" class="input"><input placeholder="Town/City - Hyderabad" class="input"><input placeholder="Pincode - 500072" class="input"><input placeholder="Mobile - 9876543210" class="input"></div><input placeholder="Full Address" class="input" style="margin-top:8px"><button class="btn-blue" style="width:100%;margin-top:10px" onclick="alert('Store Created - Town Wise - 25KM Radius')">Create Store - Town Wise</button></div></div>
+<div id="sec-storePoints" style="display:none"><div class="card"><h3>⭐ Store Points - Town Wise</h3><div>Store Points Logic - Each store gets points - Town wise earnings</div></div></div>
+<div id="sec-subAdmin" style="display:none"><div class="card"><h3>👑 Sub Admin Creator</h3><div>General Admin, Store Admin - Town wise permissions</div></div></div>
+<div id="sec-stores" style="display:none"><div class="card"><h3>🏪 Store Locator - 25KM - Town Wise</h3><div>Store Locator - Town wise - 25KM radius - Users in town</div></div></div>
+<div id="sec-wallets" style="display:none"><div class="card"><h3>💰 Wallets - Town Wise</h3><div>ROI 40x50 Matching Loan - Town wise analytics</div></div></div>
+<div id="sec-withdraw" style="display:none"><div class="card"><h3>💸 Withdrawals - Town Wise - 20% Deduction</h3><div>Withdrawals - Town wise - 200/500/1000/3000/5000</div></div></div>
+<div id="sec-binary" style="display:none"><div class="card"><h3>🔗 Binary Income - Town Wise</h3><div>Binary Income - Real Pairs Rs.200 - Town wise</div></div></div>
+<div id="sec-roi" style="display:none"><div class="card"><h3>📈 ROI Income - Town Wise</h3><div>ROI Rs.40 Daily - Town wise</div></div></div>
+<div id="sec-loans" style="display:none"><div class="card"><h3>🏦 Loan Products - 16 Levels</h3><div>Loan 1 1 pair Rs.1000 to Loan 16 - Town wise</div></div></div>
+<div id="sec-rewards" style="display:none"><div class="card"><h3>🏆 Rewards - 13 Rewards</h3><div>Alkaline Jar 40 pairs to Jaguar 1Cr 200000 pairs - Town wise</div></div></div>
 
 </div>
 
@@ -193,7 +257,29 @@ function toggleMenu(){document.getElementById('menu').classList.toggle('open');d
 function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);}
 async function loadSec(id){
  if(id==='users'&&supabaseClient){const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);const {data:bin}=await supabaseClient.from('binary_summary').select('*');document.getElementById('usersList').innerHTML=data.map(u=>{const b=bin.find(x=>x.fl_id===u.fl_id)||{left_tokens:0,right_tokens:0,total_pairs:0,team_size:0};return `<div style="padding:8px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id} - Left ${b.left_tokens} Right ${b.right_tokens} Pairs ${b.total_pairs}</div>`;}).join('');}
- if(id==='pins'&&supabaseClient){const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('pinsList').innerHTML=data.map(p=>`<div style="padding:6px;border-bottom:1px solid #f1f5f9;font-size:11px">${p.pin_code} - ${p.status} - ${p.amount}</div>`).join('');}
+ if(id==='pins'&&supabaseClient){
+   const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(100);
+   if(data){
+     // Analytics - Total, Unused, Used
+     const total=data.length;
+     const unused=data.filter(p=>p.status==='unused').length;
+     const used=data.filter(p=>p.status==='used').length;
+     const elTotal=document.getElementById('pinsTotal'); if(elTotal) elTotal.innerText=total;
+     const elUnused=document.getElementById('pinsUnused'); if(elUnused) elUnused.innerText=unused;
+     const elUsed=document.getElementById('pinsUsed'); if(elUsed) elUsed.innerText=used;
+     // Filter
+     let filtered=data;
+     if(currentPinsFilter==='unused') filtered=data.filter(p=>p.status==='unused');
+     if(currentPinsFilter==='used') filtered=data.filter(p=>p.status==='used');
+     document.getElementById('pinsList').innerHTML=filtered.map(p=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:8px;margin-bottom:6px"><div style="font-weight:700;font-family:monospace">${p.pin_code}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span><span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span>${p.town?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;font-size:10px">📍 ${p.town}</span>`:''}${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''}${p.used_by_mobile?`<span style="padding:2px 6px;border-radius:4px;background:#e0e7ff;font-size:10px">Used by: ${p.used_by_mobile}</span>`:''}</div>${p.used_at?`<div style="font-size:10px;color:#64748b;margin-top:2px">Used at: ${new Date(p.used_at).toLocaleString()}</div>`:''}</div>`).join('');
+     // Client analytics info
+     const townGroups={}; data.forEach(p=>{ const t=p.town||'General'; if(!townGroups[t]) townGroups[t]={total:0,used:0,unused:0}; townGroups[t].total++; if(p.status==='used') townGroups[t].used++; else townGroups[t].unused++; });
+     let townHtml='<div style="margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-weight:700;font-size:12px">Town Wise Analytics - Yenni pins generate chesam, yenni use chesaru</div>';
+     for(const [town, stats] of Object.entries(townGroups)){ townHtml+=`<div style="padding:6px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;font-size:11px"><span>📍 ${town}</span><span>Total: ${stats.total} | Used: ${stats.used} | Unused: ${stats.unused}</span></div>`; }
+     townHtml+='</div>';
+     document.getElementById('pinsList').innerHTML+=townHtml;
+   }
+ }
 }
 async function checkPinReal(){const pin=document.getElementById('checkPinInput').value.trim();const res=document.getElementById('pinCheckResult');if(!pin){res.innerHTML='Enter pin';return;}res.innerHTML='⏳ Checking...';const {data,error}=await supabaseClient.from('pins').select('*').eq('pin_code',pin.toUpperCase()).limit(1);if(error){res.innerHTML='❌ '+error.message;return;}if(!data||data.length===0){res.innerHTML='❌ Pin Wrong - Not found';return;}const p=data[0];if(p.status==='used'){res.innerHTML='⚠️ Already Used - '+p.used_by_mobile;return;}if(p.status==='unused'){res.innerHTML='✅ Correct - Valid Rs.'+p.amount;return;}}
 function runBinary(){alert('Binary Run - Rs.200/pair');}
