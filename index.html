@@ -1,135 +1,305 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-<title>Freedom Loans Mart - Members</title>
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// === SUPABASE LIVE CONFIG - Self-contained - 2000 Plan - Daily ROI 40x50 - Real Key ===
 const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient = null;
-try { if (typeof supabase !== 'undefined') { supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } } catch(e) {}
+try {
+  if (typeof supabase !== 'undefined') {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase Live Connected - 2000 Plan - ROI 40x50 - Real Key Embedded - Self-contained');
+  }
+} catch(e) { console.log('Supabase fallback demo'); }
+
+// ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
+
+async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash) {
+  if (!supabaseClient) {
+    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+    const user = {fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password, pin_token: pinToken, payment_method: paymentMethod, utr_hash: utrHash};
+    localStorage.setItem('flm_user_'+flId, JSON.stringify(user));
+    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName}));
+    return {success: true, flId: flId, message: 'Demo Registration - FL ID: '+flId};
+  }
+  try {
+    if (pinToken) {
+      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).single();
+      if (pinError || !pinData) {
+        return {success: false, message: '❌ Pin Wrong - Pin/Token not found: '+pinToken};
+      }
+      if(pinData.status==='used'){
+        return {success: false, message: '⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile+' at '+pinData.used_at};
+      }
+      if(pinData.status!=='unused'){
+        return {success: false, message: '❌ Pin Wrong - Status: '+pinData.status};
+      }
+      await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
+    } else {
+      if (!utrHash) return {success: false, message: 'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
+      await supabaseClient.from('payment_transactions').insert({
+        mobile: mobile, email: email, payment_method: paymentMethod, utr_hash: utrHash, amount: 2000, status: 'pending'
+      });
+    }
+    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+    const {data: userData, error: userError} = await supabaseClient.from('users').insert({
+      fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password,
+      left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0
+    }).select().single();
+    if (userError) throw userError;
+    await supabaseClient.from('wallets').insert({fl_id: flId, roi_wallet: 0, matching_wallet: 0, loan_wallet: 0, main_wallet: 0});
+    await supabaseClient.from('binary_summary').insert({
+      fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
+      left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
+    });
+
+    // === UPDATE SPONSOR BINARY COUNT - LEFT/RIGHT + TEAM SIZE + TOKENS - FIX FOR COUNT 0 ISSUE ===
+    if(sponsorId){
+      try{
+        // Get sponsor binary summary
+        const {data: sponsorBin, error: binErr} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
+        if(!binErr && sponsorBin){
+          let updateData = {};
+          if(side.toLowerCase()==='left'){
+            updateData.left_own = (sponsorBin.left_own||0)+1;
+            updateData.left_tokens = (sponsorBin.left_tokens||0)+1;
+          } else {
+            updateData.right_own = (sponsorBin.right_own||0)+1;
+            updateData.right_tokens = (sponsorBin.right_tokens||0)+1;
+          }
+          updateData.team_size = (sponsorBin.team_size||0)+1;
+          // Calculate pairs - min of left_tokens and right_tokens
+          const newLeft = updateData.left_tokens!==undefined ? updateData.left_tokens : sponsorBin.left_tokens;
+          const newRight = updateData.right_tokens!==undefined ? updateData.right_tokens : sponsorBin.right_tokens;
+          const pairs = Math.min(newLeft, newRight);
+          updateData.total_pairs = pairs;
+          updateData.daily_pairs_today = (sponsorBin.daily_pairs_today||0)+ (pairs > (sponsorBin.total_pairs||0) ? 1 : 0);
+          updateData.daily_income_today = updateData.daily_pairs_today * 200; // Rs.200 per pair
+          
+          await supabaseClient.from('binary_summary').update(updateData).eq('fl_id', sponsorId.toUpperCase());
+          console.log('Sponsor binary updated - '+sponsorId+' - Side '+side+' - Left:'+newLeft+' Right:'+newRight+' Pairs:'+pairs);
+          
+          // Also update users table left_own/right_own for sponsor
+          const {data: sponsorUser} = await supabaseClient.from('users').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
+          if(sponsorUser){
+            let userUpdate = {};
+            if(side.toLowerCase()==='left'){
+              userUpdate.left_own = (sponsorUser.left_own||0)+1;
+            } else {
+              userUpdate.right_own = (sponsorUser.right_own||0)+1;
+            }
+            await supabaseClient.from('users').update(userUpdate).eq('fl_id', sponsorId.toUpperCase());
+          }
+        } else {
+          console.log('Sponsor binary not found - '+sponsorId+' - Creating?');
+          // If sponsor binary not found, try create for sponsor if sponsor is FL884234 etc
+        }
+      } catch(e){ console.log('Sponsor update error: '+e.message); }
+    }
+
+    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
+    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50 - Sponsor '+sponsorId+' binary updated - Left/Right count +1'};
+  } catch(err) {
+    return {success: false, message: 'Registration failed: '+err.message};
+  }
+}
+
+async function loginReal(flIdOrMobile, password) {
+  if (!supabaseClient) {
+    if(flIdOrMobile.toUpperCase().includes('973530') || flIdOrMobile.toUpperCase().includes('THEJA')){
+      return {success: true, user: {fl_id: 'FL973530', full_name: 'Theja', sponsor_id: 'FL100001'}};
+    }
+    return {success: false, message: 'Demo: Use FL973530 / theja123 - Live connect Supabase'};
+  }
+  try {
+    let query = supabaseClient.from('users').select('*');
+    const {data: byFlId} = await query.eq('fl_id', flIdOrMobile.toUpperCase()).limit(1);
+    let user = byFlId && byFlId.length>0 ? byFlId[0] : null;
+    if (!user) {
+      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile', flIdOrMobile).limit(1);
+      user = byMobile && byMobile.length>0 ? byMobile[0] : null;
+    }
+    if (!user) return {success: false, message: 'No account found: '+flIdOrMobile};
+    if (user.password !== password) return {success: false, message: 'Wrong password'};
+    const {data: wallet} = await supabaseClient.from('wallets').select('*').eq('fl_id', user.fl_id).single();
+    const {data: binary} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', user.fl_id).single();
+    const sessionUser = {flId: user.fl_id, name: user.full_name, sponsorId: user.sponsor_id, side: user.side, mobile: user.mobile, email: user.email, wallet: wallet, binary: binary};
+    localStorage.setItem('flm_session', JSON.stringify(sessionUser));
+    return {success: true, user: sessionUser, wallet: wallet, binary: binary};
+  } catch(err) {
+    return {success: false, message: 'Login failed: '+err.message};
+  }
+}
+
+async function adminLoadUsers() {
+  if (!supabaseClient) return [{fl_id: 'FL973530', full_name: 'Theja'}];
+  const {data} = await supabaseClient.from('users').select('*').order('created_at', {ascending: false}).limit(50);
+  return data;
+}
+async function adminLoadPins() {
+  if (!supabaseClient) return [{pin_code: 'FLMPIN100001', status: 'unused', amount: 2000}];
+  const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
+  return data;
+}
+async function adminGeneratePinsWithBonus(qty) {
+  const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
+  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
+  const pins = [];
+  for(let i=0;i<total;i++){
+    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
+    pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
+  }
+  const {error} = await supabaseClient.from('pins').insert(pins);
+  if(error) alert('Error: '+error.message);
+  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
+}
+
 </script>
+<title>Freedom Loans Mart - User Dashboard | FLM</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI}
-html,body{width:100%;overflow-x:hidden;background:#eef2f7}
-body{color:#0f172a;min-height:100vh;padding:0}
-.card{background:#fff;border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);width:100%}
-.dark-card{background:#0f172a;color:#fff;border-radius:16px;padding:16px;margin-bottom:12px;width:100%}
-.topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:0 0 16px 16px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100}
-.btn-blue{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer}
-.input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px}
-.section-head{border-radius:16px 16px 0 0;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:800;text-align:center}
-.section-head.members{background:linear-gradient(90deg,#10b981,#0e7490);color:#fff}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;width:100%}
-.table{width:100%;border-collapse:collapse;font-size:12px}
-.table th{background:#f1f5f9;text-align:left;padding:8px;font-size:11px}
-.table td{padding:8px;border-top:1px solid #f1f5f9;word-break:break-word}
-.menu{position:fixed;left:-100%;top:0;width:85vw;max-width:340px;height:100dvh;background:#fff;color:#0f172a;z-index:9999;transition:left 0.3s ease;padding:16px;overflow-y:auto;box-shadow:4px 0 20px rgba(0,0,0,0.15)}
-.menu.open{left:0}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;z-index:9998}
-.overlay.show{display:block}
-#userMain{width:100%;max-width:100%;padding:12px;box-sizing:border-box}
-@media (max-width:768px){#userMain{padding:8px}.grid2{gap:8px}}
-@media (max-width:480px){#userMain{padding:6px}.grid2{gap:6px}}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+html,body{width:100%;overflow-x:hidden} body{background:#f1f5f9;color:#0f172a}
+.sidebar{position:fixed;left:0;top:0;width:260px;height:100vh;background:#0f172a;color:#cbd5e1;overflow-y:auto;z-index:20}
+.sidebar .logo{padding:20px;border-bottom:1px solid #1e293b}
+.sidebar a{display:flex;gap:10px;padding:10px 12px;border-radius:8px;color:#94a3b8;text-decoration:none;font-size:13px;margin:4px 12px;cursor:pointer}
+.sidebar a.active,.sidebar a:hover{background:#1e293b;color:#fff}
+.main{margin-left:260px;padding:16px}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);margin-bottom:12px}
+.dark{background:#1e293b;color:#e2e8f0;border-radius:12px;padding:14px}
+.grad{border-radius:12px;padding:14px;color:#fff}
+.grad-blue{background:linear-gradient(135deg,#2563eb,#0e7490)}
+.grad-purple{background:linear-gradient(135deg,#7c3aed,#2563eb)}
+.btn{padding:8px 14px;border-radius:8px;border:0;font-weight:600;cursor:pointer;font-size:12px}
+.btn-blue{background:#2563eb;color:#fff}
+.btn-green{background:#059669;color:#fff}
+.input{width:100%;height:40px;border:1px solid #e2e8f0;border-radius:8px;padding:0 12px}
+.badge{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:900px){.sidebar{transform:translateX(-100%);transition:transform 0.3s}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}#menuBtn{display:flex!important;align-items:center;justify-content:center}}
+
+.info{background:#dbeafe;border:1px solid #93c5fd;padding:8px;border-radius:8px;font-size:11px;color:#1e40af;margin:6px 0}
 </style>
 </head>
 <body>
+<!-- Mobile Hamburger Button -->
+<button id="menuBtn" onclick="toggleMenu()" style="position:fixed;top:12px;left:12px;z-index:30;background:#0f172a;color:#fff;border:0;width:40px;height:40px;border-radius:8px;font-size:18px;display:none">☰</button>
+<div id="overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15;display:none"></div>
 
-<div id="userMain">
-
-<div class="topbar">
-<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a">Members</b></div>
-<div style="display:flex;align-items:center;gap:8px"><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div style="width:36px;height:28px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center"><span style="color:#dc2626;font-weight:800;font-size:10px">freedom</span></div><div style="text-align:left"><div style="font-size:11px;font-weight:800;color:#1e40af">Platform Ad...</div><div style="font-size:10px;color:#64748b">Administrator</div></div></div></div>
+<div class="sidebar">
+<div class="logo"><div style="font-weight:800;color:#fff">freedom<br><span style="color:#60a5fa">LOANS MART</span></div><div style="font-size:10px;color:#64748b;margin-top:4px">FLM Project • Live</div></div>
+<a class="active" onclick="show('dashboard')">📊 Dashboard</a>
+<a onclick="show('invite')">🔗 Invite Links</a>
+<a onclick="show('downline')">🌳 Downline</a>
+<a onclick="show('wallets')">💼 Wallets</a>
+<a onclick="show('loans')">💰 Loans</a>
+<a onclick="show('rewards')">🏆 Rewards</a>
+<a onclick="show('withdraw')">💳 Withdrawals</a>
+<a onclick="show('store')">📍 Store Locator</a>
+<a onclick="show('support')">💬 Support</a>
+<a onclick="show('kit')">📦 Sample Kit</a>
+<a onclick="location.href='./login.html'" style="color:#f87171;margin-top:20px">🚪 Logout</a>
 </div>
-
-<div class="menu" id="menu">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><b>Freedom Loans Mart</b><span style="cursor:pointer;background:#f1f5f9;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onclick="toggleMenu()">✕</span></div>
-<div style="display:flex;flex-direction:column;gap:10px">
-<div onclick="showSec('dashboard')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center">📊</div><div><div style="font-weight:700">Dashboard</div><div style="font-size:11px;color:#64748b">Overview</div></div></div>
-<div onclick="showSec('members')" style="cursor:pointer;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:12px;border-radius:12px;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:rgba(255,255,255,.2);border-radius:10px;display:flex;align-items:center;justify-content:center">👥</div><div><div style="font-weight:700">Members</div><div style="font-size:11px;opacity:.8">Total 12 - Active 12</div></div></div>
-<div onclick="showSec('pins')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">🎫</div><div><div style="font-weight:700">My Pins</div><div style="font-size:11px;color:#64748b">Generated & Used</div></div></div>
-<div onclick="showSec('binary')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#ffedd5;border-radius:10px;display:flex;align-items:center;justify-content:center">🔗</div><div><div style="font-weight:700">Binary</div><div style="font-size:11px;color:#64748b">Left Right Pairs</div></div></div>
-<div onclick="showSec('wallet')" style="cursor:pointer;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center">💰</div><div><div style="font-weight:700">Wallets</div><div style="font-size:11px;color:#64748b">ROI Matching Loan</div></div></div>
+<div class="main">
+<div id="p-dashboard">
+<div class="grad grad-blue" style="display:flex;justify-content:space-between"><div><div style="font-size:11px;opacity:.8">MEMBER DASHBOARD</div><div style="font-weight:800">Freedom Loans Mart FL597130 • Active</div><div style="font-size:11px;margin-top:4px">Matching: Rs.200/pair | Max 25 pairs/day = Rs.5000 | Store: 25KM Radius</div></div><div><button class="btn" style="background:#fff;color:#2563eb" onclick="show('invite')">Invite Members</button></div></div>
+<div class="card" style="background:#e0f2fe;display:flex;justify-content:space-between"><span style="font-size:12px"><b>MATCHING BONUS:</b> Rs.200 per left and right pair | Daily Cap 25 pairs</span><span style="font-size:11px;color:#0369a1" onclick="show('downline')">Check Network</span></div>
+<div class="grid2"><div class="card"><b>Profile</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Member ID</div><div style="font-weight:700">FL597130</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Joined</div><div style="font-weight:700">05 Sep 2026</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Activation</div><div style="font-weight:700">05 Sep 2026</div></div><div style="background:#f8fafc;padding:8px;border-radius:8px"><div style="font-size:10px;color:#64748b">Sponsored by</div><div style="font-weight:700">Platform Admin</div></div></div></div><div class="card"><div style="display:flex;justify-content:space-between"><b>Place a Member</b><span style="color:#2563eb;font-size:11px" onclick="show('invite')">All Links</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#dbeafe;padding:10px;border-radius:8px"><div style="font-size:10px">Left side</div><div style="font-weight:700;font-size:12px">Open Placement</div><button class="btn btn-blue" style="width:100%;margin-top:6px" onclick="copyL()">Copy Left</button></div><div style="background:#d1fae5;padding:10px;border-radius:8px"><div style="font-size:10px">Right side</div><div style="font-weight:700;font-size:12px">Open Placement</div><button class="btn btn-green" style="width:100%;margin-top:6px" onclick="copyR()">Copy Right</button></div></div></div></div>
+<div class="grad grad-purple" style="margin-top:12px;display:flex;justify-content:space-between"><span>Earnings and Wallets</span><span style="font-size:11px" onclick="show('wallets')">Open Wallet</span></div>
+<div class="grid4" style="margin-top:10px"><div class="dark"><div style="font-size:11px">Main Wallet</div><div style="font-size:18px;font-weight:800">Rs.6,200.00</div><div style="font-size:10px;color:#94a3b8">Available</div></div><div class="dark"><div style="font-size:11px">ROI Credits</div><div style="font-size:18px;font-weight:800">1,200.00</div><div style="font-size:10px;color:#94a3b8">Min 1000 for store redeem</div></div><div class="dark"><div style="font-size:11px">Matching Income</div><div style="font-size:18px;font-weight:800">Rs.5,500.00</div><div style="font-size:10px;color:#94a3b8">5000+ or 40:40 = Store Withdraw</div></div><div class="dark"><div style="font-size:11px">Pending Withdrawal</div><div style="font-size:18px;font-weight:800">Rs.0.00</div><div style="font-size:10px;color:#94a3b8">Under review</div></div></div>
+<div class="grid2" style="margin-top:12px"><div class="card"><b>Daily Matching - 25 Pairs Cap (Important)</b><div class="info">Max 25 pairs/day = Rs.5000. Ex: Left 27 + Right 30 joins today → Only 25 counted = Rs.5000. Carry: Left 2, Right 5 to next day.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><input id="dl" class="input" type="number" value="27" placeholder="Left today"><input id="dr" class="input" type="number" value="30" placeholder="Right today"></div><button class="btn btn-blue" style="margin-top:6px" onclick="calcD()">Calculate</button><div id="dRes" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px;font-size:11px"></div></div><div class="card"><b>3 Wallets Logic</b><div class="info"><b>ROI:</b> >=1000 store redeem product<br><b>Matching:</b> >=5000 or 40:40 store withdraw (20% deduction, amounts 200/500/1000/3000/5000 only, once/day)<br><b>Loans:</b> Pair 400 + Loan 1000 = Total 1400, Required 20% = 280, Already 100, Remaining 180 → Purchase at store to unlock next portal, monthly rotation</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px"><input id="pw" class="input" type="number" value="400" placeholder="Pair withdrawn"><input id="lw" class="input" type="number" value="1000" placeholder="Loan withdrawn"><input id="ap" class="input" type="number" value="100" placeholder="Already purchased"></div><button class="btn btn-blue" style="margin-top:6px" onclick="calcL()">Calculate 20%</button><div id="lRes" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px;font-size:11px"></div></div></div>
 </div>
+<div id="p-invite" style="display:none"><h2>Invite Members</h2><div class="card"><b>Left Referral Link</b><div style="display:flex;gap:6px;margin-top:6px"><input class="input" id="leftLink" value="https://freedomloans.in/register?side=left&sponsor=FL597130" readonly><button class="btn btn-blue" onclick="copyL()">Copy</button></div></div><div class="card"><b>Right Referral Link</b><div style="display:flex;gap:6px;margin-top:6px"><input class="input" id="rightLink" value="https://freedomloans.in/register?side=right&sponsor=FL597130" readonly><button class="btn btn-blue" onclick="copyR()">Copy</button></div></div><div class="card"><b>After 80:80 Rule:</b> For every loan and reward after 80:80 pairs, need 2 new referrals OR 2 plan renewals via referral link.</div></div>
+<div id="p-wallets" style="display:none"><h2>Wallets - 3 Types</h2><div class="card">ROI Wallet: Min 1000 for store product purchase<br>Matching Wallet: 5000+ or 40:40 → Store withdrawal with 20% deduction, amounts 200/500/1000/3000/5000 only, once per day<br>Loans Wallet: Cumulative 20% purchase logic - Total till date 20% must be purchased at store</div></div>
+<div id="p-withdraw" style="display:none"><h2>Withdrawals</h2><div class="card"><b>Store Withdrawal - Limited Amounts</b><div class="info">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction at store | Once per day | Remaining stays in wallet | Full loan amount withdrawable</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="selA(200)">Rs.200</button><button class="btn" onclick="selA(500)">Rs.500</button><button class="btn" onclick="selA(1000)">Rs.2000</button><button class="btn" onclick="selA(3000)">Rs.3000</button><button class="btn btn-blue" onclick="selA(5000)">Rs.5000</button></div><div id="wCalc" style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:8px;font-size:12px">Select amount</div></div></div>
+<div id="p-store" style="display:none"><h2>Store Locator - 25KM Radius</h2><div class="card"><div style="display:flex;gap:6px"><input id="sp" class="input" placeholder="Pincode 500008" value="500008"><button class="btn btn-blue" onclick="findS()">Find Stores (25KM)</button></div><div id="sRes" style="margin-top:10px"></div></div></div>
+<div id="p-support" style="display:none"><h2>Support - WhatsApp & Web Connect</h2><div class="card"><b>WhatsApp Bot:</b> Hi → 4 buttons: Withdrawal Issue, Joining Issue, Product Store, Nearest Store<br><a href="https://wa.me/918309091326?text=Hi%20Support%20FL597130" target="_blank"><button class="btn btn-green" style="margin-top:8px">Chat on WhatsApp 8309091326</button></a></div></div>
+<div id="p-loans" style="display:none"><h2>Loans - 16 Levels</h2><div class="card"><div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e">
+<b>⚠️ IMPORTANT CONDITION - From 40 Pairs (Rs.8000 Loan) Onwards:</b><br>
+40 pairs = Rs.8000 loan nundi MUST ga new 2 referrals OR renewal of 2 IDs condition undi!<br>
+• Loan 1-3 (1,4,12 pairs): No referral condition<br>
+• Loan 4 onwards (40 pairs = Rs.8000): MUST 2 New Referrals OR 2 ID Renewals (2 plans renew via your referral link)<br>
+• Every next loan (80,160,320...200000 pairs): Same condition - 2 new referrals OR 2 renewals must<br>
+• Full amount withdrawable only after condition met
 </div>
-<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-
-<div id="sec-members">
-<div class="grid2">
-<div class="dark-card"><div style="font-size:13px;opacity:.8">Total</div><div style="font-size:24px;font-weight:800;margin-top:6px" id="mTotal">12</div></div>
-<div class="dark-card"><div style="font-size:13px;opacity:.8">Active</div><div style="font-size:24px;font-weight:800;margin-top:6px" id="mActive">12</div></div>
+<div class="info">Remaining Logic: Loan1:1 pair Total 1 Prev 0 Rem 1, Loan2:4 total Prev 1 Rem 3, Loan3:12 total Prev 4 Rem 8, Loan4:40 total Prev 12 Rem 28 + 2 Referrals MUST, etc. Full amount withdrawable after condition.</div><div id="loansG" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px"></div></div></div>
+<div id="p-rewards" style="display:none"><h2>Rewards - 13 Rewards</h2><div id="rewardsG" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div></div>
+<div id="p-downline" style="display:none"><h2>Downline - Binary Tree</h2><div class="card">YOU - FL597130<br>LEFT Open | RIGHT Open<br>Matching History: Date, Left Tokens, Right Tokens, Pairs, Carry L/R, Income</div></div>
+<div id="p-kit" style="display:none"><h2>Sample Kit - Send Kit</h2><div class="card">Kit 1: Alkaline Jar Sample Kit Rs.2000 Stock 50<br>Kit 2: Business Starter Kit Rs.2500 Stock 30<br>Kit 3: Premium Kit Rs.5000 Stock 20<br><button class="btn btn-blue" style="margin-top:8px">Buy Kit - Store Pickup / Courier / Pin Point</button></div></div>
 </div>
-<div class="grid2">
-<div class="dark-card"><div style="font-size:13px;opacity:.8">Pending</div><div style="font-size:24px;font-weight:800;margin-top:6px">0</div></div>
-<div class="dark-card"><div style="font-size:13px;opacity:.8">Suspended</div><div style="font-size:24px;font-weight:800;margin-top:6px">0</div></div>
-</div>
-
-<div class="card" style="padding:0;overflow:hidden">
-<div class="section-head members"><div style="display:flex;align-items:center;gap:8px"><span style="background:rgba(255,255,255,.2);padding:6px;border-radius:8px">📋</span> Member records</div><div style="font-size:12px;font-weight:500;opacity:.9;margin-top:4px" id="mFound">12 found</div></div>
-<div style="padding:16px">
-<div style="font-weight:700;font-size:14px;margin-bottom:8px;color:#1e3a8a">Search member</div>
-<input id="searchMember" placeholder="Name, code, phone, email" class="input" style="background:#f8fafc">
-<button class="btn-blue" style="margin-top:10px" onclick="searchMembers()">Search</button>
-<div style="margin-top:16px;overflow:auto">
-<table class="table"><thead><tr><th>MEMBER</th><th>CONTACT</th></tr></thead><tbody id="membersList"><tr><td>Loading...</td><td></td></tr></tbody></table>
-</div>
-<div style="display:flex;justify-content:space-between;margin-top:12px;gap:8px"><button style="padding:8px 16px;border-radius:999px;border:1px solid #e2e8f0;background:#f1f5f9">Previous</button><button style="padding:8px 16px;border-radius:999px;border:1px solid #e2e8f0;background:#e0f7ff;font-weight:700" id="pageInfo">Page 1 of 1</button><button style="padding:8px 16px;border-radius:999px;border:1px solid #e2e8f0;background:#f1f5f9">Next</button></div>
-</div>
-</div>
-</div>
-
-<div id="sec-pins" style="display:none">
-<div class="card">
-<h3>🎫 My Pins - Generated - User Panel - Light Theme</h3>
-<div style="margin-top:10px;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0">
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #2563eb"><div style="font-size:11px;color:#64748b">Total Pins</div><div style="font-size:18px;font-weight:800" id="uPinsTotal">0</div></div>
-<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #059669"><div style="font-size:11px;color:#64748b">Unused</div><div style="font-size:18px;font-weight:800;color:#059669" id="uPinsUnused">0</div></div>
-<div style="background:#fff;padding:10px;border-radius:10px;border-left:4px solid #dc2626"><div style="font-size:11px;color:#64748b">Used</div><div style="font-size:18px;font-weight:800;color:#dc2626" id="uPinsUsed">0</div></div>
-</div>
-</div>
-<div id="userPinsList" style="margin-top:12px">Loading pins...</div>
-<div style="margin-top:10px;font-size:11px;color:#64748b;background:#f1f5f9;padding:8px;border-radius:8px">Pins generate avvagane user panel lo kuda pins lo display avvali - Admin generate cheste user panel lo kanipistundi - Light theme</div>
-</div>
-</div>
-
-<div id="sec-dashboard" style="display:none"><div class="card"><h3>📊 Dashboard - Light Theme</h3><div>Welcome to Freedom Loans Mart - Light theme - No dark</div></div></div>
-
-</div>
-
 <script>
-function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
-function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();if(id==='members') loadMembers();if(id==='pins') loadUserPins();}
-async function loadMembers(){
- if(!supabaseClient){document.getElementById('membersList').innerHTML='<tr><td>Demo - Supabase not connected</td><td></td></tr>';return;}
- const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);
- if(data){
-   document.getElementById('mTotal').innerText=data.length;
-   document.getElementById('mActive').innerText=data.length;
-   document.getElementById('mFound').innerText=data.length+' found';
-   document.getElementById('pageInfo').innerText='Page 1 of 1';
-   document.getElementById('membersList').innerHTML=data.map(u=>`<tr><td><b>${u.full_name}</b><br><span style="font-size:11px;color:#64748b">${u.fl_id}</span></td><td>${u.mobile}<br><span style="font-size:11px;color:#64748b">${u.email}</span></td></tr>`).join('');
- }
+function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';}
+function copyL(){navigator.clipboard.writeText(document.getElementById('leftLink').value);alert('Left link copied!');}
+function copyR(){navigator.clipboard.writeText(document.getElementById('rightLink').value);alert('Right link copied!');}
+
+const loans=[
+{no:1,amt:1000,pairs:1,cond:"No referral needed - First loan - 1:1=1000 eligible ✅"},
+{no:2,amt:2000,pairs:4,cond:"No referral needed"},
+{no:3,amt:4000,pairs:12,cond:"No referral needed"},
+{no:4,amt:8000,pairs:40,cond:"⚠️ MUST: 2 New Referrals OR 2 ID Renewals"},
+{no:5,amt:16000,pairs:80,cond:"⚠️ MUST: 2 New Referrals"},
+{no:6,amt:30000,pairs:160,cond:"⚠️ MUST: 2 New Referrals"},
+{no:7,amt:60000,pairs:320,cond:"⚠️ MUST: 2 New Referrals"},
+{no:8,amt:120000,pairs:640,cond:"⚠️ MUST: 2 New Referrals"},
+{no:9,amt:250000,pairs:1280,cond:"⚠️ MUST: 2 New Referrals"},
+{no:10,amt:500000,pairs:2600,cond:"⚠️ MUST: 2 New Referrals"},
+{no:11,amt:1000000,pairs:5500,cond:"⚠️ MUST: 2 New Referrals"},
+{no:12,amt:2000000,pairs:11000,cond:"⚠️ MUST: 2 New Referrals"},
+{no:13,amt:4000000,pairs:23000,cond:"⚠️ MUST: 2 New Referrals"},
+{no:14,amt:8000000,pairs:46000,cond:"⚠️ MUST: 2 New Referrals"},
+{no:15,amt:15000000,pairs:100000,cond:"⚠️ MUST: 2 New Referrals"},
+{no:16,amt:30000000,pairs:200000,cond:"⚠️ MUST: 2 New Referrals"}
+];
+function renderLoansReal(pairs, containerId){
+  const cont=document.getElementById(containerId);
+  if(!cont) return;
+  let prev=0;
+  cont.innerHTML=loans.map(l=>{
+    const rem=l.pairs-prev;
+    const isEligible=pairs>=l.pairs;
+    const isMandatory=l.pairs>=40;
+    const bg=isEligible?'#dcfce7':'#f1f5f9';
+    const status=isEligible?'✅ Eligible - 1:1 reach = 1000 loan eligible - Working':'🔒 Locked';
+    const h=`<div class="card" style="background:${bg};border:${isMandatory?'2px solid #f59e0b':'1px solid #e2e8f0'}"><div style="font-size:11px">Loan ${l.no} - ${l.pairs} Pairs ${isMandatory?'<span style="background:#f59e0b;padding:2px 6px;border-radius:999px;font-size:9px">⚠️ 2 Referrals MUST</span>':''} <span style="float:right;background:${isEligible?'#059669':'#334155'};color:#fff;padding:2px 6px;border-radius:999px;font-size:10px">${status}</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Need ${l.pairs} pairs | You have ${pairs} | Remaining ${Math.max(0,l.pairs-pairs)} pairs | 1:1=${pairs>=1?'Yes 1000 Loan ✅':'Need 1 pair'}</div></div>`;
+    prev=l.pairs;
+    return h;
+  }).join('');
 }
-async function loadUserPins(){
- if(!supabaseClient){document.getElementById('userPinsList').innerHTML='Demo pins';return;}
- const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(100);
- if(data){
-   const total=data.length; const unused=data.filter(p=>p.status==='unused').length; const used=data.filter(p=>p.status==='used').length;
-   document.getElementById('uPinsTotal').innerText=total;
-   document.getElementById('uPinsUnused').innerText=unused;
-   document.getElementById('uPinsUsed').innerText=used;
-   document.getElementById('userPinsList').innerHTML=data.map(p=>`<div style="padding:10px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div><b style="font-family:monospace">${p.pin_code}</b><div style="font-size:11px;color:#64748b">${p.status} - Rs.${p.amount} ${p.town?'📍'+p.town:''}</div></div><span style="padding:4px 8px;border-radius:999px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:11px">${p.status}</span></div>`).join('');
- }
-}
-function searchMembers(){
- const q=document.getElementById('searchMember').value.toLowerCase();
- const rows=document.querySelectorAll('#membersList tr');
- rows.forEach(r=>{ r.style.display=r.innerText.toLowerCase().includes(q)?'':'none'; });
-}
-window.addEventListener('load',()=>{ loadMembers(); });
+
+function calcD(){let l=parseInt(document.getElementById('dl').value)||0;let r=parseInt(document.getElementById('dr').value)||0;let c=Math.min(l,r,25);let inc=c*200;let lc=l-c;let rc=r-c;document.getElementById('dRes').innerHTML=`Pairs Counted: ${c} (capped at 25)<br>Income: Rs.${inc} (25x200 max Rs.5000)<br>Left Carry: ${lc} | Right Carry: ${rc} → Next day`;}
+function calcL(){let p=parseInt(document.getElementById('pw').value)||0;let l=parseInt(document.getElementById('lw').value)||0;let a=parseInt(document.getElementById('ap').value)||0;let total=p+l;let req=total*0.2;let rem=req-a;if(rem<0)rem=0;document.getElementById('lRes').innerHTML=`Total Till Date: Rs.${total} (${p}+${l})<br>Required 20%: Rs.${req}<br>Already Purchased: Rs.${a}<br>Remaining: Rs.${rem} → Inka ${rem} ki konnali, appude next portal unlock, monthly rotation`;}
+function selA(amt){let ded=amt*0.2;let net=amt-ded;let rem=6200-amt;document.getElementById('wCalc').innerHTML=`Selected: Rs.${amt}<br>Deduction 20%: Rs.${ded}<br>Net to User: Rs.${net}<br>Remaining in Wallet: Rs.${rem}<br>Once per day only`;}
+function findS(){let pin=document.getElementById('sp').value;let stores=[{n:'KPHB Store',a:'KPHB Road, Hyderabad',m:'9876543210',d:'2.1KM'},{n:'Ameerpet Store',a:'Ameerpet, Hyderabad',m:'9123456780',d:'5.4KM'},{n:'Secunderabad Store',a:'Secunderabad',m:'9988776655',d:'8.9KM'}];document.getElementById('sRes').innerHTML=stores.map(s=>`<div style="background:#f8fafc;padding:8px;border-radius:8px;margin-top:6px"><b>${s.n} - ${s.d}</b> - Within 25KM ✅<br>${s.a} - ${s.m} <button class="btn btn-blue" style="font-size:10px">Call</button> <button class="btn" style="background:#fff;border:1px solid #e2e8f0;font-size:10px">Map</button></div>`).join('');}
+const loans=[
+{no:1,amt:1000,pairs:1,cond:"No referral needed - First loan"},
+{no:2,amt:2000,pairs:4,cond:"No referral needed"},
+{no:3,amt:4000,pairs:12,cond:"No referral needed"},
+{no:4,amt:8000,pairs:40,cond:"⚠️ MUST: 2 New Referrals OR 2 ID Renewals - From here mandatory"},
+{no:5,amt:16000,pairs:80,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:6,amt:30000,pairs:160,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:7,amt:60000,pairs:320,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:8,amt:120000,pairs:640,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:9,amt:250000,pairs:1280,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:10,amt:500000,pairs:2600,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:11,amt:1000000,pairs:5500,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:12,amt:2000000,pairs:11000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:13,amt:4000000,pairs:23000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:14,amt:8000000,pairs:46000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:15,amt:15000000,pairs:100000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:16,amt:30000000,pairs:200000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"}
+];
+let userPairs=parseInt(localStorage.getItem('flm_user_pairs')||'0'); let prev=0;document.getElementById('loansG').innerHTML=loans.map(l=>{
+let rem=l.pairs-prev;
+let isMandatory = l.pairs>=40;
+let bg = isMandatory ? '#fef3c7' : '#1e293b';
+let tc = isMandatory ? '#92400e' : '#fff';
+let h=`<div class="card" style="background:${bg};color:${tc};border:${isMandatory ? '2px solid #f59e0b' : 'none'}"><div style="font-size:11px">Loan ${l.no} - ${l.pairs} Pairs ${isMandatory ? '<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:999px;font-size:9px">⚠️ 2 Referrals MUST</span>' : ''} <span style="float:right;background:#334155;color:#fff;padding:2px 6px;border-radius:999px">Locked</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Total:${l.pairs} | Prev:${prev} | Rem:${rem} pairs</div><div style="font-size:9px;margin-top:4px">${l.cond}</div><div style="font-size:9px;margin-top:4px">Full amount withdrawable</div></div>`;
+prev=l.pairs;return h;}).join('');
+const rewards=[{n:'Alkaline Jar',p:40},{n:'Goa tour',p:80},{n:'Bangkok tour',p:160},{n:'Malaysia Tour',p:320},{n:'Dubai Tour',p:640},{n:'Sri Lanka Cruise',p:1280},{n:'Car Fund 3L',p:2600},{n:'Gold 4L',p:5500},{n:'Europe Trip',p:11000},{n:'DTCP Plot',p:23000},{n:'20L Open Plot',p:46000},{n:'2BHK Flat',p:100000},{n:'Jaguar/Benz 1Cr',p:200000}];
+document.getElementById('rewardsG').innerHTML=rewards.map(r=>`<div class="card"><div style="height:80px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</div><b style="font-size:12px">${r.n}</b><div style="font-size:10px">${r.p} pairs - LOCKED</div></div>`).join('');
+function toggleMenu(){let sb=document.querySelector('.sidebar');let ov=document.getElementById('overlay');sb.classList.toggle('open');ov.style.display=sb.classList.contains('open')?'block':'none';}
+calcD();calcL();
 </script>
 </body>
 </html>

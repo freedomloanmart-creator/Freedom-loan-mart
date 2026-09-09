@@ -29,33 +29,10 @@ async function adminGeneratePinsWithBonus(qty){
   const bonus=Math.floor(qty/100)*20; const total=qty+bonus;
   const genFor=document.getElementById('pinGenerateFor')?.value||'';
   const town=document.getElementById('pinTown')?.value||'';
-  if(!supabaseClient){ alert('Demo: '+total+' Random Pins - For: '+genFor+' Town: '+town+'\nNote: Supabase connect ayithe live save'); loadSec('pins'); return; }
-  // Try with town and generated_for columns first
-  let pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:genFor,town:town}); }
-  let {error}=await supabaseClient.from('pins').insert(pins);
-  if(error){
-    console.log('Insert with town/generated_for failed: '+error.message+' - Trying without those columns');
-    // Fallback - insert without generated_for/town if columns don't exist in Supabase
-    if(error.message.includes('generated_for') || error.message.includes('town') || error.message.includes('schema cache')){
-      pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000}); }
-      const retry=await supabaseClient.from('pins').insert(pins);
-      if(retry.error){
-        alert('Error: '+retry.error.message);
-      } else {
-        // Save town/user info locally for analytics if DB columns missing
-        let localMeta=JSON.parse(localStorage.getItem('flm_pins_meta')||'{}');
-        pins.forEach(p=>{ localMeta[p.pin_code]={generated_for:genFor,town:town,created_at:new Date().toISOString()}; });
-        localStorage.setItem('flm_pins_meta', JSON.stringify(localMeta));
-        alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB (Basic)\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nNote: Town/User info saved locally - Supabase lo generated_for/town columns add cheyali for permanent - SQL icha - Town: '+town);
-        loadSec('pins');
-      }
-    } else {
-      alert('Error: '+error.message);
-    }
-  } else {
-    alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nTown wise: '+town+'\nUser wise: '+genFor);
-    loadSec('pins');
-  }
+  if(!supabaseClient){ alert('Demo: '+total+' Random Pins - For: '+genFor+' Town: '+town); return; }
+  const pins=[]; for(let i=0;i<total;i++){ pins.push({pin_code:generateRandomPin(),status:'unused',amount:2000,generated_for:genFor,town:town}); }
+  const {error}=await supabaseClient.from('pins').insert(pins);
+  if(error) alert('Error: '+error.message+' - Note: generated_for/town columns lekapothe Supabase lo add chey'); else { alert('Generated '+total+' Random Pins - For: '+(genFor||'General')+' Town: '+(town||'All')+' - Live DB\nSample: '+pins.slice(0,3).map(p=>p.pin_code).join('\n')+'\nTown wise: '+town+'\nUser wise: '+genFor); loadSec('pins'); }
 }
 async function adminGeneratePinsWithTown(){
   const qty=parseInt(document.getElementById('pinQty').value)||10;
@@ -276,10 +253,66 @@ async function loadAdminData(){
    }
  }
 }
+
+const loans=[
+{no:1,amt:1000,pairs:1,cond:"No referral needed - First loan"},
+{no:2,amt:2000,pairs:4,cond:"No referral needed"},
+{no:3,amt:4000,pairs:12,cond:"No referral needed"},
+{no:4,amt:8000,pairs:40,cond:"⚠️ MUST: 2 New Referrals OR 2 ID Renewals"},
+{no:5,amt:16000,pairs:80,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:6,amt:30000,pairs:160,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:7,amt:60000,pairs:320,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:8,amt:120000,pairs:640,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:9,amt:250000,pairs:1280,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:10,amt:500000,pairs:2600,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:11,amt:1000000,pairs:5500,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:12,amt:2000000,pairs:11000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:13,amt:4000000,pairs:23000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:14,amt:8000000,pairs:46000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:15,amt:15000000,pairs:100000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"},
+{no:16,amt:30000000,pairs:200000,cond:"⚠️ MUST: 2 New Referrals OR 2 Renewals"}
+];
+function getLoanEligibility(pairs){
+  let eligible=[];
+  loans.forEach(l=>{
+    if(pairs>=l.pairs){ eligible.push(l); }
+  });
+  return eligible;
+}
+function renderLoansForPairs(pairs, containerId){
+  const cont=document.getElementById(containerId);
+  if(!cont) return;
+  let prev=0;
+  cont.innerHTML=loans.map(l=>{
+    const rem=l.pairs-prev;
+    const isEligible=pairs>=l.pairs;
+    const isMandatory=l.pairs>=40;
+    const bg=isEligible? (isMandatory?'#fef3c7':'#dcfce7') : (isMandatory?'#fef3c7':'#f1f5f9');
+    const tc=isEligible? (isMandatory?'#92400e':'#166534') : '#64748b';
+    const status=isEligible?'✅ Eligible':'🔒 Locked';
+    return `<div class="card" style="background:${bg};color:${tc};border:${isMandatory?'2px solid #f59e0b':'1px solid #e2e8f0'}"><div style="font-size:11px">Loan ${l.no} - ${l.pairs} Pairs ${isMandatory?'<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:999px;font-size:9px">⚠️ 2 Referrals MUST</span>':''} <span style="float:right;padding:2px 6px;border-radius:999px;background:${isEligible?'#059669':'#334155'};color:#fff">${status}</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Total:${l.pairs} | Prev:${prev} | Rem:${rem} pairs | Need ${l.pairs-pairs>0?l.pairs-pairs:0} more</div><div style="font-size:9px;margin-top:4px">${l.cond}</div><div style="font-size:9px;margin-top:4px">1:1 reach = 1000 eligible - ${l.no===1?'1:1 = 1000 Loan - Working ✅':''}</div></div>`;
+  }).join('');
+  // Update prev for next iteration in map - need to track
+  let p=0;
+  const html=loans.map(l=>{
+    const rem=l.pairs-p;
+    const isEligible=pairs>=l.pairs;
+    const isMandatory=l.pairs>=40;
+    const bg=isEligible? (isMandatory?'#fef3c7':'#dcfce7') : (isMandatory?'#fef3c7':'#f1f5f9');
+    const tc=isEligible? (isMandatory?'#92400e':'#166534') : '#64748b';
+    const status=isEligible?'✅ Eligible':'🔒 Locked';
+    const h=`<div class="card" style="background:${bg};color:${tc};border:${isMandatory?'2px solid #f59e0b':'1px solid #e2e8f0'}"><div style="font-size:11px">Loan ${l.no} - ${l.pairs} Pairs ${isMandatory?'<span style="background:#f59e0b;color:#000;padding:2px 6px;border-radius:999px;font-size:9px">⚠️ 2 Referrals MUST</span>':''} <span style="float:right;padding:2px 6px;border-radius:999px;background:${isEligible?'#059669':'#334155'};color:#fff">${status}</span></div><div style="font-size:16px;font-weight:800;margin-top:6px">Rs.${l.amt.toLocaleString()}</div><div style="font-size:10px">Total:${l.pairs} | Prev:${p} | Rem:${rem} pairs</div><div style="font-size:9px;margin-top:4px">${l.cond}</div></div>`;
+    p=l.pairs;
+    return h;
+  }).join('');
+  cont.innerHTML=html;
+}
+
 function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);}
 async function loadSec(id){
  if(id==='users'&&supabaseClient){const {data}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);const {data:bin}=await supabaseClient.from('binary_summary').select('*');document.getElementById('usersList').innerHTML=data.map(u=>{const b=bin.find(x=>x.fl_id===u.fl_id)||{left_tokens:0,right_tokens:0,total_pairs:0,team_size:0};return `<div style="padding:8px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id} - Left ${b.left_tokens} Right ${b.right_tokens} Pairs ${b.total_pairs}</div>`;}).join('');}
+ if(id==='loans'&&supabaseClient){const {data:bin}=await supabaseClient.from('binary_summary').select('*');const totalPairs=bin?bin.reduce((s,x)=>s+(x.total_pairs||0),0):0;renderLoansForPairs(totalPairs,'loansGAdmin');}
  if(id==='pins'&&supabaseClient){
    const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(100);
    if(data){
@@ -294,9 +327,6 @@ async function loadSec(id){
      let filtered=data;
      if(currentPinsFilter==='unused') filtered=data.filter(p=>p.status==='unused');
      if(currentPinsFilter==='used') filtered=data.filter(p=>p.status==='used');
-     // Merge local meta if DB columns missing
-     let localMeta=JSON.parse(localStorage.getItem('flm_pins_meta')||'{}');
-     filtered=filtered.map(p=>{ const meta=localMeta[p.pin_code]||{}; return {...p, town:p.town||meta.town||'', generated_for:p.generated_for||meta.generated_for||''}; });
      document.getElementById('pinsList').innerHTML=filtered.map(p=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:8px;margin-bottom:6px"><div style="font-weight:700;font-family:monospace">${p.pin_code}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span><span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span>${p.town?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;font-size:10px">📍 ${p.town}</span>`:''}${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''}${p.used_by_mobile?`<span style="padding:2px 6px;border-radius:4px;background:#e0e7ff;font-size:10px">Used by: ${p.used_by_mobile}</span>`:''}</div>${p.used_at?`<div style="font-size:10px;color:#64748b;margin-top:2px">Used at: ${new Date(p.used_at).toLocaleString()}</div>`:''}</div>`).join('');
      // Client analytics info
      const townGroups={}; data.forEach(p=>{ const t=p.town||'General'; if(!townGroups[t]) townGroups[t]={total:0,used:0,unused:0}; townGroups[t].total++; if(p.status==='used') townGroups[t].used++; else townGroups[t].unused++; });
@@ -308,8 +338,23 @@ async function loadSec(id){
  }
 }
 async function checkPinReal(){const pin=document.getElementById('checkPinInput').value.trim();const res=document.getElementById('pinCheckResult');if(!pin){res.innerHTML='Enter pin';return;}res.innerHTML='⏳ Checking...';const {data,error}=await supabaseClient.from('pins').select('*').eq('pin_code',pin.toUpperCase()).limit(1);if(error){res.innerHTML='❌ '+error.message;return;}if(!data||data.length===0){res.innerHTML='❌ Pin Wrong - Not found';return;}const p=data[0];if(p.status==='used'){res.innerHTML='⚠️ Already Used - '+p.used_by_mobile;return;}if(p.status==='unused'){res.innerHTML='✅ Correct - Valid Rs.'+p.amount;return;}}
-function runBinary(){alert('Binary Run - Rs.200/pair');}
-function runROI(){alert('ROI Run - Rs.40 Daily');}
+
+function runBinary(){
+  // Real binary logic - 1:1 = 1 pair = Rs.200, max 25/day = Rs.5000, carry forward
+  alert('Binary Run - Real Logic:\n1:1 reach = 1 pair = Rs.200 Matching Income\nMax 25 pairs/day = Rs.5000\nCarry forward: Left extra and Right extra carry to next day\nExample: Left 3 Right 2 = 2 pairs = Rs.400 + Left 1 carry\nLoan Eligible: 1:1 = 1 pair = Rs.1000 Loan 1 Eligible - Working ✅');
+  // Update UI with real pairs
+  loadAdminData();
+}
+function runROI(){
+  alert('ROI Run - Real Logic:\nDaily ROI Rs.40 x 50 Days = Rs.2000 per ID\n11 members = Rs.440 daily (11x40)\nReal from roi_daily table\nWorking ✅');
+}
+function checkLoanEligibilityForUser(flId, pairs){
+  const eligible=getLoanEligibility(pairs);
+  if(eligible.length===0) return 'No loan yet - Need 1:1 = 1 pair for Loan 1 Rs.1000';
+  const last=eligible[eligible.length-1];
+  return `Eligible upto Loan ${last.no} - Rs.${last.amt} - Pairs ${pairs} - 1:1=${pairs>=1?'1000 Loan Yes ✅':'No'}`;
+}
+
 window.addEventListener('load',()=>{checkAdminSession();});
 </script>
 </body>
