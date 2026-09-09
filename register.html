@@ -1,0 +1,76 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLM Registration</title>
+<style>
+*{box-sizing:border-box;font-family:Inter,system-ui}body{margin:0;background:#eef2f7;padding:12px}
+.card{max-width:480px;margin:12px auto;background:#fff;border-radius:20px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb}
+.tabs{display:flex;gap:8px;margin:12px 0}.tab{flex:1;padding:12px;border-radius:12px;border:2px solid #e2e8f0;background:#fff;text-align:center;font-weight:700;cursor:pointer;font-size:12px}.tab.active{background:#0f172a;color:#fff;border-color:#0f172a}.tab.usdt.active{background:#059669;border-color:#059669}
+input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px;margin:6px 0;font-size:14px;background:#f9fafb}
+.btn{width:100%;padding:13px;border:0;border-radius:12px;background:#0f172a;color:#fff;font-weight:700;cursor:pointer;margin-top:10px}
+.qrbox{border:2px dashed #cbd5e1;border-radius:12px;padding:14px;text-align:center;margin:10px 0;background:#f8fafc}
+.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;padding:10px;border-radius:10px;font-size:11px;margin:8px 0}
+</style></head><body>
+<div style="max-width:480px;margin:0 auto">
+<div style="background:#fff;border-radius:20px;padding:16px;text-align:center;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb">
+<div style="width:180px;height:60px;background:linear-gradient(135deg,#dc2626 0%,#dc2626 35%,#1e40af 35%,#1e40af 100%);border-radius:10px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px">FREEDOM<br>LOANS MART</div>
+<div style="color:#dc2626;font-size:11px;font-weight:700;letter-spacing:1px;margin-top:8px">FREEDOM LOANS MART</div>
+<div style="font-size:11px;color:#64748b">Way to Financial Freedom - ID Kit Rs.2000 - Daily ROI Rs.40 x 50 Days = Rs.2000 - Secure Registration</div>
+</div>
+<div class="card">
+<h2 style="text-align:center;color:#0f172a;font-size:20px">Registration</h2>
+<div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">PoomX Kit Rs.2000 | Token=Pin Same | UPI + USDT BEP20</div>
+<div class="info"><b>Logic:</b> Token/Pin Okate - Token unte ok - Lekapothe direct UPI/USDT payment chesi enter avutharu<br><b>Bonus:</b> 100 Tokens ki 20 Extra = 120 | <b>40 pairs:</b> MUST 2 referrals/renewals | <b>1:1:</b> Only via own link</div>
+<label style="font-size:11px;color:#64748b">SPONSOR ID</label><input id="sponsor" value="FL100001">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div><label style="font-size:11px">SIDE</label><select id="side"><option value="left">Left</option><option value="right">Right</option></select></div>
+<div><label style="font-size:11px">PIN / TOKEN (Optional - Okate Field)</label><input id="pinToken" placeholder="FLMPIN... or FLTKN..."></div>
+</div>
+<div style="margin-top:6px;display:flex;gap:8px">
+<button onclick="checkToken()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:700;cursor:pointer">Check Token Valid?</button>
+<span style="flex:1;font-size:10px;color:#64748b;padding:6px">Token unte ok - Lekapothe payment chesi enter avutharu - Pin=Token okate</span>
+</div>
+<label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Theja">
+<label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="9876543210">
+<label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="theja@gmail.com">
+<label style="font-size:11px">PASSWORD</label><input id="password" type="password" placeholder="****">
+<div id="paymentSection">
+<div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
+<div class="tabs"><div class="tab active" id="tabUPI" onclick="setPay('UPI')">UPI Payment</div><div class="tab usdt" id="tabUSDT" onclick="setPay('USDT')">USDT BEP20</div></div>
+<div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"></div></div>
+<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - $12</b><br><span style="font-size:9px;font-family:monospace">0x1234... Client Address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."></div></div>
+</div>
+<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 40 pairs=Rs.8000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Pin=Token 100 ki 20 extra</div>
+<button class="btn" onclick="register()">Register Now - Rs.2000</button>
+<div id="msg" style="margin-top:10px;font-size:12px"></div>
+<div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#f8fafc"><b style="font-size:12px">Buy Tokens/Pins - 100+20 Bonus - Pin=Token Same</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="buyQty" type="number" value="100" style="margin:0"><div id="bonusCalc" style="padding:10px;background:#dcfce7;border-radius:8px;font-size:11px;font-weight:700">100 + 20 = 120 Tokens</div></div><button class="btn" style="background:#059669;margin-top:8px" onclick="const q=parseInt(document.getElementById('buyQty').value)||100;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';alert('Generated '+(q+b)+' Tokens/Pins - Pin=Token same - 20 extra')">Buy Tokens - Get Bonus</button></div>
+<div style="text-align:center;margin-top:12px;font-size:12px">Already? <a href="./login.html" style="color:#2563eb">Login</a></div>
+</div></div>
+<script>
+let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
+function checkToken(){
+const token=document.getElementById('pinToken').value.trim();
+const sec=document.getElementById('paymentSection');
+if(!token){alert('Enter Token/Pin - FLMPIN... or FLTKN...');return;}
+// Check if valid (demo: any starting with FLM or FLT)
+if(token.toUpperCase().startsWith('FLM') || token.toUpperCase().startsWith('FLT')){
+alert('✅ Token/Pin Valid: '+token+' - No payment needed - Direct entry - Pin=Token okate');
+if(sec) sec.style.display='none';
+}else{alert('❌ Invalid Token/Pin - Use FLMPIN... or FLTKN... or pay via UPI/USDT');if(sec) sec.style.display='block';}
+}
+document.getElementById('pinToken').addEventListener('input',function(){
+const v=this.value.trim();const sec=document.getElementById('paymentSection');
+if(v){sec.style.display='none';}else{sec.style.display='block';}
+});
+function register(){
+const sponsor=document.getElementById('sponsor').value;const name=document.getElementById('fullName').value;const mobile=document.getElementById('mobile').value;const email=document.getElementById('email').value;
+const pinToken=document.getElementById('pinToken').value.trim();const utr=document.getElementById('upiUtr').value;const hash=document.getElementById('usdtHash').value;
+const msg=document.getElementById('msg');
+if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
+if(!pinToken){
+if(payMethod==='UPI' && !utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
+if(payMethod==='USDT' && !hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
+}
+msg.innerHTML='<span style=color:#059669>Registration Success! '+(pinToken?'Token/Pin: '+pinToken+' - No payment - Direct entry':'Payment: '+payMethod+' '+(payMethod==='UPI'?utr:hash))+'<br>Pin=Token okate - Redirecting...</span>';
+setTimeout(()=>location.href='./login.html',1500);
+}
+document.getElementById('buyQty').addEventListener('input',()=>{const q=parseInt(document.getElementById('buyQty').value)||0;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';});
+</script></body></html>
