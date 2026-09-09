@@ -1,4 +1,110 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// === SUPABASE LIVE CONFIG - Self-contained - 2000 Plan - Daily ROI 40x50 - Real Key ===
+const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+let supabaseClient = null;
+try {
+  if (typeof supabase !== 'undefined') {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase Live Connected - 2000 Plan - ROI 40x50 - Real Key Embedded - Self-contained');
+  }
+} catch(e) { console.log('Supabase fallback demo'); }
+
+// ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
+
+async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash) {
+  if (!supabaseClient) {
+    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+    const user = {fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password, pin_token: pinToken, payment_method: paymentMethod, utr_hash: utrHash};
+    localStorage.setItem('flm_user_'+flId, JSON.stringify(user));
+    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName}));
+    return {success: true, flId: flId, message: 'Demo Registration - FL ID: '+flId};
+  }
+  try {
+    if (pinToken) {
+      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).eq('status', 'unused').single();
+      if (pinError || !pinData) {
+        return {success: false, message: 'Invalid Pin/Token - Use FLMPIN... or FLTKN... - Pin=Token same - 2000 plan'};
+      }
+      await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
+    } else {
+      if (!utrHash) return {success: false, message: 'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
+      await supabaseClient.from('payment_transactions').insert({
+        mobile: mobile, email: email, payment_method: paymentMethod, utr_hash: utrHash, amount: 2000, status: 'pending'
+      });
+    }
+    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+    const {data: userData, error: userError} = await supabaseClient.from('users').insert({
+      fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password,
+      left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0
+    }).select().single();
+    if (userError) throw userError;
+    await supabaseClient.from('wallets').insert({fl_id: flId, roi_wallet: 0, matching_wallet: 0, loan_wallet: 0, main_wallet: 0});
+    await supabaseClient.from('binary_summary').insert({
+      fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
+      left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
+    });
+    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
+    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50'};
+  } catch(err) {
+    return {success: false, message: 'Registration failed: '+err.message};
+  }
+}
+
+async function loginReal(flIdOrMobile, password) {
+  if (!supabaseClient) {
+    if(flIdOrMobile.toUpperCase().includes('973530') || flIdOrMobile.toUpperCase().includes('THEJA')){
+      return {success: true, user: {fl_id: 'FL973530', full_name: 'Theja', sponsor_id: 'FL100001'}};
+    }
+    return {success: false, message: 'Demo: Use FL973530 / theja123 - Live connect Supabase'};
+  }
+  try {
+    let query = supabaseClient.from('users').select('*');
+    const {data: byFlId} = await query.eq('fl_id', flIdOrMobile.toUpperCase()).limit(1);
+    let user = byFlId && byFlId.length>0 ? byFlId[0] : null;
+    if (!user) {
+      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile', flIdOrMobile).limit(1);
+      user = byMobile && byMobile.length>0 ? byMobile[0] : null;
+    }
+    if (!user) return {success: false, message: 'No account found: '+flIdOrMobile};
+    if (user.password !== password) return {success: false, message: 'Wrong password'};
+    const {data: wallet} = await supabaseClient.from('wallets').select('*').eq('fl_id', user.fl_id).single();
+    const {data: binary} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', user.fl_id).single();
+    const sessionUser = {flId: user.fl_id, name: user.full_name, sponsorId: user.sponsor_id, side: user.side, mobile: user.mobile, email: user.email, wallet: wallet, binary: binary};
+    localStorage.setItem('flm_session', JSON.stringify(sessionUser));
+    return {success: true, user: sessionUser, wallet: wallet, binary: binary};
+  } catch(err) {
+    return {success: false, message: 'Login failed: '+err.message};
+  }
+}
+
+async function adminLoadUsers() {
+  if (!supabaseClient) return [{fl_id: 'FL973530', full_name: 'Theja'}];
+  const {data} = await supabaseClient.from('users').select('*').order('created_at', {ascending: false}).limit(50);
+  return data;
+}
+async function adminLoadPins() {
+  if (!supabaseClient) return [{pin_code: 'FLMPIN100001', status: 'unused', amount: 2000}];
+  const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
+  return data;
+}
+async function adminGeneratePinsWithBonus(qty) {
+  const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
+  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
+  const pins = [];
+  for(let i=0;i<total;i++){
+    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
+    pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
+  }
+  const {error} = await supabaseClient.from('pins').insert(pins);
+  if(error) alert('Error: '+error.message);
+  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
+}
+
+</script>
 <title>FLM Registration</title>
 <style>
 *{box-sizing:border-box;font-family:Inter,system-ui}body{margin:0;background:#eef2f7;padding:12px}

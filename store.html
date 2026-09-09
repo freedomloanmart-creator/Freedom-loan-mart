@@ -1,8 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// === SUPABASE LIVE CONFIG - Self-contained - 2000 Plan - Daily ROI 40x50 - Real Key ===
+const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+let supabaseClient = null;
+try {
+  if (typeof supabase !== 'undefined') {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase Live Connected - 2000 Plan - ROI 40x50 - Real Key Embedded - Self-contained');
+  }
+} catch(e) { console.log('Supabase fallback demo'); }
+
+// ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
+
+async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash) {
+  if (!supabaseClient) {
+    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+    const user = {fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password, pin_token: pinToken, payment_method: paymentMethod, utr_hash: utrHash};
+    localStorage.setItem('flm_user_'+flId, JSON.stringify(user));
+    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName}));
+    return {success: true, flId: flId, message: 'Demo Registration - FL ID: '+flId};
+  }
+  try {
+    if (pinToken) {
+      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).eq('status', 'unused').single();
+      if (pinError || !pinData) {
+        return {success: false, message: 'Invalid Pin/Token - Use FLMPIN... or FLTKN... - Pin=Token same - 2000 plan'};
+      }
+      await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
+    } else {
+      if (!utrHash) return {success: false, message: 'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
+      await supabaseClient.from('payment_transactions').insert({
+        mobile: mobile, email: email, payment_method: paymentMethod, utr_hash: utrHash, amount: 2000, status: 'pending'
+      });
+    }
+    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
+    const {data: userData, error: userError} = await supabaseClient.from('users').insert({
+      fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password,
+      left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0
+    }).select().single();
+    if (userError) throw userError;
+    await supabaseClient.from('wallets').insert({fl_id: flId, roi_wallet: 0, matching_wallet: 0, loan_wallet: 0, main_wallet: 0});
+    await supabaseClient.from('binary_summary').insert({
+      fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
+      left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
+    });
+    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
+    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50'};
+  } catch(err) {
+    return {success: false, message: 'Registration failed: '+err.message};
+  }
+}
+
+async function loginReal(flIdOrMobile, password) {
+  if (!supabaseClient) {
+    if(flIdOrMobile.toUpperCase().includes('973530') || flIdOrMobile.toUpperCase().includes('THEJA')){
+      return {success: true, user: {fl_id: 'FL973530', full_name: 'Theja', sponsor_id: 'FL100001'}};
+    }
+    return {success: false, message: 'Demo: Use FL973530 / theja123 - Live connect Supabase'};
+  }
+  try {
+    let query = supabaseClient.from('users').select('*');
+    const {data: byFlId} = await query.eq('fl_id', flIdOrMobile.toUpperCase()).limit(1);
+    let user = byFlId && byFlId.length>0 ? byFlId[0] : null;
+    if (!user) {
+      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile', flIdOrMobile).limit(1);
+      user = byMobile && byMobile.length>0 ? byMobile[0] : null;
+    }
+    if (!user) return {success: false, message: 'No account found: '+flIdOrMobile};
+    if (user.password !== password) return {success: false, message: 'Wrong password'};
+    const {data: wallet} = await supabaseClient.from('wallets').select('*').eq('fl_id', user.fl_id).single();
+    const {data: binary} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', user.fl_id).single();
+    const sessionUser = {flId: user.fl_id, name: user.full_name, sponsorId: user.sponsor_id, side: user.side, mobile: user.mobile, email: user.email, wallet: wallet, binary: binary};
+    localStorage.setItem('flm_session', JSON.stringify(sessionUser));
+    return {success: true, user: sessionUser, wallet: wallet, binary: binary};
+  } catch(err) {
+    return {success: false, message: 'Login failed: '+err.message};
+  }
+}
+
+async function adminLoadUsers() {
+  if (!supabaseClient) return [{fl_id: 'FL973530', full_name: 'Theja'}];
+  const {data} = await supabaseClient.from('users').select('*').order('created_at', {ascending: false}).limit(50);
+  return data;
+}
+async function adminLoadPins() {
+  if (!supabaseClient) return [{pin_code: 'FLMPIN100001', status: 'unused', amount: 2000}];
+  const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
+  return data;
+}
+async function adminGeneratePinsWithBonus(qty) {
+  const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
+  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
+  const pins = [];
+  for(let i=0;i<total;i++){
+    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
+    pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
+  }
+  const {error} = await supabaseClient.from('pins').insert(pins);
+  if(error) alert('Error: '+error.message);
+  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
+}
+
+</script>
 <title>FLM Store Panel - 25KM Radius</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
@@ -16,18 +118,14 @@ body{background:#f1f5f9}
 .btn{padding:6px 12px;border-radius:6px;border:0;font-weight:600;cursor:pointer;font-size:11px}
 .btn-blue{background:#2563eb;color:#fff}
 .btn-green{background:#059669;color:#fff}
-@media(max-width:900px){.sidebar{transform:translateX(-100%);transition:transform 0.3s;z-index:20}.sidebar.open{transform:translateX(0)}.main{margin-left:0}#menuBtn{display:flex!important;align-items:center;justify-content:center}}
 </style>
 </head>
 <body>
-<button id="menuBtn" onclick="toggleMenu()" style="position:fixed;top:12px;left:12px;z-index:30;background:#0f172a;color:#fff;border:0;width:40px;height:40px;border-radius:8px;font-size:18px;display:none">☰</button>
-<div id="overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15;display:none"></div>
-
 <div class="sidebar">
 <div class="logo"><div style="font-weight:800;color:#fff">KPHB STORE</div><div style="font-size:9px;color:#10b981">STORE PANEL • 25KM Radius</div><div style="font-size:10px;color:#64748b">9876543210 • 500072</div></div>
 <a class="active" onclick="show('dash')">📊 Dashboard</a>
 <a onclick="show('storeW')">💳 Store Withdrawals (20% + Limited)</a>
-<a onclick="show('roi')">🛒 ROI Redemptions (1000+)</a>
+<a onclick="show('roi')">🛒 ROI Redemptions (2000+ - ROI 40x50)</a>
 <a onclick="show('loan')">💰 Loan 20% Purchase</a>
 <a onclick="show('pickup')">📦 Pickup Management</a>
 <a onclick="show('users')">👥 Users in 25KM</a>
@@ -37,17 +135,16 @@ body{background:#f1f5f9}
 </div>
 <div class="main">
 <div id="p-dash"><h2>KPHB Store Dashboard</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px"><div class="card">Today Store Withdrawals<br><b>5</b> (200/500/1000/3000/5000 only)</div><div class="card">Pending Pickups<br><b>3</b></div><div class="card">Users in 25KM<br><b>15</b></div><div class="card">20% Income Today<br><b>Rs.2,400</b></div></div></div>
-<div id="p-storeW" style="display:none"><h2>Store Withdrawals - 20% Deduction + Limited Amounts + Once Per Day</h2><div class="card"><div style="font-size:11px">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction | Once per day per user | Remaining stays in wallet | Full loan amount withdrawable</div><div style="margin-top:8px;font-size:11px">FL597130 - Request: Rs.5000 - Deduction 20% = Rs.1000 - Net Rs.4000 - Remaining Wallet Rs.1200 - Status: Pending - <button class="btn btn-blue">Approve</button> <button class="btn btn-green">Mark Paid</button></div></div></div>
-<div id="p-roi" style="display:none"><h2>ROI Redemptions - Min 1000 for Store Redeem</h2><div class="card" style="font-size:11px">FL597130 - ROI 1200 - Product: Alkaline Jar - Rs.1000 - Status: Pending - Mark Delivered</div></div>
+<div id="p-storeW" style="display:none"><h2>Store Withdrawals - 20% Deduction + Limited Amounts + Once Per Day</h2><div class="card"><div style="font-size:11px">Amounts ONLY: 200,500,1000,3000,5000 | 20% deduction | Once per day per user | Remaining stays in wallet | Full loan amount withdrawable</div><div style="margin-top:8px;font-size:11px">FL597130 - Request: Rs.5000 - Deduction 20% = Rs.2000 - Net Rs.4000 - Remaining Wallet Rs.1200 - Status: Pending - <button class="btn btn-blue">Approve</button> <button class="btn btn-green">Mark Paid</button></div></div></div>
+<div id="p-roi" style="display:none"><h2>ROI Redemptions - Min 1000 for Store Redeem (ROI 40x50)</h2><div class="card" style="font-size:11px">FL597130 - ROI 1200 - Product: Alkaline Jar - Rs.2000 - Status: Pending - Mark Delivered</div></div>
 <div id="p-loan" style="display:none"><h2>Loan Withdrawals - Cumulative 20% Purchase</h2><div class="card" style="font-size:11px">FL597130 - Pair Income Withdrawn:400 + Loan Withdrawn:1000 = Total:1400 - Required 20%:280 - Already Purchased:100 - Remaining:180 - Inka 180 ki konnali - Purchase at store to unlock next portal, monthly rotation - <button class="btn btn-blue">Add Purchase</button> <button class="btn btn-green">Unlock Portal</button></div></div>
 <div id="p-pickup" style="display:none"><h2>Pickup Management - Store Pickup / Pin Point / Courier</h2><div class="card" style="font-size:11px">Order #K001 - FL597130 - Alkaline Jar Kit - Store Pickup - Pending - Mark Ready / Picked Up<br>Order #K002 - FL597131 - Business Kit - Pin Point Pickup - Address: Kukatpally - Pending</div></div>
 <div id="p-users" style="display:none"><h2>Users in 25KM Radius</h2><div class="card"><input placeholder="Pincode 500008" value="500008" style="height:32px;border:1px solid #e2e8f0;border-radius:6px;padding:0 8px"> <button class="btn btn-blue">Find</button><div style="margin-top:8px;font-size:11px">FL597130 - 2.1KM - Wallet Rs.6200 - Last Withdrawal 2 days ago<br>FL597131 - 3.4KM - Wallet Rs.4500<br>... 15 users within 25KM of KPHB Store</div></div></div>
-<div id="p-kits" style="display:none"><h2>Sample Kits - Stock</h2><div class="card" style="font-size:11px">Alkaline Jar Kit - Rs.1000 - Stock 50 - Sold 12<br>Business Starter Kit - Rs.2500 - Stock 30<br>Premium Kit - Rs.5000 - Stock 20</div></div>
+<div id="p-kits" style="display:none"><h2>Sample Kits - Stock</h2><div class="card" style="font-size:11px">Alkaline Jar Kit - Rs.2000 - Stock 50 - Sold 12<br>Business Starter Kit - Rs.2500 - Stock 30<br>Premium Kit - Rs.5000 - Stock 20</div></div>
 <div id="p-daily" style="display:none"><h2>Daily Matching - 25 Pairs Cap</h2><div class="card" style="font-size:11px">FL597130 - Today Left 27 Right 30 - Counted 25 pairs = Rs.5000 (max) - Carry Forward Left 2 Right 5 to next day - Previous + new joins logic</div></div>
 </div>
 <script>
-function toggleMenu(){let sb=document.querySelector('.sidebar');let ov=document.getElementById('overlay');sb.classList.toggle('open');ov.style.display=sb.classList.contains('open')?'block':'none';}
-function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';if(window.innerWidth<=900)toggleMenu();}
+function show(id){document.querySelectorAll('[id^="p-"]').forEach(e=>e.style.display='none');document.getElementById('p-'+id).style.display='block';}
 </script>
 </body>
 </html>
