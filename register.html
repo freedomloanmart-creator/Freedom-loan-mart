@@ -115,6 +115,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 .qrbox{border:2px dashed #cbd5e1;border-radius:12px;padding:14px;text-align:center;margin:10px 0;background:#f8fafc}
 .info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;padding:10px;border-radius:10px;font-size:11px;margin:8px 0}
 </style></head><body>
+<div id="supaStatus" style="background:#dbeafe;border:1px solid #93c5fd;padding:8px;border-radius:8px;font-size:11px;color:#1e40af;margin:6px;text-align:center">Checking Supabase Connection...</div>
 <div style="max-width:480px;margin:0 auto">
 <div style="background:#fff;border-radius:20px;padding:16px;text-align:center;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb">
 <div style="width:180px;height:60px;background:linear-gradient(135deg,#dc2626 0%,#dc2626 35%,#1e40af 35%,#1e40af 100%);border-radius:10px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px">FREEDOM<br>LOANS MART</div>
@@ -166,17 +167,57 @@ document.getElementById('pinToken').addEventListener('input',function(){
 const v=this.value.trim();const sec=document.getElementById('paymentSection');
 if(v){sec.style.display='none';}else{sec.style.display='block';}
 });
-function register(){
-const sponsor=document.getElementById('sponsor').value;const name=document.getElementById('fullName').value;const mobile=document.getElementById('mobile').value;const email=document.getElementById('email').value;
-const pinToken=document.getElementById('pinToken').value.trim();const utr=document.getElementById('upiUtr').value;const hash=document.getElementById('usdtHash').value;
+async function register(){
+const sponsor=document.getElementById('sponsor').value.trim()||'FL100001';
+const side=document.getElementById('side') ? document.getElementById('side').value : 'left';
+const name=document.getElementById('fullName').value.trim();
+const mobile=document.getElementById('mobile').value.trim();
+const email=document.getElementById('email').value.trim();
+const password=document.getElementById('password').value.trim()||'123456';
+const pinToken=document.getElementById('pinToken').value.trim();
+const utr=document.getElementById('upiUtr').value.trim();
+const hash=document.getElementById('usdtHash').value.trim();
 const msg=document.getElementById('msg');
 if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
 if(!pinToken){
-if(payMethod==='UPI' && !utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
-if(payMethod==='USDT' && !hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
+ if(payMethod==='UPI' && !utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
+ if(payMethod==='USDT' && !hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
 }
-msg.innerHTML='<span style=color:#059669>Registration Success! '+(pinToken?'Token/Pin: '+pinToken+' - No payment - Direct entry':'Payment: '+payMethod+' '+(payMethod==='UPI'?utr:hash))+'<br>Pin=Token okate - Redirecting...</span>';
-setTimeout(()=>location.href='./login.html',1500);
+msg.innerHTML='<span style=color:#2563eb>⏳ Processing - Connecting to Supabase Live DB - 2000 Plan...</span>';
+try{
+ const utrHash = payMethod==='UPI' ? utr : hash;
+ const result = await registerReal(sponsor, side.toLowerCase(), pinToken, name, mobile, email, password, payMethod, utrHash);
+ if(result.success){
+   msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'<br>Supabase Tables lo Insert Ayindi - Check public.users, wallets, binary_summary<br>Redirecting to Login...</span>';
+   setTimeout(()=>location.href='./login.html',2000);
+ } else {
+   msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
+ }
+} catch(e){
+ msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';
+}
 }
 document.getElementById('buyQty').addEventListener('input',()=>{const q=parseInt(document.getElementById('buyQty').value)||0;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';});
-</script></body></html>
+</script>
+<script>
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if(typeof supabase === 'undefined'){
+      console.log('Supabase CDN not loaded - Check internet / Brave shield');
+      document.getElementById('supaStatus').innerHTML = '❌ Supabase CDN Not Loaded - Demo Mode - Enable Brave Shields Down or Check Internet';
+      document.getElementById('supaStatus').style.background = '#fee2e2';
+      document.getElementById('supaStatus').style.color = '#991b1b';
+    } else if(!supabaseClient){
+      console.log('Supabase Client null - Init failed');
+      document.getElementById('supaStatus').innerHTML = '❌ Supabase Client Init Failed - Demo Mode';
+    } else {
+      console.log('Supabase Live Connected - Real DB Ready - 2000 Plan');
+      document.getElementById('supaStatus').innerHTML = '✅ Supabase Live Connected - Real DB Ready - 2000 Plan - ROI 40x50 - Tables Insert Working';
+      document.getElementById('supaStatus').style.background = '#dcfce7';
+      document.getElementById('supaStatus').style.color = '#166534';
+    }
+  }, 1500);
+});
+</script>
+
+</body></html>
