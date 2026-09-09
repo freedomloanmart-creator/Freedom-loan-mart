@@ -300,117 +300,9 @@ async function saveUserEdits(){
  if(msg){msg.style.color='#059669';msg.innerText='✅ User details updated successfully.';}
  loadSec('users');
 }
-
-let adminWithdrawalRows=[];
-function wdStatusLabel(s){
- const x=String(s||'processing').toLowerCase();
- if(x==='approved'||x==='completed') return 'APPROVED';
- if(x==='rejected') return 'REJECTED';
- return 'PROCESSING';
-}
-function wdWalletLabel(x){
- const t=String(x.wallet_type||x.type||'').toLowerCase();
- if(t.includes('roi')) return 'ROI';
- if(t.includes('matching')||t.includes('binary')) return 'MATCHING';
- if(t.includes('loan')) return 'LOAN';
- return String(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();
-}
-function wdMethodLabel(x){
- const m=String(x.method||'').toLowerCase();
- if(m==='usdt') return 'USDT BEP-20';
- if(m==='bank') return 'BANK';
- if(m==='store') return 'STORE';
- return String(x.method||'—').toUpperCase();
-}
-function wdIsStore(x){
- const m=String(x.method||'').toLowerCase(), t=String(x.wallet_type||x.type||'').toLowerCase();
- return m==='store'||t.includes('redeem')||t.includes('coupon')||t.includes('store');
-}
-function renderWdButtons(x){
- const st=String(x.status||'processing').toLowerCase();
- if(st!=='processing') return '';
- if(wdIsStore(x)) return '<div style="margin-top:9px;padding:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:10px;color:#92400e">🏪 Store action: cash/coupon handling is done by store. Admin settlement can be processed from this record when applicable.</div>';
- const id=escapeHtml(x.id||'');
- return '<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id+'\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id+'\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
-}
-function renderAdminWithdrawCard(x,compact){
- const st=wdStatusLabel(x.status), color=st==='APPROVED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
- const amount=Number(x.amount||0), net=x.net_amount!=null?Number(x.net_amount):amount;
- const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown');
- const store=escapeHtml(x.store_name||x.store_code||'');
- return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px">'+
-   '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+color+'">'+st+'</b></div>'+
-   '<div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+amount.toLocaleString('en-IN')+'</div>'+
-   '<div style="font-size:11px;color:#475569;margin-top:3px">Net: ₹'+net.toLocaleString('en-IN')+(store?' • Store: '+store:'')+'</div>'+
-   '<div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • Approved by '+escapeHtml(x.approved_by):'')+'</div>'+
-   (x.remarks?'<div style="font-size:10px;margin-top:4px">Note: '+escapeHtml(x.remarks)+'</div>':'')+
-   (compact?'':renderWdButtons(x))+'</div>';
-}
-function renderAdminWithdrawals(){
- const list=document.getElementById('adminWithdrawList'), store=document.getElementById('adminStoreList'), hist=document.getElementById('adminWithdrawHistory');
- if(!list||!store||!hist)return;
- const q=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
- const status=(document.getElementById('wdStatus')?.value||'all').toLowerCase();
- const rows=adminWithdrawalRows.filter(x=>{
-   const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.type].join(' ').toLowerCase();
-   const st=String(x.status||'processing').toLowerCase();
-   return (!q||hay.includes(q))&&(status==='all'||st===status);
- });
- const direct=rows.filter(x=>!wdIsStore(x));
- const stores=rows.filter(x=>wdIsStore(x));
- list.innerHTML=direct.length?direct.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No matching direct withdrawal requests.</div>';
- store.innerHTML=stores.length?stores.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No store redemption/settlement records.</div>';
- hist.innerHTML=rows.length?rows.map(x=>renderAdminWithdrawCard(x,true)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No transactions found.</div>';
-}
-async function loadAdminWithdrawals(){
- const list=document.getElementById('adminWithdrawList'); if(!list||!supabaseClient)return;
- list.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading finance records...</div>';
- try{
-   const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(300);
-   if(r.error)throw r.error;
-   adminWithdrawalRows=r.data||[];
-   const p=adminWithdrawalRows.filter(x=>String(x.status||'processing').toLowerCase()==='processing').length;
-   const a=adminWithdrawalRows.filter(x=>['approved','completed'].includes(String(x.status||'').toLowerCase())).length;
-   const j=adminWithdrawalRows.filter(x=>String(x.status||'').toLowerCase()==='rejected').length;
-   document.getElementById('wdPendingCount').innerText=p;
-   document.getElementById('wdApprovedCount').innerText=a;
-   document.getElementById('wdRejectedCount').innerText=j;
-   document.getElementById('wdTotalCount').innerText=adminWithdrawalRows.length;
-   renderAdminWithdrawals();
- }catch(e){
-   list.innerHTML='<div style="padding:14px;color:#991b1b">Could not load wallet transactions: '+escapeHtml(e.message)+'</div>';
- }
-}
-async function adminApproveWithdrawal(id){
- if(!id||!supabaseClient)return;
- const row=adminWithdrawalRows.find(x=>String(x.id)===String(id));
- if(!row||String(row.status||'processing').toLowerCase()!=='processing'){alert('This request is already processed.');return;}
- if(wdIsStore(row)){alert('This is a store-side transaction. Store action does not wait for admin approval. Use the store settlement flow when the store has completed its payout.');return;}
- if(!confirm('Approve this withdrawal? The request will be marked Approved and recorded with the admin ID.'))return;
- try{
-   const r=await supabaseClient.from('wallet_transactions').update({status:'approved',approved_by:getAdminId(),approved_at:new Date().toISOString()}).eq('id',id).eq('status','processing');
-   if(r.error)throw r.error;
-   alert('✅ Withdrawal approved.');
-   loadAdminWithdrawals();
- }catch(e){alert('Approval error: '+e.message);}
-}
-async function adminRejectWithdrawal(id){
- if(!id||!supabaseClient)return;
- const row=adminWithdrawalRows.find(x=>String(x.id)===String(id));
- if(!row||String(row.status||'processing').toLowerCase()!=='processing'){alert('This request is already processed.');return;}
- const reason=prompt('Reason for rejection:','Please check payout details.');
- if(reason===null)return;
- try{
-   const r=await supabaseClient.from('wallet_transactions').update({status:'rejected',approved_by:getAdminId(),remarks:reason.trim()}).eq('id',id).eq('status','processing');
-   if(r.error)throw r.error;
-   alert('Request rejected.');
-   loadAdminWithdrawals();
- }catch(e){alert('Reject error: '+e.message);}
-}
-
-async function getAdminCoordsFromBrowser(){return await new Promise(function(resolve,reject){if(!navigator.geolocation)return reject(new Error('Location not supported'));navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:300000});});}
-async function createStoreAdmin(){if(!supabaseClient){alert('Database not available');return;}var name=(document.getElementById('storeName')?.value||'').trim();var code=(document.getElementById('storeCode')?.value||'').trim().toUpperCase();var phone=(document.getElementById('storePhone')?.value||'').trim();var address=(document.getElementById('storeAddress')?.value||'').trim();var town=(document.getElementById('storeTown')?.value||'').trim();var pin=(document.getElementById('storePincode')?.value||'').trim();var lat=Number(document.getElementById('storeLat')?.value);var lng=Number(document.getElementById('storeLng')?.value);if(!name||!address||!town||!pin){alert('Store name, address, town and pincode are required.');return;}if(!/^\\d{6}$/.test(pin)){alert('Enter valid 6-digit pincode.');return;}if(!Number.isFinite(lat)||!Number.isFinite(lng)){alert('Add map coordinates using “Use Current Location” or enter latitude/longitude.');return;}var row={name:name,store_name:name,store_code:code||null,phone:phone||null,address:address,full_address:address,town:town,city:town,pincode:pin,lat:lat,lng:lng,status:'active'};var r=await supabaseClient.from('stores').insert(row);if(r.error){alert('Store save failed: '+r.error.message);return;}alert('✅ Store added successfully. Members can now find it by pincode/town/location.');['storeName','storeCode','storePhone','storeAddress','storeTown','storePincode','storeLat','storeLng'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});loadSec('stores');}
-async function useAdminCurrentStoreLocation(){var msg=document.getElementById('storeLocationMsg');try{if(msg)msg.innerText='Getting current location...';var pos=await getAdminCoordsFromBrowser();document.getElementById('storeLat').value=pos.coords.latitude.toFixed(7);document.getElementById('storeLng').value=pos.coords.longitude.toFixed(7);if(msg)msg.innerText='✅ Location captured: '+pos.coords.latitude.toFixed(5)+', '+pos.coords.longitude.toFixed(5);}catch(e){if(msg)msg.innerText='Unable to get location. Enter coordinates manually.';}}
+async function getStoreCoords(){var a=document.getElementById('storeLat'),b=document.getElementById('storeLng');if(a.value&&b.value)return;if(!navigator.geolocation){alert('Location unavailable. Enter latitude/longitude manually.');return;}navigator.geolocation.getCurrentPosition(function(pos){a.value=pos.coords.latitude.toFixed(7);b.value=pos.coords.longitude.toFixed(7);},function(){alert('Location permission denied. Enter latitude/longitude manually.');},{enableHighAccuracy:true,timeout:10000});}
+async function createStore(){if(!supabaseClient){alert('Database unavailable');return;}var o={name:storeName.value.trim(),store_code:storeCode.value.trim().toUpperCase(),phone:storePhone.value.trim(),address:storeAddress.value.trim(),town:storeTown.value.trim(),pincode:storePincode.value.trim(),latitude:parseFloat(storeLat.value),longitude:parseFloat(storeLng.value),status:'active'};if(!o.name||!o.store_code||!o.phone||!o.address||!o.town||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){alert('Fill all store details and latitude/longitude.');return;}var r=await supabaseClient.from('stores').insert(o);if(r.error){alert('Store save failed: '+r.error.message);return;}alert('✅ Store created successfully.');['storeName','storeCode','storePhone','storeAddress','storeTown','storePincode','storeLat','storeLng'].forEach(id=>document.getElementById(id).value='');loadSec('stores');}
+async function loadStoresAdmin(){var el=document.getElementById('storesList');if(!el||!supabaseClient)return;var r=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(100);if(r.error){el.innerHTML='<div style="padding:12px;color:#dc2626">'+escapeHtml(r.error.message)+'</div>';return;}var rows=r.data||[];el.innerHTML=rows.length?rows.map(st=>'<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;margin-bottom:8px"><b>🏪 '+escapeHtml(st.name||'Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+escapeHtml(st.store_code||'--')+' · '+escapeHtml(st.town||'')+' · '+escapeHtml(st.pincode||'')+'</div><div style="font-size:11px;margin-top:4px">📍 '+escapeHtml(st.address||'')+'<br>📞 '+escapeHtml(st.phone||'')+'</div>'+(st.latitude!=null&&st.longitude!=null?'<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(st.latitude+','+st.longitude)+'" style="display:inline-block;margin-top:8px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">🗺️ Open Map</a>':'')+'</div>').join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';}
 
 async function loadSec(id){
  if(id==='users'&&supabaseClient){const {data,error}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(50);if(error){document.getElementById('usersList').innerHTML='<div style="padding:14px;color:#991b1b">'+escapeHtml(error.message)+'</div>';return;}document.getElementById('usersList').innerHTML=(data||[]).map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:8px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><b>${escapeHtml(u.full_name||'')}</b> - ${escapeHtml(u.fl_id||'')}</div><button onclick="openUserEditor('${escapeHtml(u.fl_id||'')}')" style="background:#2563eb;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700">✏️ Edit</button></div><div style="font-size:11px;color:#64748b;margin-top:5px">Mobile: ${escapeHtml(u.mobile||'')} | Email: ${escapeHtml(u.email||'')} | Address: ${escapeHtml(u.address||u.full_address||'Not saved')}</div></div>`).join('')||'<div style="padding:20px;text-align:center;color:#64748b">No users found.</div>';}
@@ -430,9 +322,8 @@ async function loadSec(id){
   }
   loadDepositRequests();
  }
- if(id==='stores'&&supabaseClient){const {data}=await supabaseClient.from('stores').select('*').order('created_at',{ascending:false}).limit(50);document.getElementById('storesList').innerHTML=data&&data.length>0?data.map(s=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9;background:#fff;border-radius:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>${escapeHtml(s.name||s.store_name||'Store')}</b><span style="font-size:10px;background:${String(s.status||'active').toLowerCase()==='active'?'#dcfce7':'#fee2e2'};padding:4px 7px;border-radius:999px">${escapeHtml(s.status||'active')}</span></div><div style="font-size:11px;color:#475569;margin-top:5px">${escapeHtml(s.town||s.city||'')} · ${escapeHtml(s.pincode||'')}</div><div style="font-size:11px;color:#64748b;margin-top:3px">${escapeHtml(s.address||s.full_address||'')}</div><div style="font-size:10px;color:#2563eb;margin-top:4px">${s.lat!=null&&s.lng!=null?'📍 Map coordinates saved':'⚠️ Map coordinates missing'}${s.phone?' · ☎ '+escapeHtml(s.phone):''}</div></div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No stores yet.</div>';}
+ if(id==='stores'&&supabaseClient){loadStoresAdmin();}
  if(id==='wallets'&&supabaseClient){const {data}=await supabaseClient.from('wallets').select('*').limit(20);document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9">${w.fl_id} - Rs.${w.balance||0}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets yet.</div>';}
- if(id==='withdraw')loadAdminWithdrawals();
 }
 window.addEventListener('load',()=>{checkAdminSession();});
 </script>
@@ -466,12 +357,12 @@ body{background:#eef2f7;color:#0f172a}
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('stores')">🏪 Store Locator</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('createStore')">➕ Create Store</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('storePoints')">⭐ Store Points</div>
-<div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">FINANCE & PAYOUTS</div>
-<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff;font-weight:800" onclick="showSec('withdraw')">💳 Withdrawals & Settlements</div>
-<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('wallets')">💰 Wallet Overview</div>
-<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('binary')">🌳 Binary Summary - Real</div>
 <div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">ADMIN TOOLS</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('subAdmin')">👤 Sub Admin</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('wallets')">💰 Wallets - Real DB</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('binary')">🌳 Binary Summary - Real</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('roi')">🔄 ROI - Real</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('withdraw')">⬆️ Withdrawals</div>
 </div>
 
 </div>
@@ -487,45 +378,12 @@ body{background:#eef2f7;color:#0f172a}
 <div class="card"><div style="font-weight:800;font-size:16px">📋 All PINs</div><div style="font-size:11px;color:#64748b;margin-top:4px">ADMIN GENERATED = Copy available · PURCHASE APPROVED = No Copy</div><div id="pinsList" style="margin-top:10px;max-height:600px;overflow:auto">Loading...</div></div>
 </div>
 <div id="sec-stores" style="display:none"><div class="card" style="border:2px solid #f59e0b"><div style="font-weight:800;color:#92400e">🏪 Store Locator</div><div style="font-size:11px;color:#64748b;margin-top:4px">Real store list from Supabase</div><div id="storesList" style="margin-top:10px">Loading stores...</div></div></div>
-<div id="sec-createStore" style="display:none"><div class="card" style="border:2px solid #10b981"><div style="font-weight:800;color:#065f46;font-size:17px">➕ Add / Register FLM Store</div><div style="font-size:11px;color:#64748b;margin-top:4px">Enter complete store details. Map coordinates are required so members can see distance and navigate.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px"><input id="storeName" placeholder="Store Name *" class="input"><input id="storeCode" placeholder="Store Code (optional)" class="input"></div><input id="storePhone" placeholder="Store Phone Number" class="input" style="margin-top:8px"><textarea id="storeAddress" placeholder="Complete Store Address *" class="input" style="margin-top:8px;min-height:80px;resize:none"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeTown" placeholder="Town / City *" class="input"><input id="storePincode" placeholder="6-digit Pincode *" inputmode="numeric" class="input"></div><div style="margin-top:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:11px"><div style="font-size:11px;font-weight:800;color:#1e40af">📍 Store Map Location</div><div style="font-size:10px;color:#64748b;margin-top:3px">Best option: stand at the store and tap the button below.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeLat" placeholder="Latitude" class="input"><input id="storeLng" placeholder="Longitude" class="input"></div><button onclick="useAdminCurrentStoreLocation()" style="width:100%;margin-top:8px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">📍 Use Current Location</button><div id="storeLocationMsg" style="font-size:10px;color:#2563eb;text-align:center;margin-top:6px"></div></div><button onclick="createStoreAdmin()" style="background:#059669;color:#fff;border:0;border-radius:12px;padding:14px;width:100%;font-weight:800;margin-top:10px">💾 Save Store</button></div><div class="card" style="background:#fffbeb;border:1px solid #fde68a"><div style="font-size:12px;font-weight:800;color:#92400e">How members will use it</div><div style="font-size:11px;color:#78350f;line-height:1.5;margin-top:6px">Member enters pincode → matching admin stores are shown. If map coordinates are available, the system can sort stores within 25 KM, show distance, phone, address, map preview and Google Maps navigation.</div></div></div>
+<div id="sec-createStore" style="display:none"><div class="card" style="border:2px solid #10b981"><div style="font-weight:800;color:#065f46;font-size:16px">➕ Create / Add FLM Store</div><div style="font-size:11px;color:#64748b;margin-top:4px">Store address + pincode + phone + exact map location. Members will use this data.</div><input id="storeName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="storeCode" class="input" placeholder="Unique Store Code e.g. FLM-HYD-001" style="margin-top:8px"><input id="storePhone" class="input" placeholder="Store Phone Number" style="margin-top:8px"><textarea id="storeAddress" class="input" placeholder="Complete Store Address" style="margin-top:8px;min-height:70px;resize:none"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeTown" class="input" placeholder="Town / City"><input id="storePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeLat" class="input" placeholder="Latitude"><input id="storeLng" class="input" placeholder="Longitude"></div><button type="button" onclick="getStoreCoords()" style="width:100%;margin-top:8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:10px;padding:11px;font-weight:800">📍 Use Current Location for Store</button><button type="button" onclick="createStore()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store</button></div></div>
 <div id="sec-storePoints" style="display:none"><div class="card"><h3>⭐ Store Points</h3><div>Store points management</div></div></div>
 <div id="sec-subAdmin" style="display:none"><div class="card"><h3>👤 Sub Admin</h3><div>Sub admin management</div></div></div>
 <div id="sec-wallets" style="display:none"><div class="card" style="border:2px solid #8b5cf6"><div style="font-weight:800;color:#5b21b6">💰 Wallets - Real - Live DB</div><div id="walletsList" style="margin-top:10px">Loading wallets...</div></div></div>
 <div id="sec-binary" style="display:none"><div class="card"><h3>🌳 Binary Summary - Real</h3><div>Binary summary - Real data</div></div></div>
 <div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI - Real</h3><div>ROI management - Daily Rs.40</div></div></div>
-<div id="sec-withdraw" style="display:none">
-<div class="card" style="background:linear-gradient(135deg,#172554,#4c1d95);color:#fff;border-radius:18px;padding:18px">
-  <div style="font-size:19px;font-weight:900">💳 Withdrawals & Settlements</div>
-  <div style="font-size:11px;opacity:.85;margin-top:5px">One place for direct withdrawals, store settlements and complete transaction history.</div>
-  <button onclick="loadAdminWithdrawals()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Finance Data</button>
-</div>
-<div class="grid2">
-  <div class="dark-card" style="border-left:4px solid #f59e0b"><div style="font-size:11px;color:#64748b">Processing</div><div id="wdPendingCount" style="font-size:24px;font-weight:900">0</div></div>
-  <div class="dark-card" style="border-left:4px solid #059669"><div style="font-size:11px;color:#64748b">Approved</div><div id="wdApprovedCount" style="font-size:24px;font-weight:900">0</div></div>
-  <div class="dark-card" style="border-left:4px solid #dc2626"><div style="font-size:11px;color:#64748b">Rejected</div><div id="wdRejectedCount" style="font-size:24px;font-weight:900">0</div></div>
-  <div class="dark-card" style="border-left:4px solid #7c3aed"><div style="font-size:11px;color:#64748b">Total Requests</div><div id="wdTotalCount" style="font-size:24px;font-weight:900">0</div></div>
-</div>
-<div class="card" style="border:2px solid #2563eb">
-  <div style="font-weight:900;font-size:16px">🔎 Quick Filter</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-    <input id="wdSearch" class="input" placeholder="Search FL ID / store / method" oninput="renderAdminWithdrawals()">
-    <select id="wdStatus" class="input" onchange="renderAdminWithdrawals()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select>
-  </div>
-</div>
-<div class="card" style="border:2px solid #059669">
-  <div style="font-weight:900;font-size:16px">⏳ Direct Withdrawal Approvals</div>
-  <div style="font-size:11px;color:#64748b;margin-top:4px">Bank/USDT requests are approved here. Store withdrawals are handled by the selected store first and appear separately below.</div>
-  <div id="adminWithdrawList" style="margin-top:12px"><div style="padding:18px;text-align:center;color:#64748b">Click Refresh Finance Data.</div></div>
-</div>
-<div class="card" style="border:2px solid #b45309">
-  <div style="font-weight:900;font-size:16px">🏪 Store Settlement / Redemption</div>
-  <div style="font-size:11px;color:#64748b;margin-top:4px">ROI store coupons and matching store cash requests are tracked here. Store-side redemption does not wait for admin; admin only handles the settlement to the store where applicable.</div>
-  <div id="adminStoreList" style="margin-top:12px"><div style="padding:18px;text-align:center;color:#64748b">Click Refresh Finance Data.</div></div>
-</div>
-<div class="card">
-  <div style="font-weight:900;font-size:16px">📋 Complete Withdrawal History</div>
-  <div id="adminWithdrawHistory" style="margin-top:10px"><div style="padding:18px;text-align:center;color:#64748b">Click Refresh Finance Data.</div></div>
-</div>
-</div>
+<div id="sec-withdraw" style="display:none"><div class="card"><h3>⬆️ Withdrawals</h3><div>Withdrawal requests</div></div></div>
 </div>
 </body></html>
