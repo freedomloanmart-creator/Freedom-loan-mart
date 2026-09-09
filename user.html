@@ -655,34 +655,85 @@ function openPlacement(pos){
  alert('Placement available - '+pos+' - Share your '+pos+' referral link: '+window.leftInviteLink+' or '+window.rightInviteLink);
 }
 
+
+
+function closeTreeModal(){document.getElementById('treeModal').style.display='none';}
+
 async function showUserTreeDetails(flId, name){
+ var modal=document.getElementById('treeModal');
+ var modalName=document.getElementById('modalName');
+ var modalFl=document.getElementById('modalFl');
+ var modalInitial=document.getElementById('modalInitial');
+ var modalLeft=document.getElementById('modalLeft');
+ var modalRight=document.getElementById('modalRight');
+ var modalLeftText=document.getElementById('modalLeftText');
+ var modalRightText=document.getElementById('modalRightText');
+ var modalPairs=document.getElementById('modalPairs');
+ var modalTeam=document.getElementById('modalTeam');
+ var modalLeftCarry=document.getElementById('modalLeftCarry');
+ var modalRightCarry=document.getElementById('modalRightCarry');
+ modal.style.display='flex';
+ modalName.innerText=name||flId;
+ modalFl.innerText=flId;
+ modalInitial.innerText=(name||flId).charAt(0).toUpperCase();
+ modalLeft.innerText='...';
+ modalRight.innerText='...';
+ modalLeftText.innerText='Loading...';
+ modalRightText.innerText='Loading...';
+ modalPairs.innerText='...';
+ modalTeam.innerText='...';
+ modalLeftCarry.innerText='...';
+ modalRightCarry.innerText='...';
  var detailBox=document.getElementById('treeNodeDetails');
- var detailName=document.getElementById('detailName');
- var detailFl=document.getElementById('detailFl');
- var detailLeft=document.getElementById('detailLeft');
- var detailRight=document.getElementById('detailRight');
- detailBox.style.display='block';
- detailName.innerText=name||flId;
- detailFl.innerText=flId;
- detailLeft.innerText='Loading...';
- detailRight.innerText='Loading...';
+ if(detailBox){
+   detailBox.style.display='block';
+   var dn=document.getElementById('detailName'); if(dn) dn.innerText=name||flId;
+   var df=document.getElementById('detailFl'); if(df) df.innerText=flId;
+   var dl=document.getElementById('detailLeft'); if(dl) dl.innerText='Loading...';
+   var dr=document.getElementById('detailRight'); if(dr) dr.innerText='Loading...';
+ }
  try{
   if(supabaseClient){
    var r=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();
    var bin=r.data;
    if(bin){
-    detailLeft.innerText=(bin.left_tokens||0)+' members - Left lo '+ (bin.left_tokens||0) +' mandi';
-    detailRight.innerText=(bin.right_tokens||0)+' members - Right lo '+ (bin.right_tokens||0) +' mandi';
+    var left=bin.left_tokens||0;
+    var right=bin.right_tokens||0;
+    modalLeft.innerText=left;
+    modalRight.innerText=right;
+    modalLeftText.innerText='Left lo '+left+' mandi';
+    modalRightText.innerText='Right lo '+right+' mandi';
+    modalPairs.innerText=bin.total_pairs||0;
+    modalTeam.innerText=bin.team_size||0;
+    modalLeftCarry.innerText=bin.left_carry||0;
+    modalRightCarry.innerText=bin.right_carry||0;
+    if(detailBox){
+      var dl=document.getElementById('detailLeft'); if(dl) dl.innerText=left+' members - Left lo '+left+' mandi';
+      var dr=document.getElementById('detailRight'); if(dr) dr.innerText=right+' members - Right lo '+right+' mandi';
+    }
    } else {
-    detailLeft.innerText='0 - Left lo 0 mandi';
-    detailRight.innerText='0 - Right lo 0 mandi';
+    modalLeft.innerText=0;
+    modalRight.innerText=0;
+    modalLeftText.innerText='Left lo 0 mandi';
+    modalRightText.innerText='Right lo 0 mandi';
+    modalPairs.innerText=0;
+    modalTeam.innerText=0;
+    modalLeftCarry.innerText=0;
+    modalRightCarry.innerText=0;
+    if(detailBox){
+      var dl=document.getElementById('detailLeft'); if(dl) dl.innerText='0 - Left lo 0 mandi';
+      var dr=document.getElementById('detailRight'); if(dr) dr.innerText='0 - Right lo 0 mandi';
+    }
    }
   }
  }catch(e){
-  detailLeft.innerText='0';
-  detailRight.innerText='0';
+  modalLeft.innerText=0;
+  modalRight.innerText=0;
+  modalLeftText.innerText='Left lo 0 mandi';
+  modalRightText.innerText='Right lo 0 mandi';
  }
 }
+
 
 async function loadDownline(){
  if(!requireLogin()) return;
@@ -749,6 +800,34 @@ showSec=function(id){
  if(id==='invite'){loadInvite();}
  if(id==='downline'){loadDownline();}
 };
+
+
+<!-- Tree User Details Modal - Popup for left/right count - L1 click also -->
+<div id="treeModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this) closeTreeModal()">
+<div style="background:#fff;border-radius:20px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.3)">
+<div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;align-items:center;gap:10px"><div id="modalInitial" style="width:40px;height:40px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800">T</div><div><div style="font-weight:800" id="modalName">Theja k</div><div style="font-size:11px;opacity:.8" id="modalFl">FL241190</div></div></div>
+<span onclick="closeTreeModal()" style="cursor:pointer;font-size:20px;background:rgba(255,255,255,.2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">×</span>
+</div>
+<div style="padding:16px">
+<div style="text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px;margin-bottom:12px"><div style="font-size:11px;color:#166534">Click chesina user details - Left/Right count</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;border-radius:12px;padding:12px;text-align:center"><div style="font-size:11px;color:#1e40af">LEFT SIDE</div><div style="font-size:24px;font-weight:800;color:#1e40af;margin-top:4px" id="modalLeft">0</div><div style="font-size:10px;color:#3b82f6;margin-top:2px" id="modalLeftText">Left lo 0 mandi</div></div>
+<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:12px;text-align:center"><div style="font-size:11px;color:#92400e">RIGHT SIDE</div><div style="font-size:24px;font-weight:800;color:#b45309;margin-top:4px" id="modalRight">0</div><div style="font-size:10px;color:#d97706;margin-top:2px" id="modalRightText">Right lo 0 mandi</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total Pairs</div><div style="font-weight:700" id="modalPairs">0</div></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Team Size</div><div style="font-weight:700" id="modalTeam">0</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Left Carry</div><div style="font-weight:700" id="modalLeftCarry">0</div></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Right Carry</div><div style="font-weight:700" id="modalRightCarry">0</div></div>
+</div>
+<button onclick="closeTreeModal()" style="width:100%;margin-top:12px;background:#0f172a;color:#fff;border:0;border-radius:12px;padding:12px;font-weight:700;cursor:pointer">Close</button>
+<div style="margin-top:8px;font-size:10px;color:#94a3b8;text-align:center">L1 lo click chesina kuda ide details vastayi - Any user click - Left/Right count visible</div>
+</div>
+</div>
+</div>
 
 window.addEventListener('load',initDashboard);
 </script>
