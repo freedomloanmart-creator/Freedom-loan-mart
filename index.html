@@ -458,11 +458,64 @@ async function changePassword(){
  }catch(e){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}
 }
 
-// Override showSec to load profile when opening
-var originalShowSec=showSec;
+
+
+async function loadInvite(){
+ if(!requireLogin()) return;
+ var flId=getFlId();
+ document.getElementById('inviteTopName').innerText=getName()||flId;
+ document.getElementById('inviteTopFl').innerText=flId;
+ var origin=window.location.origin;
+ var leftLink=origin+'/register.html?sponsor='+flId+'&side=left';
+ var rightLink=origin+'/register.html?sponsor='+flId+'&side=right';
+ document.getElementById('leftLinkInput').value=leftLink;
+ document.getElementById('rightLinkInput').value=rightLink;
+ window.leftInviteLink=leftLink;
+ window.rightInviteLink=rightLink;
+ try{
+  if(supabaseClient){
+   // Get binary summary for wing counts
+   var r=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();
+   var bin=r.data;
+   if(bin){
+    document.getElementById('leftWingCount').innerText=bin.left_tokens||0;
+    document.getElementById('rightWingCount').innerText=bin.right_tokens||0;
+    document.getElementById('leftPlacement').innerText=(bin.left_tokens||0)>0?'Filled':'Open';
+    document.getElementById('rightPlacement').innerText=(bin.right_tokens||0)>0?'Filled':'Open';
+    document.getElementById('leftLinkStatus').innerText=(bin.left_tokens||0)>0? (bin.left_tokens+' members'):'Open';
+    document.getElementById('rightLinkStatus').innerText=(bin.right_tokens||0)>0? (bin.right_tokens+' members'):'Open';
+   }
+   // Get sponsored members - direct referrals
+   var r2=await supabaseClient.from('users').select('*').eq('sponsor_id',flId).order('created_at',{ascending:false});
+   var spons=r2.data||[];
+   document.getElementById('sponsoredTotal').innerText=spons.length+' total';
+   if(spons.length>0){
+    var html='';
+    for(var i=0;i<spons.length;i++){
+     var u=spons[i];
+     html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><b style="font-size:13px">'+u.full_name+'</b><div style="font-size:11px;color:#64748b">'+u.fl_id+' · '+u.mobile+' · '+u.side+'</div></div><span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:10px">Active</span></div>';
+    }
+    document.getElementById('sponsoredList').innerHTML=html;
+    document.getElementById('sponsoredList').style.background='#fff';
+    document.getElementById('sponsoredList').style.border='1px solid #e2e8f0';
+   } else {
+    document.getElementById('sponsoredList').innerHTML='No sponsored members yet.';
+    document.getElementById('sponsoredList').style.background='#f8fafc';
+    document.getElementById('sponsoredList').style.border='1px dashed #cbd5e1';
+   }
+  }
+ }catch(e){console.log('Invite load error: '+e.message);}
+}
+
+function copyLeftLink(){navigator.clipboard.writeText(window.leftInviteLink||document.getElementById('leftLinkInput').value);alert('Left link copied');}
+function copyRightLink(){navigator.clipboard.writeText(window.rightInviteLink||document.getElementById('rightLinkInput').value);alert('Right link copied');}
+
+// Update showSec to load invite
+var originalShowSec2=showSec;
 showSec=function(id){
- originalShowSec(id);
+ originalShowSec2(id);
  if(id==='profile'){loadProfile();}
+ if(id==='invite'){loadInvite();}
 };
 
 window.addEventListener('load',initDashboard);
