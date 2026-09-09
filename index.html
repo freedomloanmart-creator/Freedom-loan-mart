@@ -142,17 +142,43 @@ async function adminLoadPins() {
   const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
   return data;
 }
+function generateRandomPin(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No I,O,0,1 confusing
+  let p='';
+  for(let i=0;i<16;i++){
+    p+=chars.charAt(Math.floor(Math.random()*chars.length));
+    if((i+1)%4===0 && i!==15) p+='-';
+  }
+  return p; // Format MSNH-KIRG-PJH6-XBYI type
+}
 async function adminGeneratePinsWithBonus(qty) {
   const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
-  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
+  if (!supabaseClient) { 
+    let demoPins=''; for(let i=0;i<Math.min(total,5);i++) demoPins+=generateRandomPin()+'
+';
+    alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus
+Sample:
+'+demoPins+'
+Format: MSNH-KIRG-PJH6-XBYI - Random - Not guessable'); 
+    return; 
+  }
   const pins = [];
   for(let i=0;i<total;i++){
-    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
+    const code = generateRandomPin(); // Random MSNH-KIRG-PJH6-XBYI
     pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
   }
   const {error} = await supabaseClient.from('pins').insert(pins);
   if(error) alert('Error: '+error.message);
-  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
+  else {
+    let sample=pins.slice(0,3).map(p=>p.pin_code).join('
+');
+    alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB
+Random Format: MSNH-KIRG-PJH6-XBYI
+Not guessable - Sequential kadu
+Sample:
+'+sample+'
+Admin Panel lo Live Kanipistayi - Pins menu lo');
+  }
 }
 
 </script>

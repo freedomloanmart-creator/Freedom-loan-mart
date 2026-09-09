@@ -257,19 +257,17 @@ if(!pinToken){
  if(payMethod==='UPI' && !utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
  if(payMethod==='USDT' && !hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
 }
-msg.innerHTML='<span style=color:#2563eb>⏳ Processing - Connecting to Supabase Live DB - 2000 Plan...</span>';
+msg.innerHTML='<span style=color:#2563eb>⏳ Processing - Real DB Insert - Checking Pin Again - Total Live Update...</span>';
 try{
  const utrHash = payMethod==='UPI' ? utr : hash;
  const result = await registerReal(sponsor, side.toLowerCase(), pinToken, name, mobile, email, password, payMethod, utrHash);
  if(result.success){
-   msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'<br>Supabase Tables lo Insert Ayindi - Check public.users, wallets, binary_summary<br>Admin Panel lo Live Kanipistundi - Refresh Chey<br>Redirecting to Login...</span>';
+   msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'<br>Supabase Tables lo Insert Ayindi - Admin Panel lo Total Live Update Avuthundi - Refresh Chey!</span>';
    setTimeout(()=>location.href='./login.html',2500);
  } else {
    msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
  }
-} catch(e){
- msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';
-}
+} catch(e){ msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>'; }
 }
 document.getElementById('buyQty').addEventListener('input',()=>{const q=parseInt(document.getElementById('buyQty').value)||0;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';});
 </script>
