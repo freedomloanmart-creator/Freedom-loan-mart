@@ -300,25 +300,482 @@ body{background:#eef2f7;color:#0f172a}
 <div id="storeEditor" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;padding:18px;overflow:auto"><div class="card" style="max-width:520px;margin:30px auto;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center"><h3>✏️ Edit Store</h3><button type="button" onclick="closeStoreEditor()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:7px 10px">✕</button></div><input id="editStoreId" type="hidden"><input id="editStoreName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="editStoreCode" class="input" placeholder="Store Code" style="margin-top:8px"><input id="editStorePhone" class="input" placeholder="Phone" style="margin-top:8px"><textarea id="editStoreAddress" class="input" placeholder="Address" style="margin-top:8px;min-height:70px"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreTown" class="input" placeholder="Town / City"><input id="editStorePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreLat" class="input" placeholder="Latitude"><input id="editStoreLng" class="input" placeholder="Longitude"></div><select id="editStoreStatus" class="input" style="margin-top:8px"><option value="active">Active</option><option value="inactive">Inactive</option></select><button type="button" onclick="saveStoreEdits()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store Changes</button></div></div>
 <script>
 async function loadStoresAdmin(){
-  var el=document.getElementById('storesList'); if(!el||!supabaseClient)return;
-  var r=await supabaseClient.from('stores').select('*').order('name');
-  if(r.error){el.innerHTML='<div style="color:#991b1b">Store load failed: '+r.error.message+'</div>';return;}
-  var rows=r.data||[];
-  if(!rows.length){el.innerHTML='<div style="color:#64748b">No stores found.</div>';return;}
-  el.innerHTML=rows.map(function(s){
-    var id=String(s.id||'');
-    return '<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:8px;background:#fff">'+
-      '<div style="font-weight:800">🏪 '+(s.name||'FLM Store')+' <span style="font-size:11px;color:#059669">• '+(s.status||'active')+'</span></div>'+
-      '<div style="font-size:11px;color:#64748b;margin-top:4px">Code: '+(s.store_code||'-')+' | Phone: '+(s.phone||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
-      '<div style="font-size:11px;color:#64748b;margin-top:3px">'+(s.address||'-')+'</div>'+
-      '<button type="button" onclick="editStore(\''+id+'\')" style="margin-top:8px;background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-weight:800">✏️ Edit Store</button>'+
-      '</div>';
-  }).join('');
+  const el = document.getElementById('storesList');
+  if(!el) return;
+
+  if(!supabaseClient){
+    el.innerHTML = '<div style="padding:15px;color:#dc2626">Supabase not connected.</div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="padding:15px;text-align:center;color:#64748b">Loading stores...</div>';
+
+  try{
+    const {data,error} = await supabaseClient
+      .from('stores')
+      .select('*')
+      .order('created_at',{ascending:false});
+
+    if(error) throw error;
+
+    if(!data || data.length===0){
+      el.innerHTML = `
+        <div style="padding:18px;text-align:center;
+        border:2px dashed #e2e8f0;border-radius:12px;color:#64748b">
+        No stores found.
+        </div>`;
+      return;
+    }
+
+    let html = '';
+
+    data.forEach(function(s){
+
+      const id = s.id || '';
+      const name = s.name || 'Unnamed Store';
+      const code = s.store_code || '';
+      const phone = s.phone || '';
+      const address = s.address || '';
+      const town = s.town || '';
+      const pincode = s.pincode || '';
+      const lat = s.latitude ?? '';
+      const lng = s.longitude ?? '';
+      const status = s.status || 'active';
+
+      html += `
+      <div style="
+        background:#fff;
+        border:1px solid #e2e8f0;
+        border-radius:12px;
+        padding:15px;
+        margin-bottom:12px;
+        box-shadow:0 1px 3px rgba(0,0,0,.05)
+      ">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          gap:8px;
+          flex-wrap:wrap;
+          align-items:center
+        ">
+          <div>
+            <div style="font-size:17px;font-weight:800;color:#0f172a">
+              ${name}
+            </div>
+
+            <div style="font-size:13px;color:#64748b;margin-top:3px">
+              Code: <b>${code || '-'}</b>
+              &nbsp; | &nbsp;
+              <span style="
+                color:${status==='active'?'#059669':'#dc2626'};
+                font-weight:700
+              ">
+                ${status}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onclick="editStore('${id}')"
+            style="
+              background:#2563eb;
+              color:#fff;
+              border:0;
+              border-radius:9px;
+              padding:10px 15px;
+              font-weight:800;
+              cursor:pointer
+            ">
+            ✏️ Edit Store
+          </button>
+        </div>
+
+        <div style="
+          margin-top:10px;
+          background:#f8fafc;
+          border-radius:10px;
+          padding:10px;
+          font-size:12px;
+          line-height:1.7
+        ">
+          <b>Phone:</b> ${phone || '-'}<br>
+          <b>Address:</b> ${address || '-'}<br>
+          <b>Town:</b> ${town || '-'}<br>
+          <b>Pincode:</b> ${pincode || '-'}<br>
+          <b>Latitude:</b> ${lat || '-'}<br>
+          <b>Longitude:</b> ${lng || '-'}
+        </div>
+
+      </div>`;
+    });
+
+    el.innerHTML = html;
+
+  }catch(e){
+    el.innerHTML = `
+      <div style="
+        padding:15px;
+        color:#dc2626;
+        background:#fef2f2;
+        border-radius:10px
+      ">
+        Error loading stores: ${e.message}
+      </div>`;
+  }
 }
-async function editStore(id){var r=await supabaseClient.from('stores').select('*').eq('id',id).single();if(r.error){alert(r.error.message);return;}var s=r.data||{};var map={id:'Id',name:'Name',store_code:'Code',phone:'Phone',address:'Address',town:'Town',pincode:'Pincode',latitude:'Lat',longitude:'Lng',status:'Status'}; Object.keys(map).forEach(function(k){var e=document.getElementById('editStore'+map[k]);if(e)e.value=s[k] == null ? '' : s[k];});document.getElementById('storeEditor').style.display='block';}
-function closeStoreEditor(){document.getElementById('storeEditor').style.display='none';}
-async function saveStoreEdits(){var id=document.getElementById('editStoreId').value;if(!id)return;var o={name:document.getElementById('editStoreName').value.trim(),store_code:document.getElementById('editStoreCode').value.trim().toUpperCase(),phone:document.getElementById('editStorePhone').value.trim(),address:document.getElementById('editStoreAddress').value.trim(),town:document.getElementById('editStoreTown').value.trim(),pincode:document.getElementById('editStorePincode').value.trim(),latitude:parseFloat(document.getElementById('editStoreLat').value),longitude:parseFloat(document.getElementById('editStoreLng').value),status:document.getElementById('editStoreStatus').value};var r=await supabaseClient.from('stores').update(o).eq('id',id);if(r.error){alert('Save failed: '+r.error.message);return;}alert('✅ Store updated');closeStoreEditor();loadStoresAdmin();}
-async function getStoreCoords(){var a=document.getElementById('storeLat'),b=document.getElementById('storeLng');if(!navigator.geolocation){alert('Enter coordinates manually');return;}navigator.geolocation.getCurrentPosition(function(p){a.value=p.coords.latitude.toFixed(7);b.value=p.coords.longitude.toFixed(7);},function(){alert('Location permission denied');});}
-async function createStore(){var o={name:document.getElementById('storeName').value.trim(),store_code:document.getElementById('storeCode').value.trim().toUpperCase(),phone:document.getElementById('storePhone').value.trim(),address:document.getElementById('storeAddress').value.trim(),town:document.getElementById('storeTown').value.trim(),pincode:document.getElementById('storePincode').value.trim(),latitude:parseFloat(document.getElementById('storeLat').value),longitude:parseFloat(document.getElementById('storeLng').value),status:'active'};if(!o.name||!o.store_code||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){alert('Store Name, Code, Pincode and coordinates are required');return;}var r=await supabaseClient.from('stores').insert(o);if(r.error){alert('Create failed: '+r.error.message);return;}alert('✅ Store created');loadStoresAdmin();}
-</script>
-</body></html>
+
+
+async function editStore(id){
+
+  if(!supabaseClient){
+    alert('Supabase not connected.');
+    return;
+  }
+
+  try{
+
+    const {data,error} = await supabaseClient
+      .from('stores')
+      .select('*')
+      .eq('id',id)
+      .single();
+
+    if(error) throw error;
+
+    const s = data || {};
+
+    let modal = document.getElementById('storeEditModal');
+
+    if(!modal){
+
+      modal = document.createElement('div');
+
+      modal.id = 'storeEditModal';
+
+      modal.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(15,23,42,.65);
+        z-index:99999;
+        padding:18px;
+        overflow:auto;
+      `;
+
+      modal.innerHTML = `
+        <div style="
+          max-width:520px;
+          margin:25px auto;
+          background:#fff;
+          border-radius:18px;
+          padding:20px;
+          box-shadow:0 10px 40px rgba(0,0,0,.25)
+        ">
+
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center
+          ">
+            <h2 style="margin:0;color:#0f172a">
+              ✏️ Edit Store
+            </h2>
+
+            <button
+              type="button"
+              onclick="closeStoreEditor()"
+              style="
+                background:#fee2e2;
+                color:#991b1b;
+                border:0;
+                border-radius:8px;
+                padding:8px 12px;
+                font-weight:800
+              ">
+              ✕
+            </button>
+          </div>
+
+          <input id="editStoreId" type="hidden">
+
+          <input id="editStoreName"
+            placeholder="Store Name"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:12px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            ">
+
+          <input id="editStoreCode"
+            placeholder="Store Code"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:8px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            ">
+
+          <input id="editStorePhone"
+            placeholder="Phone"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:8px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            ">
+
+          <textarea id="editStoreAddress"
+            placeholder="Address"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:8px;
+              min-height:75px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            "></textarea>
+
+          <input id="editStoreTown"
+            placeholder="Town / City"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:8px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            ">
+
+          <input id="editStorePincode"
+            placeholder="Pincode"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:8px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            ">
+
+          <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:8px;
+            margin-top:8px
+          ">
+
+            <input id="editStoreLat"
+              placeholder="Latitude"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:12px;
+                border:1px solid #cbd5e1;
+                border-radius:9px;
+              ">
+
+            <input id="editStoreLng"
+              placeholder="Longitude"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:12px;
+                border:1px solid #cbd5e1;
+                border-radius:9px;
+              ">
+
+          </div>
+
+          <select id="editStoreStatus"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:12px;
+              margin-top:8px;
+              border:1px solid #cbd5e1;
+              border-radius:9px;
+            ">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <button
+            type="button"
+            onclick="saveStoreEdits()"
+            style="
+              width:100%;
+              margin-top:12px;
+              background:#059669;
+              color:#fff;
+              border:0;
+              border-radius:10px;
+              padding:14px;
+              font-weight:800;
+              font-size:15px
+            ">
+            💾 Save Store Changes
+          </button>
+
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+    }
+
+    document.getElementById('editStoreId').value = s.id || '';
+    document.getElementById('editStoreName').value = s.name || '';
+    document.getElementById('editStoreCode').value = s.store_code || '';
+    document.getElementById('editStorePhone').value = s.phone || '';
+    document.getElementById('editStoreAddress').value = s.address || '';
+    document.getElementById('editStoreTown').value = s.town || '';
+    document.getElementById('editStorePincode').value = s.pincode || '';
+    document.getElementById('editStoreLat').value =
+      s.latitude == null ? '' : s.latitude;
+    document.getElementById('editStoreLng').value =
+      s.longitude == null ? '' : s.longitude;
+    document.getElementById('editStoreStatus').value =
+      s.status || 'active';
+
+    modal.style.display = 'block';
+
+  }catch(e){
+    alert('Error loading store: ' + e.message);
+  }
+}
+
+
+function closeStoreEditor(){
+
+  const modal = document.getElementById('storeEditModal');
+
+  if(modal){
+    modal.style.display = 'none';
+  }
+}
+
+
+async function saveStoreEdits(){
+
+  const id =
+    document.getElementById('editStoreId')?.value;
+
+  if(!id){
+    alert('Store ID missing.');
+    return;
+  }
+
+  const name =
+    document.getElementById('editStoreName').value.trim();
+
+  const code =
+    document.getElementById('editStoreCode').value.trim().toUpperCase();
+
+  const phone =
+    document.getElementById('editStorePhone').value.trim();
+
+  const address =
+    document.getElementById('editStoreAddress').value.trim();
+
+  const town =
+    document.getElementById('editStoreTown').value.trim();
+
+  const pincode =
+    document.getElementById('editStorePincode').value.trim();
+
+  const latValue =
+    document.getElementById('editStoreLat').value.trim();
+
+  const lngValue =
+    document.getElementById('editStoreLng').value.trim();
+
+  const latitude =
+    latValue === '' ? null : parseFloat(latValue);
+
+  const longitude =
+    lngValue === '' ? null : parseFloat(lngValue);
+
+  const status =
+    document.getElementById('editStoreStatus').value;
+
+  if(!name){
+    alert('Store Name required.');
+    return;
+  }
+
+  if(!code){
+    alert('Store Code required.');
+    return;
+  }
+
+  if(!pincode){
+    alert('Pincode required.');
+    return;
+  }
+
+  if(
+    latitude !== null &&
+    !Number.isFinite(latitude)
+  ){
+    alert('Invalid Latitude.');
+    return;
+  }
+
+  if(
+    longitude !== null &&
+    !Number.isFinite(longitude)
+  ){
+    alert('Invalid Longitude.');
+    return;
+  }
+
+  if(!supabaseClient){
+    alert('Supabase not connected.');
+    return;
+  }
+
+  const payload = {
+    name:name,
+    store_code:code,
+    phone:phone,
+    address:address,
+    town:town,
+    pincode:pincode,
+    latitude:latitude,
+    longitude:longitude,
+    status:status
+  };
+
+  try{
+
+    const {error} =
+      await supabaseClient
+        .from('stores')
+        .update(payload)
+        .eq('id',id);
+
+    if(error) throw error;
+
+    alert('✅ Store updated successfully.');
+
+    closeStoreEditor();
+
+    await loadStoresAdmin();
+
+  }catch(e){
+
+    alert(
+      '❌ Store update failed:\n' +
+      e.message
+    );
+
+  }
+}
