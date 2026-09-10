@@ -166,7 +166,6 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 .qrbox{border:2px dashed #cbd5e1;border-radius:12px;padding:14px;text-align:center;margin:10px 0;background:#f8fafc}
 .info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;padding:10px;border-radius:10px;font-size:11px;margin:8px 0}
 </style></head><body>
-<div id="supaStatus" style="background:#dbeafe;border:1px solid #93c5fd;padding:8px;border-radius:8px;font-size:11px;color:#1e40af;margin:6px;text-align:center">Checking Supabase Connection...</div>
 <div style="max-width:480px;margin:0 auto">
 <div style="background:#fff;border-radius:20px;padding:16px;text-align:center;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb">
 <div style="width:180px;height:60px;background:linear-gradient(135deg,#dc2626 0%,#dc2626 35%,#1e40af 35%,#1e40af 100%);border-radius:10px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px">FREEDOM<br>LOANS MART</div>
@@ -176,8 +175,9 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div class="card">
 <h2 style="text-align:center;color:#0f172a;font-size:20px">Registration</h2>
 <div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">PoomX Kit Rs.2000 | Token=Pin Same | UPI + USDT BEP20</div>
-<div class="info"><b>Logic:</b> Token/Pin Okate - Token unte ok - Lekapothe direct UPI/USDT payment chesi enter avutharu<br><b>Bonus:</b> 100 Tokens ki 20 Extra = 120 | <b>40 pairs:</b> MUST 2 referrals/renewals | <b>1:1:</b> Only via own link</div>
-<label style="font-size:11px;color:#64748b">SPONSOR ID</label><input id="sponsor" value="FL100001">
+<label style="font-size:11px;color:#64748b">SPONSOR ID</label>
+<input id="sponsor" value="FL100001">
+<div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <div><label style="font-size:11px">SIDE</label><select id="side"><option value="left">Left</option><option value="right">Right</option></select></div>
 <div><label style="font-size:11px">PIN / TOKEN (Optional - Okate Field)</label><input id="pinToken" placeholder="FLMPIN... or FLTKN..."></div>
@@ -241,6 +241,29 @@ document.getElementById('pinToken').addEventListener('input',function(){
 const v=this.value.trim();const sec=document.getElementById('paymentSection');
 if(v){sec.style.display='none';}else{sec.style.display='block';}
 });
+function applyReferralFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
+  const urlSide = (params.get('side') || '').trim().toLowerCase();
+  const sponsorInput = document.getElementById('sponsor');
+  const sideInput = document.getElementById('side');
+  const sponsorName = document.getElementById('sponsorName');
+
+  if(urlSponsor && sponsorInput){
+    sponsorInput.value = urlSponsor;
+    sponsorInput.readOnly = true;
+  }
+  if((urlSide === 'left' || urlSide === 'right') && sideInput){
+    sideInput.value = urlSide;
+    sideInput.disabled = true;
+  }
+
+  if(urlSponsor && sponsorName){
+    sponsorName.textContent = 'Referred by: ' + urlSponsor;
+  }
+}
+window.addEventListener('DOMContentLoaded', applyReferralFromUrl);
+
 async function register(){
 const params = new URLSearchParams(window.location.search);
 const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
@@ -249,8 +272,8 @@ const sponsorInput = document.getElementById('sponsor');
 const sideInput = document.getElementById('side');
 if (urlSponsor && sponsorInput) sponsorInput.value = urlSponsor;
 if ((urlSide === 'left' || urlSide === 'right') && sideInput) sideInput.value = urlSide;
-const sponsor=sponsorInput.value.trim()||'FL100001';
-const side=(sideInput ? sideInput.value : 'left').toLowerCase();
+const sponsor=(urlSponsor || sponsorInput.value.trim() || 'FL100001').toUpperCase();
+const side=(urlSide || (sideInput ? sideInput.value : 'left') || 'left').toLowerCase();
 const name=document.getElementById('fullName').value.trim();
 const mobile=document.getElementById('mobile').value.trim();
 const email=document.getElementById('email').value.trim();
@@ -278,25 +301,6 @@ try{
 }
 document.getElementById('buyQty').addEventListener('input',()=>{const q=parseInt(document.getElementById('buyQty').value)||0;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';});
 </script>
-<script>
-window.addEventListener('load', function(){
-  setTimeout(function(){
-    if(typeof supabase === 'undefined'){
-      console.log('Supabase CDN not loaded - Check internet / Brave shield');
-      document.getElementById('supaStatus').innerHTML = '❌ Supabase CDN Not Loaded - Demo Mode - Enable Brave Shields Down or Check Internet';
-      document.getElementById('supaStatus').style.background = '#fee2e2';
-      document.getElementById('supaStatus').style.color = '#991b1b';
-    } else if(!supabaseClient){
-      console.log('Supabase Client null - Init failed');
-      document.getElementById('supaStatus').innerHTML = '❌ Supabase Client Init Failed - Demo Mode';
-    } else {
-      console.log('Supabase Live Connected - Real DB Ready - 2000 Plan');
-      document.getElementById('supaStatus').innerHTML = '✅ Supabase Live Connected - Real DB Ready - 2000 Plan - ROI 40x50 - Tables Insert Working';
-      document.getElementById('supaStatus').style.background = '#dcfce7';
-      document.getElementById('supaStatus').style.color = '#166534';
-    }
-  }, 1500);
-});
-</script>
+
 
 </body></html>
