@@ -221,7 +221,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
   <div id="statusResult" style="margin-top:8px;font-size:11px"></div>
   <div id="registrationResubmitBox" style="display:none;margin-top:10px;background:#f8fafc;border:1px solid #bfdbfe;border-radius:12px;padding:12px">
     <b style="font-size:12px;color:#1e3a8a">↩️ Re-submit Payment Proof</b>
-    <div style="font-size:10px;color:#64748b;margin:5px 0 8px">Rejected registration ki Name/Email/Password malli fill cheyyalsina avasaram ledu. New UTR/Hash + new payment screenshot matrame upload cheyyandi.</div>
+    <div style="font-size:10px;color:#64748b;margin:5px 0 8px">Rejected registration ki Name/Email/Password or old UTR/Hash malli fill cheyyalsina avasaram ledu. NEW UTR/Hash + NEW payment screenshot matrame upload cheyyandi.</div>
     <input id="resubmitUtr" placeholder="Enter NEW UTR / USDT Hash">
     <label style="display:block;font-size:11px;font-weight:700;margin-top:6px;color:#475569">New Payment Screenshot</label>
     <input id="resubmitScreenshot" type="file" accept="image/*" style="background:#fff">
@@ -343,22 +343,27 @@ function prepareRegistrationResubmit(){
   const box=document.getElementById('registrationResubmitBox');
   if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'center'});}
   const m=document.getElementById('resubmitMsg');
-  if(m)m.innerHTML='<span style="color:#2563eb">New payment screenshot + NEW UTR/Hash upload cheyyandi.</span>';
+  if(m)m.innerHTML='<span style="color:#2563eb">Only NEW UTR/Hash + NEW payment screenshot upload cheyyandi.</span>';
 }
 async function submitRegistrationResubmit(){
+  // Re-submit requires ONLY a new UTR/Hash + new payment screenshot.
+  // Mobile OR old UTR/Hash from the status check is used only to identify the rejected request.
   const mobile=(document.getElementById('statusMobile')?.value||'').trim();
   const oldUtr=(document.getElementById('statusUtr')?.value||'').trim();
   const newUtr=(document.getElementById('resubmitUtr')?.value||'').trim();
   const file=document.getElementById('resubmitScreenshot')?.files?.[0];
   const msg=document.getElementById('resubmitMsg');
-  if(!mobile || !oldUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Rejected registration check chesina Mobile + old UTR/Hash required.</span>';return;}
+  if(!mobile && !oldUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Munduga rejected registration ni Mobile OR old UTR/Hash tho check cheyyandi.</span>';return;}
   if(!newUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">NEW UTR/Hash enter cheyyandi.</span>';return;}
   if(!file){if(msg)msg.innerHTML='<span style="color:#dc2626">New payment screenshot upload cheyyandi.</span>';return;}
-  if(msg)msg.innerHTML='<span style="color:#2563eb">⏳ Resubmitting...</span>';
+  if(msg)msg.innerHTML='<span style="color:#2563eb">⏳ New payment proof submit chestunnam...</span>';
   try{
     const screenshotData=await readPaymentScreenshot(file);
     const r=await supabaseClient.rpc('flm_registration_resubmit',{
-      p_mobile:mobile,p_old_utr_hash:oldUtr,p_new_utr_hash:newUtr,p_screenshot_data:screenshotData
+      p_mobile:mobile||null,
+      p_reference_utr_hash:oldUtr||null,
+      p_new_utr_hash:newUtr,
+      p_screenshot_data:screenshotData
     });
     if(r.error)throw r.error;
     if(msg)msg.innerHTML='<span style="color:#047857">✅ New payment proof submitted. Admin approval pending.</span>';
