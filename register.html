@@ -242,8 +242,15 @@ const v=this.value.trim();const sec=document.getElementById('paymentSection');
 if(v){sec.style.display='none';}else{sec.style.display='block';}
 });
 async function register(){
-const sponsor=document.getElementById('sponsor').value.trim()||'FL100001';
-const side=document.getElementById('side') ? document.getElementById('side').value : 'left';
+const params = new URLSearchParams(window.location.search);
+const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
+const urlSide = (params.get('side') || '').trim().toLowerCase();
+const sponsorInput = document.getElementById('sponsor');
+const sideInput = document.getElementById('side');
+if (urlSponsor && sponsorInput) sponsorInput.value = urlSponsor;
+if ((urlSide === 'left' || urlSide === 'right') && sideInput) sideInput.value = urlSide;
+const sponsor=sponsorInput.value.trim()||'FL100001';
+const side=(sideInput ? sideInput.value : 'left').toLowerCase();
 const name=document.getElementById('fullName').value.trim();
 const mobile=document.getElementById('mobile').value.trim();
 const email=document.getElementById('email').value.trim();
