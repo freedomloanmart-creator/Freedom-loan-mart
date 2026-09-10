@@ -219,6 +219,15 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
   <input id="statusUtr" placeholder="UPI UTR / USDT Hash">
   <button class="btn" style="background:#2563eb;margin-top:4px" onclick="checkRegistrationStatus()">Check Approval Status</button>
   <div id="statusResult" style="margin-top:8px;font-size:11px"></div>
+  <div id="registrationResubmitBox" style="display:none;margin-top:10px;background:#f8fafc;border:1px solid #bfdbfe;border-radius:12px;padding:12px">
+    <b style="font-size:12px;color:#1e3a8a">↩️ Re-submit Payment Proof</b>
+    <div style="font-size:10px;color:#64748b;margin:5px 0 8px">Rejected registration ki Name/Email/Password malli fill cheyyalsina avasaram ledu. New UTR/Hash + new payment screenshot matrame upload cheyyandi.</div>
+    <input id="resubmitUtr" placeholder="Enter NEW UTR / USDT Hash">
+    <label style="display:block;font-size:11px;font-weight:700;margin-top:6px;color:#475569">New Payment Screenshot</label>
+    <input id="resubmitScreenshot" type="file" accept="image/*" style="background:#fff">
+    <button class="btn" style="background:#2563eb;margin-top:8px" onclick="submitRegistrationResubmit()">↩️ Submit New Payment Proof</button>
+    <div id="resubmitMsg" style="font-size:11px;margin-top:7px"></div>
+  </div>
 </div>
 <div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#f8fafc"><b style="font-size:12px">Buy Tokens/Pins - 100+20 Bonus - Pin=Token Same</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="buyQty" type="number" value="100" style="margin:0"><div id="bonusCalc" style="padding:10px;background:#dcfce7;border-radius:8px;font-size:11px;font-weight:700">100 + 20 = 120 Tokens</div></div><button class="btn" style="background:#059669;margin-top:8px" onclick="const q=parseInt(document.getElementById('buyQty').value)||100;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';alert('Generated '+(q+b)+' Tokens/Pins - Pin=Token same - 20 extra')">Buy Tokens - Get Bonus</button></div>
 <div style="text-align:center;margin-top:12px;font-size:12px">Already? <a href="./login.html" style="color:#2563eb">Login</a></div>
@@ -331,52 +340,74 @@ async function register(){
   }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';}
 }
 function prepareRegistrationResubmit(){
-  const payment=document.getElementById('paymentSection');
-  if(payment) payment.style.display='block';
-  const statusMob=(document.getElementById('statusMobile')?.value||'').trim();
-  const mob=document.getElementById('mobile');
-  if(mob && statusMob) mob.value=statusMob;
-  const utr1=document.getElementById('upiUtr'); if(utr1) utr1.value='';
-  const hash=document.getElementById('usdtHash'); if(hash) hash.value='';
-  const f1=document.getElementById('upiScreenshot'); if(f1) f1.value='';
-  const f2=document.getElementById('usdtScreenshot'); if(f2) f2.value='';
-  const msg=document.getElementById('msg');
-  if(msg) msg.innerHTML='<span style="color:#2563eb">↩️ Re-submit mode: Name, Email, Password verify cheyyandi. New payment screenshot + NEW UTR/Hash upload cheyyandi.</span>';
-  payment?.scrollIntoView({behavior:'smooth',block:'center'});
+  const box=document.getElementById('registrationResubmitBox');
+  if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'center'});}
+  const m=document.getElementById('resubmitMsg');
+  if(m)m.innerHTML='<span style="color:#2563eb">New payment screenshot + NEW UTR/Hash upload cheyyandi.</span>';
 }
+async function submitRegistrationResubmit(){
+  const mobile=(document.getElementById('statusMobile')?.value||'').trim();
+  const oldUtr=(document.getElementById('statusUtr')?.value||'').trim();
+  const newUtr=(document.getElementById('resubmitUtr')?.value||'').trim();
+  const file=document.getElementById('resubmitScreenshot')?.files?.[0];
+  const msg=document.getElementById('resubmitMsg');
+  if(!mobile || !oldUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Rejected registration check chesina Mobile + old UTR/Hash required.</span>';return;}
+  if(!newUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">NEW UTR/Hash enter cheyyandi.</span>';return;}
+  if(!file){if(msg)msg.innerHTML='<span style="color:#dc2626">New payment screenshot upload cheyyandi.</span>';return;}
+  if(msg)msg.innerHTML='<span style="color:#2563eb">⏳ Resubmitting...</span>';
+  try{
+    const screenshotData=await readPaymentScreenshot(file);
+    const r=await supabaseClient.rpc('flm_registration_resubmit',{
+      p_mobile:mobile,p_old_utr_hash:oldUtr,p_new_utr_hash:newUtr,p_screenshot_data:screenshotData
+    });
+    if(r.error)throw r.error;
+    if(msg)msg.innerHTML='<span style="color:#047857">✅ New payment proof submitted. Admin approval pending.</span>';
+    const box=document.getElementById('registrationResubmitBox');if(box)box.style.display='none';
+    document.getElementById('resubmitUtr').value='';
+    document.getElementById('resubmitScreenshot').value='';
+    document.getElementById('statusUtr').value=newUtr;
+    await checkRegistrationStatus();
+  }catch(e){
+    if(msg)msg.innerHTML='<span style="color:#dc2626">❌ Re-submit failed: '+String(e.message||e)+'</span>';
+  }
+}
+
 async function checkRegistrationStatus(){
   const mobile=(document.getElementById('statusMobile').value||'').trim();
   const utr=(document.getElementById('statusUtr').value||'').trim();
   const out=document.getElementById('statusResult');
-  if(!mobile||!utr){out.innerHTML='<span style="color:#dc2626">Mobile and UTR/Hash enter cheyyandi.</span>';return;}
+  const box=document.getElementById('registrationResubmitBox');
+  if(!mobile&&!utr){out.innerHTML='<span style="color:#dc2626">Mobile number OR UTR/Hash enter cheyyandi.</span>';return;}
   if(!supabaseClient){out.innerHTML='<span style="color:#64748b">Live Supabase connection required to check status.</span>';return;}
   out.innerHTML='<span style="color:#2563eb">⏳ Checking status...</span>';
+  if(box)box.style.display='none';
   try{
     let row=null;
-    const rpc=await supabaseClient.rpc('flm_registration_status',{p_mobile:mobile,p_utr_hash:utr});
+    const rpc=await supabaseClient.rpc('flm_registration_status',{
+      p_mobile:mobile||null,p_utr_hash:utr||null
+    });
     if(!rpc.error){ row=Array.isArray(rpc.data)?rpc.data[0]:rpc.data; }
     else {
-      const direct=await supabaseClient.from('registration_requests').select('status,approved_fl_id,reviewed_at,created_at').eq('mobile',mobile).eq('utr_hash',utr).order('created_at',{ascending:false}).limit(1);
+      let q=supabaseClient.from('registration_requests').select('status,approved_fl_id,reviewed_at,created_at,mobile,utr_hash');
+      if(mobile&&utr)q=q.eq('mobile',mobile).eq('utr_hash',utr);
+      else if(mobile)q=q.eq('mobile',mobile);
+      else q=q.eq('utr_hash',utr);
+      const direct=await q.order('created_at',{ascending:false}).limit(1);
       if(direct.error)throw rpc.error;
       row=direct.data&&direct.data[0]?direct.data[0]:null;
     }
-    if(!row){out.innerHTML='<span style="color:#dc2626">❌ Registration request not found. Mobile + UTR/Hash check cheyyandi.</span>';return;}
-    const st=String(row.status||'').toLowerCase();
+    if(!row){
+      out.innerHTML='<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:9px"><b>❌ No details found</b><br>Please enter correct Mobile Number or UTR/Hash.</div>';
+      return;
+    }
+    const st=String(row.status||'').trim().toLowerCase();
     if(st==='approved'){
       out.innerHTML='<div style="color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:10px;border-radius:9px"><b>✅ Approved</b><br>FL ID: <b>'+String(row.approved_fl_id||'')+'</b><br><a href="./login.html" style="color:#2563eb;font-weight:700">Login Now →</a></div>';
     }else if(st==='rejected'){
-      const mobEl=document.getElementById('mobile');
-      const statusMob=document.getElementById('statusMobile');
-      if(mobEl && !mobEl.value.trim()) mobEl.value=mobile;
-      const utrEl=payMethod==='UPI'?document.getElementById('upiUtr'):document.getElementById('usdtHash');
-      if(utrEl) utrEl.value='';
-      const shot1=document.getElementById('upiScreenshot'); if(shot1) shot1.value='';
-      const shot2=document.getElementById('usdtScreenshot'); if(shot2) shot2.value='';
-      const payment=document.getElementById('paymentSection');
-      if(payment) payment.style.display='block';
-      out.innerHTML='<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:9px"><b>❌ Registration Rejected</b><br>Please submit a new payment proof/request.</div><button type="button" onclick="prepareRegistrationResubmit()" style="width:100%;margin-top:8px;background:#2563eb;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:800">↩️ Re-submit New Payment Proof</button>';
-      if(statusMob) statusMob.value=mobile;
-    }else{ 
+      const payment=document.getElementById('paymentSection');if(payment)payment.style.display='none';
+      if(box)box.style.display='block';
+      out.innerHTML='<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:9px"><b>❌ Registration Rejected</b><br>Below NEW UTR/Hash + payment screenshot only re-submit cheyyandi.</div>';
+    }else{
       out.innerHTML='<div style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:10px;border-radius:9px"><b>⏳ Pending Approval</b><br>Admin verification complete ayyaka ikkade Approved + FL ID kanipistundi.</div>';
     }
   }catch(e){out.innerHTML='<span style="color:#dc2626">❌ Status check failed: '+e.message+'</span>';}

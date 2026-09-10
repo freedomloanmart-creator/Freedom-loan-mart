@@ -118,7 +118,7 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <div id="walletActionBox" class="card" style="margin-top:12px;display:none"></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px;margin-top:12px">
-  <div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;color:#fff;display:flex;justify-content:space-between;align-items:center"><b>Transaction History</b><button onclick="loadWalletHistory()" style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:6px 9px;font-size:11px">Refresh</button></div>
+  <div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;color:#fff;display:flex;justify-content:space-between;align-items:center"><b>Transaction History</b><button onclick="refreshWalletSection()" style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:6px 9px;font-size:11px">Refresh</button></div>
   <div id="walletHistory" style="padding:12px"><div style="text-align:center;color:#64748b;font-size:12px;padding:12px">No transactions yet.</div></div>
 </div>
 </div>
@@ -572,6 +572,12 @@ window.addEventListener('pageshow',function(){if(getFlId()){var saved=localStora
 <script>
 var FLM_WALLET={roi:0,matching:0,loan:0,total:0,totalWithdrawn:0,pairs:0,dailyPairs:0,dailyIncome:0,store:null};
 function money(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+async function refreshWalletSection(){
+  if(!requireLogin()) return;
+  // Keep the user on My Wallets; do not change history or navigate to Dashboard.
+  showSec('wallets',true);
+  await Promise.all([loadWalletData(),loadWalletHistory()]);
+}
 async function loadWalletData(){
  var flId=getFlId();if(!flId||!supabaseClient)return;
  try{
@@ -603,10 +609,16 @@ async function ensurePayout(method){var flId=getFlId();var r=await supabaseClien
 async function savePayoutDetails(){var flId=getFlId();var msg=document.getElementById('payoutMsg');var obj={bank_account_holder:document.getElementById('bankHolder')?.value.trim()||'',bank_name:document.getElementById('bankName')?.value.trim()||'',bank_account_number:document.getElementById('bankAccount')?.value.trim()||'',bank_ifsc:document.getElementById('bankIfsc')?.value.trim().toUpperCase()||'',usdt_bep20:document.getElementById('usdtAddress')?.value.trim()||''};if(!obj.bank_account_holder&&!obj.usdt_bep20){msg.innerText='Add Bank details or USDT address.';msg.style.color='#dc2626';return;}try{var r=await supabaseClient.from('users').update(obj).eq('fl_id',flId);if(r.error)throw r.error;msg.innerText='Payout details saved successfully.';msg.style.color='#059669';}catch(e){msg.innerText='Error: '+e.message;msg.style.color='#dc2626';}}
 async function submitRoiRedeem(){var amt=getActionAmount();if(FLM_WALLET.roi<1000){alert('ROI balance must be at least ₹1,000.');return;}if(amt<1000){alert('Minimum redemption is ₹1,000.');return;}if(amt>FLM_WALLET.roi){alert('Insufficient ROI balance.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_roi_coupon',{p_fl_id:flId,p_amount:amt});if(r.error)throw r.error;alert('✅ Store coupon generated: '+(r.data?.coupon_code||'Please check wallet history'));loadWalletData();loadWalletHistory();}catch(e){alert('ROI redemption failed: '+e.message);}}
 async function submitMatchingWithdraw(method){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;var flId=getFlId();var forceStore=(FLM_WALLET.dailyIncome>=5000 || FLM_WALLET.dailyPairs>=25);try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:forceStore});if(r.error)throw r.error;
-  // Show the reserved/deducted amount immediately; then sync with DB.
-  FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt); FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;
-  var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';var input=document.getElementById('walletActionAmount');if(input)input.value='';
-  alert('Withdrawal request submitted. Status: Processing.');await loadWalletData();await loadWalletHistory();}catch(e){alert('Withdrawal failed: '+e.message);}}
+  // The database reserves the requested amount immediately. Update the visible balance first.
+  FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);
+  FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;
+  var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);
+  var mb=document.querySelector('#walletActionBox [id="matchingActionNote"]');
+  if(mb)mb.innerHTML='⏳ Withdrawal of '+money(amt)+' is processing. Available balance is '+money(FLM_WALLET.matching)+'.';
+  var box=document.getElementById('walletActionBox');if(box)box.style.display='none';
+  var input=document.getElementById('walletActionAmount');if(input)input.value='';
+  await loadWalletData(); await loadWalletHistory(); showSec('wallets',true);
+  alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
 async function submitLoanWithdraw(method){var amt=getActionAmount();if(amt<1){alert('Enter withdrawal amount.');return;}if(amt>FLM_WALLET.loan){alert('Insufficient available loan balance.');return;}if(!(await ensurePayout(method)))return;var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'loan',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;alert('Loan withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
  var el=document.getElementById('matchingStoreBox');if(!el)return;
