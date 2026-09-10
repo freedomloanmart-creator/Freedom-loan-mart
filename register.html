@@ -15,94 +15,89 @@ try {
 
 // ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
 
-async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash) {
+function readPaymentScreenshot(file){
+  return new Promise((resolve,reject)=>{
+    if(!file){resolve('');return;}
+    if(!file.type || !file.type.startsWith('image/')){reject(new Error('Please select an image screenshot.'));return;}
+    if(file.size > 3*1024*1024){reject(new Error('Screenshot must be 3 MB or smaller.'));return;}
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error('Could not read screenshot. Please try again.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash, screenshotData) {
   if (!supabaseClient) {
-    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
-    const user = {fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password, pin_token: pinToken, payment_method: paymentMethod, utr_hash: utrHash};
-    localStorage.setItem('flm_user_'+flId, JSON.stringify(user));
-    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName}));
-    return {success: true, flId: flId, message: 'Demo Registration - FL ID: '+flId};
+    if(!pinToken){
+      localStorage.setItem('flm_registration_pending',JSON.stringify({sponsor_id:sponsorId,side,full_name:fullName,mobile,email,password,payment_method:paymentMethod,utr_hash:utrHash,screenshot_data:screenshotData,status:'pending',created_at:new Date().toISOString()}));
+      return {success:true,pending:true,message:'Payment proof submitted. Admin approval pending.'};
+    }
+    const flId='FL'+Math.floor(100000+Math.random()*900000);
+    const user={fl_id:flId,sponsor_id:sponsorId,side,full_name:fullName,mobile,email,password,pin_token:pinToken,payment_method:paymentMethod,utr_hash:utrHash};
+    localStorage.setItem('flm_user_'+flId,JSON.stringify(user));
+    localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName}));
+    return {success:true,flId,message:'Registration Success - FL ID: '+flId};
   }
   try {
     if (pinToken) {
-      const {data: pinData, error: pinError} = await supabaseClient.from('pins').select('*').eq('pin_code', pinToken.toUpperCase()).single();
-      if (pinError || !pinData) {
-        return {success: false, message: '❌ Pin Wrong - Pin/Token not found: '+pinToken};
-      }
-      if(pinData.status==='used'){
-        return {success: false, message: '⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile+' at '+pinData.used_at};
-      }
-      if(pinData.status!=='unused'){
-        return {success: false, message: '❌ Pin Wrong - Status: '+pinData.status};
-      }
-      await supabaseClient.from('pins').update({status: 'used', used_by_mobile: mobile, used_at: new Date().toISOString()}).eq('pin_code', pinToken.toUpperCase());
-    } else {
-      if (!utrHash) return {success: false, message: 'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
-      await supabaseClient.from('payment_transactions').insert({
-        mobile: mobile, email: email, payment_method: paymentMethod, utr_hash: utrHash, amount: 2000, status: 'pending'
-      });
-    }
-    const flId = 'FL' + Math.floor(100000 + Math.random()*900000);
-    const {data: userData, error: userError} = await supabaseClient.from('users').insert({
-      fl_id: flId, sponsor_id: sponsorId, side: side, full_name: fullName, mobile: mobile, email: email, password: password,
-      left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0
-    }).select().single();
-    if (userError) throw userError;
-    await supabaseClient.from('wallets').insert({fl_id: flId, roi_wallet: 0, matching_wallet: 0, loan_wallet: 0, main_wallet: 0});
-    await supabaseClient.from('binary_summary').insert({
-      fl_id: flId, left_tokens: 0, right_tokens: 0, left_own: 0, right_own: 0, left_spillover: 0, right_spillover: 0,
-      left_carry: 0, right_carry: 0, total_pairs: 0, team_size: 0, daily_pairs_today: 0, daily_income_today: 0
-    });
+      const {data:pinData,error:pinError}=await supabaseClient.from('pins').select('*').eq('pin_code',pinToken.toUpperCase()).single();
+      if(pinError||!pinData) return {success:false,message:'❌ Pin Wrong - Pin/Token not found: '+pinToken};
+      if(pinData.status==='used') return {success:false,message:'⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile};
+      if(pinData.status!=='unused') return {success:false,message:'❌ Pin Wrong - Status: '+pinData.status};
 
-    // === UPDATE SPONSOR BINARY COUNT - LEFT/RIGHT + TEAM SIZE + TOKENS - FIX FOR COUNT 0 ISSUE ===
-    if(sponsorId){
-      try{
-        // Get sponsor binary summary
-        const {data: sponsorBin, error: binErr} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
-        if(!binErr && sponsorBin){
-          let updateData = {};
-          if(side.toLowerCase()==='left'){
-            updateData.left_own = (sponsorBin.left_own||0)+1;
-            updateData.left_tokens = (sponsorBin.left_tokens||0)+1;
-          } else {
-            updateData.right_own = (sponsorBin.right_own||0)+1;
-            updateData.right_tokens = (sponsorBin.right_tokens||0)+1;
-          }
-          updateData.team_size = (sponsorBin.team_size||0)+1;
-          // Calculate pairs - min of left_tokens and right_tokens
-          const newLeft = updateData.left_tokens!==undefined ? updateData.left_tokens : sponsorBin.left_tokens;
-          const newRight = updateData.right_tokens!==undefined ? updateData.right_tokens : sponsorBin.right_tokens;
-          const pairs = Math.min(newLeft, newRight);
-          updateData.total_pairs = pairs;
-          updateData.daily_pairs_today = (sponsorBin.daily_pairs_today||0)+ (pairs > (sponsorBin.total_pairs||0) ? 1 : 0);
-          updateData.daily_income_today = updateData.daily_pairs_today * 200; // Rs.200 per pair
-          
-          await supabaseClient.from('binary_summary').update(updateData).eq('fl_id', sponsorId.toUpperCase());
-          console.log('Sponsor binary updated - '+sponsorId+' - Side '+side+' - Left:'+newLeft+' Right:'+newRight+' Pairs:'+pairs);
-          
-          // Also update users table left_own/right_own for sponsor
-          const {data: sponsorUser} = await supabaseClient.from('users').select('*').eq('fl_id', sponsorId.toUpperCase()).single();
-          if(sponsorUser){
-            let userUpdate = {};
-            if(side.toLowerCase()==='left'){
-              userUpdate.left_own = (sponsorUser.left_own||0)+1;
-            } else {
-              userUpdate.right_own = (sponsorUser.right_own||0)+1;
-            }
-            await supabaseClient.from('users').update(userUpdate).eq('fl_id', sponsorId.toUpperCase());
-          }
-        } else {
-          console.log('Sponsor binary not found - '+sponsorId+' - Creating?');
-          // If sponsor binary not found, try create for sponsor if sponsor is FL884234 etc
-        }
-      } catch(e){ console.log('Sponsor update error: '+e.message); }
+      const flId='FL'+Math.floor(100000+Math.random()*900000);
+      const {data:userData,error:userError}=await supabaseClient.from('users').insert({
+        fl_id:flId,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        left_own:0,right_own:0,left_spillover:0,right_spillover:0
+      }).select().single();
+      if(userError) throw userError;
+      const w=await supabaseClient.from('wallets').insert({fl_id:flId,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
+      if(w.error) throw w.error;
+      const b=await supabaseClient.from('binary_summary').insert({fl_id:flId,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
+      if(b.error) throw b.error;
+      const pinUpdate=await supabaseClient.from('pins').update({status:'used',used_by_mobile:mobile,used_at:new Date().toISOString()}).eq('id',pinData.id).eq('status','unused');
+      if(pinUpdate.error) throw pinUpdate.error;
+      if(sponsorId) await updateSponsorBinary(sponsorId,side);
+      localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName,email,mobile,sponsorId,side}));
+      return {success:true,flId,message:'Registration Success - FL ID: '+flId+' - Token/Pin accepted'};
     }
 
-    localStorage.setItem('flm_session', JSON.stringify({flId: flId, name: fullName, email: email, mobile: mobile}));
-    return {success: true, flId: flId, message: 'Registration Success - FL ID: '+flId+' - 2000 Plan - ROI 40x50 - Sponsor '+sponsorId+' binary updated - Left/Right count +1'};
-  } catch(err) {
-    return {success: false, message: 'Registration failed: '+err.message};
+    if(!utrHash) return {success:false,message:'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
+    if(!screenshotData) return {success:false,message:'Payment screenshot upload cheyyali.'};
+
+    const req={
+      sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+      payment_method:paymentMethod,utr_hash:utrHash,amount:2000,status:'pending',screenshot_data:screenshotData
+    };
+    const existing=await supabaseClient.from('registration_requests').select('id,status').eq('utr_hash',utrHash).limit(1);
+    if(existing.error) throw existing.error;
+    if(existing.data&&existing.data.length){
+      return {success:false,message:'⚠️ This UTR/Hash is already submitted. Please wait for admin approval.'};
+    }
+    const {error:reqError}=await supabaseClient.from('registration_requests').insert(req);
+    if(reqError) throw reqError;
+    return {success:true,pending:true,message:'Payment submitted successfully. Admin approval tarvata FL ID generate avuthundi.'};
+  } catch(err){
+    return {success:false,message:'Registration failed: '+err.message};
   }
+}
+
+async function updateSponsorBinary(sponsorId,side){
+  if(!supabaseClient||!sponsorId)return;
+  try{
+    const {data:sponsorBin}=await supabaseClient.from('binary_summary').select('*').eq('fl_id',sponsorId.toUpperCase()).single();
+    if(!sponsorBin)return;
+    const u={team_size:(sponsorBin.team_size||0)+1};
+    if(String(side).toLowerCase()==='left'){u.left_own=(sponsorBin.left_own||0)+1;u.left_tokens=(sponsorBin.left_tokens||0)+1;}
+    else {u.right_own=(sponsorBin.right_own||0)+1;u.right_tokens=(sponsorBin.right_tokens||0)+1;}
+    u.total_pairs=Math.min(u.left_tokens!==undefined?u.left_tokens:(sponsorBin.left_tokens||0),u.right_tokens!==undefined?u.right_tokens:(sponsorBin.right_tokens||0));
+    await supabaseClient.from('binary_summary').update(u).eq('fl_id',sponsorId.toUpperCase());
+    const userUpdate={};
+    if(String(side).toLowerCase()==='left')userUpdate.left_own=(sponsorBin.left_own||0)+1;
+    else userUpdate.right_own=(sponsorBin.right_own||0)+1;
+    await supabaseClient.from('users').update(userUpdate).eq('fl_id',sponsorId.toUpperCase());
+  }catch(e){console.log('Sponsor binary update error:',e.message);}
 }
 
 async function loginReal(flIdOrMobile, password) {
@@ -174,7 +169,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 </div>
 <div class="card">
 <h2 style="text-align:center;color:#0f172a;font-size:20px">Registration</h2>
-<div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">PoomX Kit Rs.2000 | Token=Pin Same | UPI + USDT BEP20</div>
+<div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">PoomX Kit Rs.2000 | Token/Pin or Direct Payment | UPI + USDT BEP20</div>
 <label style="font-size:11px;color:#64748b">SPONSOR ID</label>
 <input id="sponsor" value="FL100001">
 <div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div>
@@ -186,17 +181,17 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <button onclick="checkToken()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:700;cursor:pointer">Check Token Valid?</button>
 <span style="flex:1;font-size:10px;color:#64748b;padding:6px">Token unte ok - Lekapothe payment chesi enter avutharu - Pin=Token okate</span>
 </div>
-<label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Theja">
-<label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="9876543210">
-<label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="theja@gmail.com">
-<label style="font-size:11px">PASSWORD</label><input id="password" type="password" placeholder="****">
+<label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Enter Full Name" autocomplete="name">
+<label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="Enter Mobile Number" inputmode="numeric" autocomplete="tel">
+<label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="Enter Email Address" autocomplete="email">
+<label style="font-size:11px">PASSWORD</label><input id="password" type="password" placeholder="Create Password" autocomplete="new-password">
 <div id="paymentSection">
 <div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
 <div class="tabs"><div class="tab active" id="tabUPI" onclick="setPay('UPI')">UPI Payment</div><div class="tab usdt" id="tabUSDT" onclick="setPay('USDT')">USDT BEP20</div></div>
-<div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"></div></div>
-<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - $12</b><br><span style="font-size:9px;font-family:monospace">0x1234... Client Address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."></div></div>
+<div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
+<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - $12</b><br><span style="font-size:9px;font-family:monospace">0x1234... Client Address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 </div>
-<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 40 pairs=Rs.8000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Pin=Token 100 ki 20 extra</div>
+<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 40 pairs=Rs.8000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Payment cheste screenshot + UTR/Hash mandatory</div>
 <button class="btn" onclick="register()">Register Now - Rs.2000</button>
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
 <div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#f8fafc"><b style="font-size:12px">Buy Tokens/Pins - 100+20 Bonus - Pin=Token Same</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="buyQty" type="number" value="100" style="margin:0"><div id="bonusCalc" style="padding:10px;background:#dcfce7;border-radius:8px;font-size:11px;font-weight:700">100 + 20 = 120 Tokens</div></div><button class="btn" style="background:#059669;margin-top:8px" onclick="const q=parseInt(document.getElementById('buyQty').value)||100;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';alert('Generated '+(q+b)+' Tokens/Pins - Pin=Token same - 20 extra')">Buy Tokens - Get Bonus</button></div>
@@ -265,39 +260,46 @@ function applyReferralFromUrl(){
 window.addEventListener('DOMContentLoaded', applyReferralFromUrl);
 
 async function register(){
-const params = new URLSearchParams(window.location.search);
-const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
-const urlSide = (params.get('side') || '').trim().toLowerCase();
-const sponsorInput = document.getElementById('sponsor');
-const sideInput = document.getElementById('side');
-if (urlSponsor && sponsorInput) sponsorInput.value = urlSponsor;
-if ((urlSide === 'left' || urlSide === 'right') && sideInput) sideInput.value = urlSide;
-const sponsor=(urlSponsor || sponsorInput.value.trim() || 'FL100001').toUpperCase();
-const side=(urlSide || (sideInput ? sideInput.value : 'left') || 'left').toLowerCase();
-const name=document.getElementById('fullName').value.trim();
-const mobile=document.getElementById('mobile').value.trim();
-const email=document.getElementById('email').value.trim();
-const password=document.getElementById('password').value.trim()||'123456';
-const pinToken=document.getElementById('pinToken').value.trim();
-const utr=document.getElementById('upiUtr').value.trim();
-const hash=document.getElementById('usdtHash').value.trim();
-const msg=document.getElementById('msg');
-if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
-if(!pinToken){
- if(payMethod==='UPI' && !utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
- if(payMethod==='USDT' && !hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
-}
-msg.innerHTML='<span style=color:#2563eb>⏳ Processing - Real DB Insert - Checking Pin Again - Total Live Update...</span>';
-try{
- const utrHash = payMethod==='UPI' ? utr : hash;
- const result = await registerReal(sponsor, side.toLowerCase(), pinToken, name, mobile, email, password, payMethod, utrHash);
- if(result.success){
-   msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'<br>Supabase Tables lo Insert Ayindi - Admin Panel lo Total Live Update Avuthundi - Refresh Chey!</span>';
-   setTimeout(()=>location.href='./login.html',2500);
- } else {
-   msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
- }
-} catch(e){ msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>'; }
+  const params=new URLSearchParams(window.location.search);
+  const urlSponsor=(params.get('sponsor')||'').trim().toUpperCase();
+  const urlSide=(params.get('side')||'').trim().toLowerCase();
+  const sponsorInput=document.getElementById('sponsor');
+  const sideInput=document.getElementById('side');
+  if(urlSponsor&&sponsorInput)sponsorInput.value=urlSponsor;
+  if((urlSide==='left'||urlSide==='right')&&sideInput)sideInput.value=urlSide;
+  const sponsor=(urlSponsor||sponsorInput.value.trim()||'FL100001').toUpperCase();
+  const side=(urlSide||(sideInput?sideInput.value:'left')||'left').toLowerCase();
+  const name=document.getElementById('fullName').value.trim();
+  const mobile=document.getElementById('mobile').value.trim();
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value.trim()||'123456';
+  const pinToken=document.getElementById('pinToken').value.trim();
+  const utr=document.getElementById('upiUtr').value.trim();
+  const hash=document.getElementById('usdtHash').value.trim();
+  const file=payMethod==='UPI'?document.getElementById('upiScreenshot')?.files?.[0]:document.getElementById('usdtScreenshot')?.files?.[0];
+  const msg=document.getElementById('msg');
+  if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
+  if(!pinToken){
+    if(payMethod==='UPI'&&!utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
+    if(payMethod==='USDT'&&!hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
+    if(!file){msg.innerHTML='<span style=color:#dc2626>Payment screenshot upload cheyyali</span>';return;}
+  }
+  msg.innerHTML='<span style=color:#2563eb>⏳ Processing...</span>';
+  try{
+    const screenshotData=file?await readPaymentScreenshot(file):'';
+    const utrHash=payMethod==='UPI'?utr:hash;
+    const result=await registerReal(sponsor,side,pinToken,name,mobile,email,password,payMethod,utrHash,screenshotData);
+    if(result.success){
+      if(result.pending){
+        msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>Admin Panel → Registration Payment Approvals lo verify chesi approve chestaru.</span>';
+        document.getElementById('paymentSection').style.display='none';
+        document.querySelectorAll('#fullName,#mobile,#email,#password').forEach(e=>e.value='');
+        return;
+      }
+      msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'</span>';
+      setTimeout(()=>location.href='./login.html',2500);
+    }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
+  }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';}
 }
 document.getElementById('buyQty').addEventListener('input',()=>{const q=parseInt(document.getElementById('buyQty').value)||0;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';});
 </script>
