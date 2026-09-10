@@ -194,54 +194,133 @@ function osmMapUrl(lat,lng){var d=.008;return 'https://www.openstreetmap.org/exp
 async function geocodeStoreSearch(q){try{var r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q='+encodeURIComponent(q+', India'),{headers:{Accept:'application/json'}}),d=await r.json();return d&&d[0]?{lat:Number(d[0].lat),lng:Number(d[0].lon),label:d[0].display_name}:null;}catch(e){return null;}}
 function renderStoreResults(rows,label){var el=document.getElementById('sRes');if(!el)return;if(!rows.length){el.innerHTML='<div style="padding:14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;color:#9a3412">🏪 No FLM store found within 25 KM.<br><span style="font-size:11px">No nearby store means Bank / USDT can be used where applicable.</span></div>';return;}rows.sort((a,b)=>(a.distance_km??9999)-(b.distance_km??9999));var h='<div style="font-size:12px;font-weight:800;margin-bottom:8px">📍 Stores near '+escStore(label||'your location')+'</div>';rows.slice(0,10).forEach(function(st,i){var lat=Number(st.latitude),lng=Number(st.longitude),addr=[st.address,st.town,st.pincode].filter(Boolean).join(', ');h+='<div style="background:#fff;border:1px solid '+(i===0?'#10b981':'#e2e8f0')+';border-radius:16px;padding:12px;margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>🏪 '+escStore(st.name||st.store_name||'FLM Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">Store Code: '+escStore(st.store_code||'--')+'</div></div>'+(st.distance_km!=null?'<b style="color:#059669;font-size:12px">'+Number(st.distance_km).toFixed(1)+' KM</b>':'')+'</div>';if(addr)h+='<div style="font-size:12px;margin-top:8px">📍 '+escStore(addr)+'</div>';if(st.phone||st.mobile)h+='<div style="font-size:12px;margin-top:5px">📞 '+escStore(st.phone||st.mobile)+'</div>';if(Number.isFinite(lat)&&Number.isFinite(lng))h+='<iframe loading="lazy" title="Store map" style="width:100%;height:170px;border:0;border-radius:12px;margin-top:9px" src="'+osmMapUrl(lat,lng)+'"></iframe><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><a href="'+mapsUrl(lat,lng)+'" target="_blank" style="text-decoration:none;text-align:center;background:#2563eb;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">🗺️ Navigate</a>'+(st.phone||st.mobile?'<a href="tel:'+escStore(st.phone||st.mobile)+'" style="text-decoration:none;text-align:center;background:#059669;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">📞 Call Store</a>':'<span></span>')+'</div>';h+='</div>';});el.innerHTML=h;}
 async function findS(){
-  var q=(document.getElementById('sp')?.value||'').trim(),el=document.getElementById('sRes');
-  if(!q){el.innerHTML='<div style="padding:12px;color:#b45309">Enter pincode/town or use current location.</div>';return;}
+  var q=(document.getElementById('sp')?.value||'').trim();
+  var el=document.getElementById('sRes');
+
+  if(!q){
+    el.innerHTML='<div style="padding:12px;color:#b45309">Enter pincode/town or use current location.</div>';
+    return;
+  }
+
   el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">🔎 Finding FLM stores within 25 KM…</div>';
+
   try{
-    var r=await supabaseClient.from('stores').select('*').eq('status','active');
-    if(r.error)throw r.error;
+    if(!supabaseClient) throw new Error('Supabase not connected');
+
+    var r=await supabaseClient
+      .from('stores')
+      .select('*')
+      .eq('status','active');
+
+    if(r.error) throw r.error;
+
     var stores=r.data||[];
-    var low=q.toLowerCase();
+    var low=q.trim().toLowerCase();
+
     var exact=stores.filter(function(st){
-      return String(st.pincode||'').trim().toLowerCase()===low || String(st.town||'').trim().toLowerCase()===low;
+      var pin=String(st.pincode||st.pin||st.postal_code||st.pin_code||'').trim().toLowerCase();
+      var town=String(st.town||st.city||'').trim().toLowerCase();
+      return pin===low || town===low;
     });
 
-    // Always try to resolve the searched pincode/town to coordinates first.
-    // This lets the member see ALL active FLM stores within 25 KM, not only
-    // the store having the exact same pincode/town.
-    var g=await geocodeStoreSearch(q);
+    /*
+      IMPORTANT:
+      Do NOT geocode a numeric pincode by itself.
+      Nominatim can sometimes resolve a pincode to the wrong locality.
+      If the exact pincode/town store has coordinates, use that store as
+      the search centre and calculate ALL active stores within 25 KM.
+    */
 
-    if(g && Number.isFinite(g.lat) && Number.isFinite(g.lng)){
-      var near=stores.filter(function(st){
-        return st.latitude!=null && st.longitude!=null &&
-          Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
-      }).map(function(st){
-        st.distance_km=storeDistanceKm(g.lat,g.lng,Number(st.latitude),Number(st.longitude));
-        return st;
-      }).filter(function(st){return st.distance_km<=25;});
+    var centre=null;
+    var centreLabel=q;
 
-      // If an exact pincode/town store exists but coordinate filtering misses it,
-      // keep it visible as a safe fallback.
+    var exactWithCoords=exact.find(function(st){
+      return Number.isFinite(Number(st.latitude)) &&
+             Number.isFinite(Number(st.longitude));
+    });
+
+    if(exactWithCoords){
+      centre={
+        lat:Number(exactWithCoords.latitude),
+        lng:Number(exactWithCoords.longitude)
+      };
+      centreLabel=exactWithCoords.town || exactWithCoords.name || q;
+    }else{
+      /*
+        For a pincode search, first ask the geocoder using the exact
+        store's town + pincode when available. This avoids the wrong
+        result that can happen with "517408" alone.
+      */
+      var geoQuery=q;
+
+      if(/^\d{6}$/.test(q) && exact.length){
+        var st0=exact[0];
+        var town0=String(st0.town||st0.city||'').trim();
+
+        if(town0){
+          geoQuery=town0+' '+q;
+        }
+      }
+
+      var g=await geocodeStoreSearch(geoQuery);
+
+      if(g && Number.isFinite(g.lat) && Number.isFinite(g.lng)){
+        centre={lat:g.lat,lng:g.lng};
+        centreLabel=g.label||q;
+      }
+    }
+
+    if(centre){
+      var near=stores
+        .filter(function(st){
+          return Number.isFinite(Number(st.latitude)) &&
+                 Number.isFinite(Number(st.longitude));
+        })
+        .map(function(st){
+          st.distance_km=storeDistanceKm(
+            centre.lat,
+            centre.lng,
+            Number(st.latitude),
+            Number(st.longitude)
+          );
+          return st;
+        })
+        .filter(function(st){
+          return st.distance_km<=25;
+        });
+
+      /*
+        Always keep the exact pincode/town store visible.
+        If it has no coordinates, distance is shown as "--".
+      */
       exact.forEach(function(st){
-        if(!near.some(function(x){return String(x.id||'')===String(st.id||'');})){
-          st.distance_km=0;
+        var exists=near.some(function(x){
+          return String(x.id||'')===String(st.id||'');
+        });
+
+        if(!exists){
+          st.distance_km=null;
           near.push(st);
         }
       });
 
-      renderStoreResults(near,g.label||q);
+      renderStoreResults(near,centreLabel);
       return;
     }
 
-    // Geocoder unavailable: show exact pincode/town stores instead of failing.
     if(exact.length){
-      exact.forEach(function(st){st.distance_km=0;});
+      exact.forEach(function(st){st.distance_km=null;});
       renderStoreResults(exact,q);
-    }else{
-      renderStoreResults([],q);
+      return;
     }
+
+    renderStoreResults([],q);
+
   }catch(e){
-    el.innerHTML='<div style="padding:12px;color:#dc2626">Store search failed: '+escStore(e.message)+'</div>';
+    el.innerHTML=
+      '<div style="padding:12px;color:#dc2626">'+
+      'Store search failed: '+escStore(e.message)+
+      '</div>';
   }
 }
 function findMyStore(){var el=document.getElementById('sRes');if(!navigator.geolocation){el.innerHTML='Location unavailable on this device.';return;}el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">📍 Getting your location…</div>';navigator.geolocation.getCurrentPosition(async function(pos){try{var r=await supabaseClient.from('stores').select('*').eq('status','active');if(r.error)throw r.error;var near=(r.data||[]).filter(st=>st.latitude!=null&&st.longitude!=null).map(st=>{st.distance_km=storeDistanceKm(pos.coords.latitude,pos.coords.longitude,Number(st.latitude),Number(st.longitude));return st;}).filter(st=>st.distance_km<=25);renderStoreResults(near,'your current location');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626">Unable to find stores: '+escStore(e.message)+'</div>'; }},function(){el.innerHTML='<div style="padding:12px;color:#b45309">Location permission denied. Enter your pincode or town instead.</div>';},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});}
