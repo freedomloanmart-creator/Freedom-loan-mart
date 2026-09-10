@@ -294,7 +294,8 @@ async function register(){
   if(urlSponsor&&sponsorInput)sponsorInput.value=urlSponsor;
   if((urlSide==='left'||urlSide==='right')&&sideInput)sideInput.value=urlSide;
   const sponsor=(urlSponsor||sponsorInput.value.trim()||'FL100001').toUpperCase();
-  const side=(urlSide||(sideInput?sideInput.value:'left')||'left').toLowerCase();
+  let side=((urlSide==='left'||urlSide==='right')?urlSide:((sideInput?sideInput.value:'left')||'left')).trim().toLowerCase();
+  if(side!=='left' && side!=='right') side='left';
   const name=document.getElementById('fullName').value.trim();
   const mobile=document.getElementById('mobile').value.trim();
   const email=document.getElementById('email').value.trim();
