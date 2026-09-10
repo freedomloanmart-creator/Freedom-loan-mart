@@ -2,9 +2,7 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Platform Admin Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-<script>function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}</script>
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
@@ -17,6 +15,7 @@ function initSupabaseClient(){
   }catch(e){console.error('Supabase init error:',e);}
   return supabaseClient;
 }
+function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 initSupabaseClient();
 async function ensureSupabaseClient(){
   if(initSupabaseClient()) return supabaseClient;
@@ -74,27 +73,73 @@ async function confirmDeposit(flId,depositId,req,extra,total,amount,utr,source){
 async function rejectDeposit(flId,depositId,source){if(!confirm('Reject deposit for '+flId+'?')) return;try{if(supabaseClient){if(depositId&&depositId.length>5){await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('id',depositId);await supabaseClient.from('payment_transactions').update({status:'rejected'}).eq('id',depositId);}if(flId){await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('fl_id',flId.toUpperCase()).eq('status','pending');}}alert('Rejected for '+flId);loadDepositRequests();}catch(e){alert('Error: '+e.message);}}
 let currentPinsFilter='all';function filterPins(type){currentPinsFilter=type;loadSec('pins');}
 async function loadRegistrationRequests(){
-  const el=document.getElementById('registrationRequestsList'); if(!el)return;
+  const el=document.getElementById('registrationRequestsList');
+  if(!el)return;
   el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading registration payments...</div>';
   if(!supabaseClient){el.innerHTML='<div style="padding:18px;color:#dc2626">Supabase not connected.</div>';return;}
   try{
+    // IMPORTANT: load all rows first, then normalize status in JavaScript.
+    // This prevents pending requests from being hidden by case/space differences.
     const all=await supabaseClient.from('registration_requests').select('*').order('created_at',{ascending:false}).limit(500);
     if(all.error)throw all.error;
     const rows=all.data||[];
-    const now=new Date(); const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
-    const today=rows.filter(x=>{const z=new Date(x.created_at||0);return z.getFullYear()===y&&z.getMonth()===m&&z.getDate()===d;});
-    const count=(st)=>today.filter(x=>String(x.status||'').toLowerCase()===st).length;
-    ['regTodayTotal','regTodayPending','regTodayApproved','regTodayRejected'].forEach(id=>{const n=document.getElementById(id);if(n)n.innerText=0;});
-    if(document.getElementById('regTodayTotal'))document.getElementById('regTodayTotal').innerText=today.length;
-    if(document.getElementById('regTodayPending'))document.getElementById('regTodayPending').innerText=count('pending');
-    if(document.getElementById('regTodayApproved'))document.getElementById('regTodayApproved').innerText=count('approved');
-    if(document.getElementById('regTodayRejected'))document.getElementById('regTodayRejected').innerText=count('rejected');
-    const pending=rows.filter(x=>String(x.status||'').toLowerCase()==='pending');
-    if(!pending.length) el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No pending registration payments.</div>';
-    else el.innerHTML=pending.map(d=>{const img=d.screenshot_data&&String(d.screenshot_data).startsWith('data:image')?d.screenshot_data:'';return `<div style="background:#fff;border:2px solid #dbeafe;border-radius:14px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:15px">${escapeHtml(d.full_name||'Member')} • ₹${Number(d.amount||2000).toLocaleString('en-IN')}</b><span style="font-size:10px;background:#fef3c7;color:#92400e;padding:4px 8px;border-radius:999px">PENDING</span></div><div style="margin-top:8px;font-size:12px;line-height:1.7;background:#f8fafc;border-radius:10px;padding:10px"><b>Mobile:</b> ${escapeHtml(d.mobile||'—')}<br><b>Email:</b> ${escapeHtml(d.email||'—')}<br><b>Sponsor:</b> ${escapeHtml(d.sponsor_id||'—')}<br><b>Side:</b> ${escapeHtml(String(d.side||'left').toUpperCase())}<br><b>Method:</b> ${escapeHtml(d.payment_method||'UPI')}<br><b>UTR / Hash:</b> <span style="font-family:monospace">${escapeHtml(d.utr_hash||'—')}</span><br><b>Submitted:</b> ${d.created_at?new Date(d.created_at).toLocaleString():''}</div>${img?`<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:6px">📸 Payment Screenshot — Tap to view full size</div><img src="${img}" style="width:100%;max-height:340px;object-fit:contain;background:#f8fafc;border:2px solid #10b981;border-radius:12px;cursor:pointer" onclick="window.open(this.src,'_blank')"></div>`:''}<div style="display:flex;gap:8px;margin-top:12px"><button onclick="approveRegistration('${escapeHtml(d.id)}')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">✅ Approve & Create Member</button><button onclick="rejectRegistration('${escapeHtml(d.id)}')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:10px;padding:12px;font-weight:700">Reject</button></div></div>`}).join('');
+    const norm=x=>String(x==null?'':x).trim().toLowerCase();
+    const pending=rows.filter(x=>norm(x.status)==='pending');
+
+    // Today counters use IST explicitly.
+    const now=new Date();
+    const ist=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+    const y=ist.getFullYear(),m=ist.getMonth(),d=ist.getDate();
+    const today=rows.filter(x=>{
+      if(!x.created_at)return false;
+      const z=new Date(new Date(x.created_at).toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+      return z.getFullYear()===y&&z.getMonth()===m&&z.getDate()===d;
+    });
+    const count=st=>today.filter(x=>norm(x.status)===st).length;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=String(v);};
+    set('regTodayTotal',today.length);
+    set('regTodayPending',count('pending'));
+    set('regTodayApproved',count('approved'));
+    set('regTodayRejected',count('rejected'));
+
     const hist=document.getElementById('registrationHistoryList');
-    if(hist){const h=today.filter(x=>['approved','rejected'].includes(String(x.status||'').toLowerCase())).slice(0,20);hist.innerHTML='<div style="font-weight:800;margin-bottom:7px">📋 Today — Approved / Rejected</div>'+(h.length?h.map(x=>`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin-bottom:6px;font-size:12px"><b>${escapeHtml(x.full_name||'Member')}</b> • ${escapeHtml(x.mobile||'')} • <b style="color:${String(x.status).toLowerCase()==='approved'?'#059669':'#dc2626'}">${escapeHtml(String(x.status||'').toUpperCase())}</b>${x.approved_fl_id?' • FL ID: '+escapeHtml(x.approved_fl_id):''}<br><span style="color:#64748b">${x.created_at?new Date(x.created_at).toLocaleString():''}</span></div>`).join(''):'<div style="color:#64748b;font-size:12px">No approved/rejected registrations today.</div>');}
-  }catch(e){el.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load registrations: '+escapeHtml(e.message)+'</div>';}
+    if(hist){
+      const h=today.filter(x=>['approved','rejected'].includes(norm(x.status))).slice(0,50);
+      hist.innerHTML='<div style="font-weight:800;margin-bottom:7px">📋 Today — Approved / Rejected</div>'+(
+        h.length?h.map(x=>`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin-bottom:6px;font-size:12px"><b>${escapeHtml(x.full_name||'Member')}</b> • ${escapeHtml(x.mobile||'')} • <b style="color:${norm(x.status)==='approved'?'#059669':'#dc2626'}">${escapeHtml(norm(x.status).toUpperCase())}</b>${x.approved_fl_id?' • FL ID: '+escapeHtml(x.approved_fl_id):''}<br><span style="color:#64748b">${x.created_at?new Date(x.created_at).toLocaleString():''}</span></div>`).join(''):
+        '<div style="color:#64748b;font-size:12px">No approved/rejected registrations today.</div>'
+      );
+    }
+
+    if(!pending.length){
+      el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No pending registration payments.</div>';
+      return;
+    }
+
+    el.innerHTML=pending.map(d=>{
+      const img=(d.screenshot_data&&String(d.screenshot_data).startsWith('data:image'))?String(d.screenshot_data):'';
+      const id=String(d.id||'').replace(/'/g,"\\'");
+      return `<div style="background:#fff;border:2px solid #dbeafe;border-radius:14px;padding:14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:15px">${escapeHtml(d.full_name||'Member')} • ₹${Number(d.amount||2000).toLocaleString('en-IN')}</b><span style="font-size:10px;background:#fef3c7;color:#92400e;padding:4px 8px;border-radius:999px">PENDING</span></div>
+        <div style="margin-top:8px;font-size:12px;line-height:1.7;background:#f8fafc;border-radius:10px;padding:10px">
+          <b>Mobile:</b> ${escapeHtml(d.mobile||'—')}<br><b>Email:</b> ${escapeHtml(d.email||'—')}<br><b>Sponsor:</b> ${escapeHtml(d.sponsor_id||'—')}<br><b>Side:</b> ${escapeHtml(String(d.side||'left').toUpperCase())}<br><b>Method:</b> ${escapeHtml(d.payment_method||'UPI')}<br><b>UTR / Hash:</b> <span style="font-family:monospace">${escapeHtml(d.utr_hash||'—')}</span><br><b>Submitted:</b> ${d.created_at?new Date(d.created_at).toLocaleString():''}
+        </div>
+        ${img?`<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:#065f46;margin-bottom:6px">📸 Payment Screenshot — Tap to view full size</div><img src="${img}" style="width:100%;max-height:360px;object-fit:contain;background:#f8fafc;border:2px solid #10b981;border-radius:12px;cursor:pointer" onclick="window.open(this.src,'_blank')"></div>`:'<div style="margin-top:10px;color:#991b1b;background:#fef2f2;padding:9px;border-radius:8px;font-size:11px">⚠️ Payment screenshot is not available in this record.</div>'}
+        <div style="display:flex;gap:8px;margin-top:12px"><button onclick="approveRegistration('${id}')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">✅ Approve & Create Member</button><button onclick="rejectRegistration('${id}')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:10px;padding:12px;font-weight:700">Reject</button></div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load registrations: '+escapeHtml(e.message)+'</div>';
+  }
+}
+async function generateUniqueFlId(){
+  for(let i=0;i<20;i++){
+    const id='FL'+Math.floor(100000+Math.random()*900000);
+    const {data,error}=await supabaseClient.from('users').select('fl_id').eq('fl_id',id).limit(1);
+    if(error)throw error;
+    if(!data||data.length===0)return id;
+  }
+  throw new Error('Could not generate a unique FL ID. Try again.');
 }
 
 async function approveRegistration(requestId){
@@ -405,51 +450,52 @@ async function saveStoreEdits(){
 
 let adminWithdrawalRows=[];
 function safeText(v){return String(v==null?'':v);}
-function wdStatusLabel(s){const x=safeText(s||'processing').toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
+function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
-function wdMethodLabel(x){const m=safeText(x.method||'').toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
-function wdIsStore(x){const m=safeText(x.method||'').toLowerCase(),t=safeText(x.wallet_type||x.type||'').toLowerCase(),y=safeText(x.transaction_type||'').toLowerCase();return m==='store'||y==='roi_coupon'||t.includes('store')||t.includes('roi');}
+function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
+function wdIsStore(x){const m=safeText(x.method||'').trim().toLowerCase(),t=safeText(x.wallet_type||x.type||'').toLowerCase(),y=safeText(x.transaction_type||'').toLowerCase();return m==='store'||y==='roi_coupon'||t.includes('store')||t.includes('roi');}
 function renderAdminWithdrawCard(x,compact){
-  const st=wdStatusLabel(x.status), c=st==='APPROVED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
-  const a=Number(x.amount||0), net=x.net_amount!=null?Number(x.net_amount):a;
-  const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown'), store=escapeHtml(x.store_name||x.store_code||''), id=safeText(x.id);
+  const st=wdStatusLabel(x.status),c=st==='APPROVED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
+  const a=Number(x.amount||0),net=x.net_amount!=null?Number(x.net_amount):a;
+  const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown'),store=escapeHtml(x.store_name||x.store_code||''),id=safeText(x.id);
   let b='';
-  if(!compact && safeText(x.status||'processing').toLowerCase()==='processing'){
-    if(wdIsStore(x)) b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+'\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
-    else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+'\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+'\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
+  if(!compact&&safeText(x.status||'processing').trim().toLowerCase()==='processing'){
+    if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
+    else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
   }
-  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net: ₹'+net.toLocaleString('en-IN')+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.coupon_code?' • Coupon: '+escapeHtml(x.coupon_code):'')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+b+'</div>';
+  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net: ₹'+net.toLocaleString('en-IN')+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+b+'</div>';
 }
 function renderAdminWithdrawals(){
-  const l=document.getElementById('adminWithdrawList'), s=document.getElementById('adminStoreList'), h=document.getElementById('adminWithdrawHistory');
+  const l=document.getElementById('adminWithdrawList'),s=document.getElementById('adminStoreList'),h=document.getElementById('adminWithdrawHistory');
   if(!l||!s||!h)return;
   try{
     const q=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
-    const st=(document.getElementById('wdStatus')?.value||'all').toLowerCase();
-    const rows=adminWithdrawalRows.filter(x=>{const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();const z=safeText(x.status||'processing').toLowerCase();return(!q||hay.includes(q))&&(st==='all'||st===z);});
-    const d=rows.filter(x=>!wdIsStore(x)), r=rows.filter(x=>wdIsStore(x));
+    const st=(document.getElementById('wdStatus')?.value||'all').trim().toLowerCase();
+    const rows=adminWithdrawalRows.filter(x=>{const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();const z=safeText(x.status||'processing').trim().toLowerCase();return(!q||hay.includes(q))&&(st==='all'||st===z);});
+    const d=rows.filter(x=>!wdIsStore(x)),r=rows.filter(x=>wdIsStore(x));
     l.innerHTML=d.length?d.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No matching/loan direct withdrawal requests.</div>';
     s.innerHTML=r.length?r.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No ROI/store redemption records.</div>';
     h.innerHTML=rows.length?rows.map(x=>renderAdminWithdrawCard(x,true)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No finance records found.</div>';
-  }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b">Render error: '+escapeHtml(e.message)+'</div>';}
+  }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Render error: '+escapeHtml(e.message)+'</div>';}
 }
 async function loadAdminWithdrawals(){
-  const l=document.getElementById('adminWithdrawList'); if(!l||!supabaseClient)return;
+  const l=document.getElementById('adminWithdrawList');if(!l||!supabaseClient)return;
   l.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading finance records...</div>';
   try{
     const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(500);
     if(r.error)throw r.error;
     adminWithdrawalRows=r.data||[];
-    const pending=adminWithdrawalRows.filter(x=>safeText(x.status||'processing').toLowerCase()==='processing').length;
-    const approved=adminWithdrawalRows.filter(x=>['approved','completed'].includes(safeText(x.status).toLowerCase())).length;
-    const rejected=adminWithdrawalRows.filter(x=>safeText(x.status).toLowerCase()==='rejected').length;
-    document.getElementById('wdPendingCount').innerText=pending; document.getElementById('wdApprovedCount').innerText=approved; document.getElementById('wdRejectedCount').innerText=rejected; document.getElementById('wdTotalCount').innerText=adminWithdrawalRows.length;
+    const n=x=>safeText(x.status).trim().toLowerCase();
+    document.getElementById('wdPendingCount').innerText=adminWithdrawalRows.filter(x=>n(x)==='processing').length;
+    document.getElementById('wdApprovedCount').innerText=adminWithdrawalRows.filter(x=>['approved','completed'].includes(n(x))).length;
+    document.getElementById('wdRejectedCount').innerText=adminWithdrawalRows.filter(x=>n(x)==='rejected').length;
+    document.getElementById('wdTotalCount').innerText=adminWithdrawalRows.length;
     renderAdminWithdrawals();
   }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load wallet transactions: '+escapeHtml(e.message)+'</div>';}
 }
-async function adminApproveWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').toLowerCase()!=='processing')return;if(!confirm('Approve this withdrawal?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:null});if(r.error)throw r.error;alert('✅ Withdrawal approved.');loadAdminWithdrawals();}catch(e){alert('Approval error: '+e.message);}}
-async function adminSettleStore(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').toLowerCase()!=='processing')return;const code=safeText(x.store_code).trim();if(!code){alert('Store code is missing.');return;}if(!confirm('Mark this store transaction as settled?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:code});if(r.error)throw r.error;alert('✅ Store settlement completed.');loadAdminWithdrawals();}catch(e){alert('Store settlement error: '+e.message);}}
-async function adminRejectWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').toLowerCase()!=='processing')return;const reason=prompt('Reason for rejection:','Please check payout details.');if(reason===null)return;try{const r=await supabaseClient.rpc('flm_reject_withdrawal',{p_transaction_id:Number(id),p_rejection_reason:reason.trim(),p_rejected_by:getAdminId()});if(r.error)throw r.error;alert('Request rejected and reserved wallet amount returned.');loadAdminWithdrawals();}catch(e){alert('Reject error: '+e.message);}}
+async function adminApproveWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;if(!confirm('Approve this withdrawal?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:null});if(r.error)throw r.error;alert('✅ Withdrawal approved. Wallet was already deducted at request time.');await loadAdminWithdrawals();}catch(e){alert('Approval error: '+e.message);}}
+async function adminSettleStore(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const code=safeText(x.store_code).trim();if(!code){alert('Store code is missing.');return;}if(!confirm('Mark this store transaction as settled?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:code});if(r.error)throw r.error;alert('✅ Store settlement completed.');await loadAdminWithdrawals();}catch(e){alert('Store settlement error: '+e.message);}}
+async function adminRejectWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const reason=prompt('Reason for rejection:','Please check payout details.');if(reason===null)return;try{const r=await supabaseClient.rpc('flm_reject_withdrawal',{p_transaction_id:Number(id),p_rejection_reason:reason.trim(),p_rejected_by:getAdminId()});if(r.error)throw r.error;alert('Request rejected and reserved wallet amount returned.');await loadAdminWithdrawals();}catch(e){alert('Reject error: '+e.message);}}
 
 async function getStoreCoords(){
   const a=document.getElementById('storeLat'),b=document.getElementById('storeLng');
