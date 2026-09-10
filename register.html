@@ -214,14 +214,14 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
 <div style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
   <b style="font-size:12px">Registration Status</b>
-  <div style="font-size:10px;color:#64748b;margin:5px 0 8px">Payment registration approve ayindho check cheyyadaniki Mobile + UTR/Hash enter cheyyandi.</div>
+  <div style="font-size:10px;color:#64748b;margin:5px 0 8px">To check your payment registration status, enter your registered Mobile Number and UTR/Hash.</div>
   <input id="statusMobile" placeholder="Registered Mobile Number" inputmode="numeric">
   <input id="statusUtr" placeholder="UPI UTR / USDT Hash">
   <button class="btn" style="background:#2563eb;margin-top:4px" onclick="checkRegistrationStatus()">Check Approval Status</button>
   <div id="statusResult" style="margin-top:8px;font-size:11px"></div>
   <div id="registrationResubmitBox" style="display:none;margin-top:10px;background:#f8fafc;border:1px solid #bfdbfe;border-radius:12px;padding:12px">
     <b style="font-size:12px;color:#1e3a8a">↩️ Re-submit Payment Proof</b>
-    <div style="font-size:10px;color:#64748b;margin:5px 0 8px">Rejected registration ki Name/Email/Password or old UTR/Hash malli fill cheyyalsina avasaram ledu. NEW UTR/Hash + NEW payment screenshot matrame upload cheyyandi.</div>
+    <div style="font-size:10px;color:#64748b;margin:5px 0 8px">For a rejected registration, you do not need to enter your Name, Email, Password, or OLD UTR/Hash again. Upload only the NEW UTR/Hash and NEW payment screenshot.</div>
     <input id="resubmitUtr" placeholder="Enter NEW UTR / USDT Hash">
     <label style="display:block;font-size:11px;font-weight:700;margin-top:6px;color:#475569">New Payment Screenshot</label>
     <input id="resubmitScreenshot" type="file" accept="image/*" style="background:#fff">
@@ -353,20 +353,20 @@ async function submitRegistrationResubmit(){
   const newUtr=(document.getElementById('resubmitUtr')?.value||'').trim();
   const file=document.getElementById('resubmitScreenshot')?.files?.[0];
   const msg=document.getElementById('resubmitMsg');
-  if(!mobile && !oldUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Munduga rejected registration ni Mobile OR old UTR/Hash tho check cheyyandi.</span>';return;}
-  if(!newUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">NEW UTR/Hash enter cheyyandi.</span>';return;}
-  if(!file){if(msg)msg.innerHTML='<span style="color:#dc2626">New payment screenshot upload cheyyandi.</span>';return;}
-  if(msg)msg.innerHTML='<span style="color:#2563eb">⏳ New payment proof submit chestunnam...</span>';
+  if(!mobile && !oldUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Please check the rejected registration using your registered mobile number.</span>';return;}
+  if(!newUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Please enter the NEW UTR/Hash.</span>';return;}
+  if(!file){if(msg)msg.innerHTML='<span style="color:#dc2626">Please upload the NEW payment screenshot.</span>';return;}
+  if(msg)msg.innerHTML='<span style="color:#2563eb">⏳ Submitting the new payment proof...</span>';
   try{
     const screenshotData=await readPaymentScreenshot(file);
     const r=await supabaseClient.rpc('flm_registration_resubmit',{
       p_mobile:mobile||null,
-      p_reference_utr_hash:oldUtr||null,
+      p_old_utr_hash:oldUtr||null,
       p_new_utr_hash:newUtr,
       p_screenshot_data:screenshotData
     });
     if(r.error)throw r.error;
-    if(msg)msg.innerHTML='<span style="color:#047857">✅ New payment proof submitted. Admin approval pending.</span>';
+    if(msg)msg.innerHTML='<span style="color:#047857">✅ New payment proof submitted successfully. Admin approval is pending.</span>';
     const box=document.getElementById('registrationResubmitBox');if(box)box.style.display='none';
     document.getElementById('resubmitUtr').value='';
     document.getElementById('resubmitScreenshot').value='';
@@ -382,7 +382,7 @@ async function checkRegistrationStatus(){
   const utr=(document.getElementById('statusUtr').value||'').trim();
   const out=document.getElementById('statusResult');
   const box=document.getElementById('registrationResubmitBox');
-  if(!mobile&&!utr){out.innerHTML='<span style="color:#dc2626">Mobile number OR UTR/Hash enter cheyyandi.</span>';return;}
+  if(!mobile&&!utr){out.innerHTML='<span style="color:#dc2626">Please enter your Mobile Number or UTR/Hash.</span>';return;}
   if(!supabaseClient){out.innerHTML='<span style="color:#64748b">Live Supabase connection required to check status.</span>';return;}
   out.innerHTML='<span style="color:#2563eb">⏳ Checking status...</span>';
   if(box)box.style.display='none';
