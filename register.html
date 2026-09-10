@@ -27,6 +27,36 @@ function readPaymentScreenshot(file){
   });
 }
 
+async function checkIdentityLimit(mobile,email){
+  const result={mobileCount:0,emailCount:0,mobilePending:0,emailPending:0};
+  if(!supabaseClient) return result;
+  const m=String(mobile||'').trim();
+  const e=String(email||'').trim().toLowerCase();
+  const [mu,eu,mp,ep]=await Promise.all([
+    supabaseClient.from('users').select('id',{count:'exact',head:true}).eq('mobile',m),
+    supabaseClient.from('users').select('id',{count:'exact',head:true}).ilike('email',e),
+    supabaseClient.from('registration_requests').select('id',{count:'exact',head:true}).eq('mobile',m).eq('status','pending'),
+    supabaseClient.from('registration_requests').select('id',{count:'exact',head:true}).ilike('email',e).eq('status','pending')
+  ]);
+  if(mu.error) throw mu.error;
+  if(eu.error) throw eu.error;
+  if(mp.error) throw mp.error;
+  if(ep.error) throw ep.error;
+  result.mobileCount=Number(mu.count||0);
+  result.emailCount=Number(eu.count||0);
+  result.mobilePending=Number(mp.count||0);
+  result.emailPending=Number(ep.count||0);
+  return result;
+}
+
+function validateRegistrationIdentity(mobile,email){
+  const m=String(mobile||'').replace(/\D/g,'');
+  const e=String(email||'').trim();
+  if(!/^\d{10}$/.test(m)) return 'Please enter your full 10-digit mobile number.';
+  if(!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return 'Please enter a valid email address.';
+  return '';
+}
+
 async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash, screenshotData) {
   if (!supabaseClient) {
     if(!pinToken){
@@ -200,8 +230,8 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <span style="flex:1;font-size:10px;color:#64748b;padding:6px">Token unte ok - Lekapothe payment chesi enter avutharu - Pin=Token okate</span>
 </div>
 <label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Enter Full Name" autocomplete="name">
-<label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="Enter Mobile Number" inputmode="numeric" autocomplete="tel">
-<label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="Enter Email Address" autocomplete="email">
+<label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="Enter 10-digit Mobile Number" inputmode="numeric" autocomplete="tel" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);showMobileValidation()" onblur="showMobileValidation();checkIdentityAvailability()">
+<label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="Enter Email Address" autocomplete="email" onblur="checkIdentityAvailability()">
 <label style="font-size:11px">PASSWORD</label><input id="password" type="password" placeholder="Create Password" autocomplete="new-password">
 <div id="paymentSection">
 <div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
@@ -233,6 +263,50 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div style="text-align:center;margin-top:12px;font-size:12px">Already? <a href="./login.html" style="color:#2563eb">Login</a></div>
 </div></div>
 <script>
+async function checkIdentityAvailability(){
+  const mobile=(document.getElementById('mobile')?.value||'').replace(/\D/g,'');
+  const email=(document.getElementById('email')?.value||'').trim();
+  let box=document.getElementById('identityAvailabilityMsg');
+  if(!box){
+    box=document.createElement('div');
+    box.id='identityAvailabilityMsg';
+    box.style.cssText='font-size:11px;margin:5px 0;font-weight:700';
+    const emailEl=document.getElementById('email');
+    if(emailEl) emailEl.insertAdjacentElement('afterend',box);
+  }
+  if(!/^\d{10}$/.test(mobile)) return;
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  if(!supabaseClient)return;
+  box.style.color='#2563eb';
+  box.textContent='⏳ Checking mobile/email ID usage...';
+  try{
+    const lim=await checkIdentityLimit(mobile,email);
+    const mc=lim.mobileCount+lim.mobilePending;
+    const ec=lim.emailCount+lim.emailPending;
+    if(mc>=7){box.style.color='#dc2626';box.textContent='❌ Mobile limit reached: 7/7 IDs. Please use a different mobile number.';return;}
+    if(ec>=7){box.style.color='#dc2626';box.textContent='❌ Email limit reached: 7/7 IDs. Please use a different email address.';return;}
+    box.style.color='#059669';
+    box.textContent='✓ Available — Mobile IDs: '+mc+'/7 • Email IDs: '+ec+'/7';
+  }catch(e){
+    box.style.color='#b45309';
+    box.textContent='Could not check ID usage now. Final validation will happen before registration.';
+  }
+}
+
+function showMobileValidation(){
+  const el=document.getElementById('mobile');
+  const old=document.getElementById('mobileValidationMsg');
+  if(!el)return;
+  const m=el.value.replace(/\D/g,'');
+  if(!old){
+    const d=document.createElement('div'); d.id='mobileValidationMsg'; d.style.cssText='font-size:11px;margin-top:4px;font-weight:700'; el.insertAdjacentElement('afterend',d);
+  }
+  const box=document.getElementById('mobileValidationMsg');
+  if(!m){box.textContent='';return;}
+  if(m.length<10){box.style.color='#dc2626';box.textContent='❌ Please fill the full 10-digit mobile number.';}
+  else if(m.length===10){box.style.color='#059669';box.textContent='✓ 10-digit mobile number';}
+  else {box.style.color='#dc2626';box.textContent='❌ Mobile number must contain exactly 10 digits.';}
+}
 let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
 async function checkToken(){
 const token=document.getElementById('pinToken').value.trim();
@@ -315,13 +389,23 @@ async function register(){
   const file=payMethod==='UPI'?document.getElementById('upiScreenshot')?.files?.[0]:document.getElementById('usdtScreenshot')?.files?.[0];
   const msg=document.getElementById('msg');
   if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
+  const identityError=validateRegistrationIdentity(mobile,email);
+  if(identityError){msg.innerHTML='<span style=color:#dc2626>❌ '+identityError+'</span>';return;}
   if(!pinToken){
     if(payMethod==='UPI'&&!utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
     if(payMethod==='USDT'&&!hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
     if(!file){msg.innerHTML='<span style=color:#dc2626>Payment screenshot upload cheyyali</span>';return;}
   }
-  msg.innerHTML='<span style=color:#2563eb>⏳ Processing...</span>';
+  msg.innerHTML='<span style=color:#2563eb>⏳ Checking registration details...</span>';
   try{
+    const lim=await checkIdentityLimit(mobile,email);
+    const mobileUsed=lim.mobileCount+lim.mobilePending;
+    const emailUsed=lim.emailCount+lim.emailPending;
+    if(mobileUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This mobile number has already completed 7 IDs. Please use a different mobile number.</span>';return;}
+    if(emailUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This email address has already completed 7 IDs. Please use a different email address.</span>';return;}
+    if(mobileUsed>0 || emailUsed>0){
+      msg.innerHTML='<span style=color:#2563eb>ℹ️ Mobile IDs used: '+mobileUsed+'/7 • Email IDs used: '+emailUsed+'/7</span>';
+    }
     const screenshotData=file?await readPaymentScreenshot(file):'';
     const utrHash=payMethod==='UPI'?utr:hash;
     const result=await registerReal(sponsor,side,pinToken,name,mobile,email,password,payMethod,utrHash,screenshotData);
