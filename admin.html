@@ -166,7 +166,27 @@ async function updateBinaryForPlacement(originalSponsor,placementParent,side,isS
     if(b){
       const left=(b.left_tokens||0)+(side==='left'?1:0);
       const right=(b.right_tokens||0)+(side==='right'?1:0);
-      const upd={left_tokens:left,right_tokens:right,total_pairs:Math.min(left,right),team_size:(b.team_size||0)+1};
+      const oldPairs=Number(b.total_pairs||0);
+      const newPairs=Math.min(left,right);
+      const upd={left_tokens:left,right_tokens:right,total_pairs:newPairs,team_size:(b.team_size||0)+1};
+      // Matching income: credit ₹200 only when a NEW 1:1 pair is completed,
+      // with a maximum of 25 credited pairs per member per day (₹5,000/day).
+      if(newPairs>oldPairs){
+        const newPairCount=newPairs-oldPairs;
+        const currentDaily=Number(b.daily_pairs_today||0);
+        const allowed=Math.max(0,Math.min(newPairCount,25-currentDaily));
+        if(allowed>0){
+          upd.daily_pairs_today=currentDaily+allowed;
+          upd.daily_income_today=(Number(b.daily_income_today||0))+(allowed*200);
+          const {data:w}=await supabaseClient.from('wallets').select('matching_wallet,main_wallet').eq('fl_id',current).single();
+          if(w){
+            const matching=Number(w.matching_wallet||0)+(allowed*200);
+            const main=Number(w.main_wallet||0)+(allowed*200);
+            const {error:wu}=await supabaseClient.from('wallets').update({matching_wallet:matching,main_wallet:main}).eq('fl_id',current);
+            if(wu) throw wu;
+          }
+        }
+      }
       if(first){
         if(side==='left') upd.left_own=(b.left_own||0)+1;
         else upd.right_own=(b.right_own||0)+1;
@@ -252,7 +272,7 @@ body{background:#eef2f7;color:#0f172a}
 </style>
 </head>
 <body>
-<div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2><div style="font-size:11px;color:#059669;margin-top:4px;font-weight:700">✅  Version - All Sections Restored - Pins Logic Implemented - Before Pins Session Files + Pins Logic</div><div style="font-size:11px;color:#64748b;margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px">This is  version - Contains all sections: Dashboard, Users, Pins Analytics, Deposit Check & Approve with Screenshot, Direct Generate, Delete, All Pins List Town Wise, Store Locator, Create Store, Store Points, Sub Admin, Wallets, Binary, ROI, Withdraw - All features from before pins session + pins logic implemented - 40KB+ as you requested</div></div><input id="adminEmail" placeholder="Admin ID - super@freedomloans.in" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password - super123" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
+<div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2></div><input id="adminEmail" placeholder="Admin ID - super@freedomloans.in" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password - super123" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
 <div id="adminMain" style="display:none">
 <div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b>FLM Admin - Platform Dashboard - All Sections - Pins Logic Implemented</b></div><button onclick="adminLogout()" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer">Logout</button></div>
 <div class="menu" id="menu">

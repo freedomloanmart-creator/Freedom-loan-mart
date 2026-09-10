@@ -86,17 +86,35 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
 async function updateSponsorBinary(sponsorId,side){
   if(!supabaseClient||!sponsorId)return;
   try{
-    const {data:sponsorBin}=await supabaseClient.from('binary_summary').select('*').eq('fl_id',sponsorId.toUpperCase()).single();
-    if(!sponsorBin)return;
-    const u={team_size:(sponsorBin.team_size||0)+1};
-    if(String(side).toLowerCase()==='left'){u.left_own=(sponsorBin.left_own||0)+1;u.left_tokens=(sponsorBin.left_tokens||0)+1;}
-    else {u.right_own=(sponsorBin.right_own||0)+1;u.right_tokens=(sponsorBin.right_tokens||0)+1;}
-    u.total_pairs=Math.min(u.left_tokens!==undefined?u.left_tokens:(sponsorBin.left_tokens||0),u.right_tokens!==undefined?u.right_tokens:(sponsorBin.right_tokens||0));
-    await supabaseClient.from('binary_summary').update(u).eq('fl_id',sponsorId.toUpperCase());
+    const sid=sponsorId.toUpperCase();
+    const {data:sponsorBin,error:binErr}=await supabaseClient.from('binary_summary').select('*').eq('fl_id',sid).single();
+    if(binErr||!sponsorBin)return;
+    const oldPairs=Number(sponsorBin.total_pairs||0);
+    const left=String(side).toLowerCase()==='left'?(Number(sponsorBin.left_tokens||0)+1):Number(sponsorBin.left_tokens||0);
+    const right=String(side).toLowerCase()==='right'?(Number(sponsorBin.right_tokens||0)+1):Number(sponsorBin.right_tokens||0);
+    const newPairs=Math.min(left,right);
+    const u={team_size:Number(sponsorBin.team_size||0)+1,left_tokens:left,right_tokens:right,total_pairs:newPairs};
+    const newPairCount=Math.max(0,newPairs-oldPairs);
+    const currentDaily=Number(sponsorBin.daily_pairs_today||0);
+    const allowed=Math.max(0,Math.min(newPairCount,25-currentDaily));
+    if(allowed>0){
+      u.daily_pairs_today=currentDaily+allowed;
+      u.daily_income_today=Number(sponsorBin.daily_income_today||0)+(allowed*200);
+      const {data:w,error:we}=await supabaseClient.from('wallets').select('matching_wallet,main_wallet').eq('fl_id',sid).single();
+      if(we)throw we;
+      if(w){
+        const {error:wu}=await supabaseClient.from('wallets').update({matching_wallet:Number(w.matching_wallet||0)+(allowed*200),main_wallet:Number(w.main_wallet||0)+(allowed*200)}).eq('fl_id',sid);
+        if(wu)throw wu;
+      }
+    }
+    if(String(side).toLowerCase()==='left')u.left_own=Number(sponsorBin.left_own||0)+1;
+    else u.right_own=Number(sponsorBin.right_own||0)+1;
+    const {error:bu}=await supabaseClient.from('binary_summary').update(u).eq('fl_id',sid);
+    if(bu)throw bu;
     const userUpdate={};
-    if(String(side).toLowerCase()==='left')userUpdate.left_own=(sponsorBin.left_own||0)+1;
-    else userUpdate.right_own=(sponsorBin.right_own||0)+1;
-    await supabaseClient.from('users').update(userUpdate).eq('fl_id',sponsorId.toUpperCase());
+    if(String(side).toLowerCase()==='left')userUpdate.left_own=Number(sponsorBin.left_own||0)+1;
+    else userUpdate.right_own=Number(sponsorBin.right_own||0)+1;
+    await supabaseClient.from('users').update(userUpdate).eq('fl_id',sid);
   }catch(e){console.log('Sponsor binary update error:',e.message);}
 }
 
@@ -194,6 +212,14 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 40 pairs=Rs.8000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Payment cheste screenshot + UTR/Hash mandatory</div>
 <button class="btn" onclick="register()">Register Now - Rs.2000</button>
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
+<div style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
+  <b style="font-size:12px">Registration Status</b>
+  <div style="font-size:10px;color:#64748b;margin:5px 0 8px">Payment registration approve ayindho check cheyyadaniki Mobile + UTR/Hash enter cheyyandi.</div>
+  <input id="statusMobile" placeholder="Registered Mobile Number" inputmode="numeric">
+  <input id="statusUtr" placeholder="UPI UTR / USDT Hash">
+  <button class="btn" style="background:#2563eb;margin-top:4px" onclick="checkRegistrationStatus()">Check Approval Status</button>
+  <div id="statusResult" style="margin-top:8px;font-size:11px"></div>
+</div>
 <div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#f8fafc"><b style="font-size:12px">Buy Tokens/Pins - 100+20 Bonus - Pin=Token Same</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="buyQty" type="number" value="100" style="margin:0"><div id="bonusCalc" style="padding:10px;background:#dcfce7;border-radius:8px;font-size:11px;font-weight:700">100 + 20 = 120 Tokens</div></div><button class="btn" style="background:#059669;margin-top:8px" onclick="const q=parseInt(document.getElementById('buyQty').value)||100;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';alert('Generated '+(q+b)+' Tokens/Pins - Pin=Token same - 20 extra')">Buy Tokens - Get Bonus</button></div>
 <div style="text-align:center;margin-top:12px;font-size:12px">Already? <a href="./login.html" style="color:#2563eb">Login</a></div>
 </div></div>
@@ -293,6 +319,8 @@ async function register(){
       if(result.pending){
         msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>Admin Panel → Registration Payment Approvals lo verify chesi approve chestaru.</span>';
         document.getElementById('paymentSection').style.display='none';
+        document.getElementById('statusMobile').value=mobile;
+        document.getElementById('statusUtr').value=utrHash;
         document.querySelectorAll('#fullName,#mobile,#email,#password').forEach(e=>e.value='');
         return;
       }
@@ -301,6 +329,29 @@ async function register(){
     }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
   }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';}
 }
+async function checkRegistrationStatus(){
+  const mobile=(document.getElementById('statusMobile').value||'').trim();
+  const utr=(document.getElementById('statusUtr').value||'').trim();
+  const out=document.getElementById('statusResult');
+  if(!mobile||!utr){out.innerHTML='<span style="color:#dc2626">Mobile and UTR/Hash enter cheyyandi.</span>';return;}
+  if(!supabaseClient){out.innerHTML='<span style="color:#64748b">Live Supabase connection required to check status.</span>';return;}
+  out.innerHTML='<span style="color:#2563eb">⏳ Checking status...</span>';
+  try{
+    const {data,error}=await supabaseClient.rpc('flm_registration_status',{p_mobile:mobile,p_utr_hash:utr});
+    if(error)throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    if(!row){out.innerHTML='<span style="color:#dc2626">❌ Registration request not found. Mobile + UTR/Hash check cheyyandi.</span>';return;}
+    const st=String(row.status||'').toLowerCase();
+    if(st==='approved'){
+      out.innerHTML='<div style="color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:10px;border-radius:9px"><b>✅ Approved</b><br>FL ID: <b>'+String(row.approved_fl_id||'')+'</b><br><a href="./login.html" style="color:#2563eb;font-weight:700">Login Now →</a></div>';
+    }else if(st==='rejected'){
+      out.innerHTML='<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:9px"><b>❌ Registration Rejected</b><br>Please submit a new payment proof/request.</div>';
+    }else{
+      out.innerHTML='<div style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:10px;border-radius:9px"><b>⏳ Pending Approval</b><br>Admin verification complete ayyaka ikkade Approved + FL ID kanipistundi.</div>';
+    }
+  }catch(e){out.innerHTML='<span style="color:#dc2626">❌ Status check failed: '+e.message+'</span>';}
+}
+
 document.getElementById('buyQty').addEventListener('input',()=>{const q=parseInt(document.getElementById('buyQty').value)||0;const b=Math.floor(q/100)*20;document.getElementById('bonusCalc').innerText=q+' + '+b+' = '+(q+b)+' Tokens';});
 </script>
 
