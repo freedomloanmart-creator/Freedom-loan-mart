@@ -450,7 +450,25 @@ async function saveStoreEdits(){
 }
 
 let adminWithdrawalRows=[];
-function safeText(v){return String(v==null?'':v);}
+let adminUserMap={};
+function safeText(v){return String(v==null?'':v);} 
+function copyAdminText(v){try{navigator.clipboard.writeText(String(v||''));alert('Copied');}catch(e){alert(String(v||''));}}
+function payoutHtml(x){
+  const u=adminUserMap[safeText(x.fl_id||x.user_fl_id).toUpperCase()]||{};
+  const method=safeText(x.method).toLowerCase();
+  if(method==='bank'){
+    const holder=escapeHtml(u.bank_account_holder||'Not saved');
+    const bank=escapeHtml(u.bank_name||'Not saved');
+    const acc=escapeHtml(u.bank_account_number||'Not saved');
+    const ifsc=escapeHtml(u.bank_ifsc||'Not saved');
+    return '<div style="margin-top:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px;font-size:10px"><b style="color:#1e40af">🏦 BANK PAYOUT DETAILS</b><div style="margin-top:5px">Holder: <b>'+holder+'</b></div><div>Bank: <b>'+bank+'</b></div><div>Account: <b>'+acc+'</b></div><div>IFSC: <b>'+ifsc+'</b></div></div>';
+  }
+  if(method==='usdt'){
+    const addr=escapeHtml(u.usdt_bep20||'Not saved');
+    return '<div style="margin-top:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:9px;font-size:10px"><b style="color:#047857">🪙 USDT BEP-20 PAYOUT DETAILS</b><div style="margin-top:5px;word-break:break-all">Address: <b>'+addr+'</b></div></div>';
+  }
+  return '';
+}
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
 function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
@@ -464,7 +482,9 @@ function renderAdminWithdrawCard(x,compact){
     if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
     else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
   }
-  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net: ₹'+net.toLocaleString('en-IN')+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+b+'</div>';
+  const payout=payoutHtml(x);
+  const actionNote=(safeText(x.status||'processing').trim().toLowerCase()==='processing' && !wdIsStore(x))?'<div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px;font-size:10px;color:#92400e">Send <b>₹'+net.toLocaleString('en-IN')+'</b> to the payout details above only after verifying the member and payment status. Then click Approve.</div>':'';
+  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net to member: <b>₹'+net.toLocaleString('en-IN')+'</b>'+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+payout+actionNote+b+'</div>';
 }
 function renderAdminWithdrawals(){
   const l=document.getElementById('adminWithdrawList'),s=document.getElementById('adminStoreList'),h=document.getElementById('adminWithdrawHistory');
@@ -486,6 +506,13 @@ async function loadAdminWithdrawals(){
     const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(500);
     if(r.error)throw r.error;
     adminWithdrawalRows=r.data||[];
+    // Load only payout fields needed by the admin so every withdrawal card shows where the net amount must be sent.
+    adminUserMap={};
+    const flIds=[...new Set(adminWithdrawalRows.map(x=>safeText(x.fl_id||x.user_fl_id).trim().toUpperCase()).filter(Boolean))];
+    if(flIds.length){
+      const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds);
+      if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[safeText(u.fl_id).toUpperCase()]=u;});
+    }
     const n=x=>safeText(x.status).trim().toLowerCase();
     document.getElementById('wdPendingCount').innerText=adminWithdrawalRows.filter(x=>n(x)==='processing').length;
     document.getElementById('wdApprovedCount').innerText=adminWithdrawalRows.filter(x=>['approved','completed'].includes(n(x))).length;
