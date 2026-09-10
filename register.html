@@ -337,9 +337,14 @@ async function checkRegistrationStatus(){
   if(!supabaseClient){out.innerHTML='<span style="color:#64748b">Live Supabase connection required to check status.</span>';return;}
   out.innerHTML='<span style="color:#2563eb">⏳ Checking status...</span>';
   try{
-    const {data,error}=await supabaseClient.rpc('flm_registration_status',{p_mobile:mobile,p_utr_hash:utr});
-    if(error)throw error;
-    const row=Array.isArray(data)?data[0]:data;
+    let row=null;
+    const rpc=await supabaseClient.rpc('flm_registration_status',{p_mobile:mobile,p_utr_hash:utr});
+    if(!rpc.error){ row=Array.isArray(rpc.data)?rpc.data[0]:rpc.data; }
+    else {
+      const direct=await supabaseClient.from('registration_requests').select('status,approved_fl_id,reviewed_at,created_at').eq('mobile',mobile).eq('utr_hash',utr).order('created_at',{ascending:false}).limit(1);
+      if(direct.error)throw rpc.error;
+      row=direct.data&&direct.data[0]?direct.data[0]:null;
+    }
     if(!row){out.innerHTML='<span style="color:#dc2626">❌ Registration request not found. Mobile + UTR/Hash check cheyyandi.</span>';return;}
     const st=String(row.status||'').toLowerCase();
     if(st==='approved'){
