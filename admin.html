@@ -251,7 +251,7 @@ function adminLogout(){localStorage.removeItem('flm_admin_session');document.get
 function checkAdminSession(){const sess=localStorage.getItem('flm_admin_session');if(sess){document.getElementById('adminLogin').style.display='none';document.getElementById('adminMain').style.display='block';loadAdminData();}else{document.getElementById('adminLogin').style.display='flex';document.getElementById('adminMain').style.display='none';}}
 async function loadAdminData(){if(supabaseClient){const dash=await loadDashboardReal();if(dash){document.getElementById('statMembers').innerText=dash.usersCount||0;document.getElementById('statTokens').innerText=dash.pinsCount||0;document.getElementById('statStores').innerText=dash.storesCount||0;if(dash.users){document.getElementById('recentMembers').innerHTML=dash.users.map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id} - ${u.mobile} - ${u.town||''}</div>`).join('');}if(dash.binarySummary){const totalPairs=dash.binarySummary.reduce((s,x)=>s+(x.total_pairs||0),0);document.getElementById('binaryPairs').innerText=totalPairs+' pairs';}}}}
 function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
-function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);}
+function showSec(id){document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');document.getElementById('sec-'+id).style.display='block';toggleMenu();loadSec(id);if(id==='roi')loadLoanAdmin();}
 function openUserEditor(flId){
  var box=document.getElementById('userEditor'); if(box) box.style.display='block';
  var input=document.getElementById('editFlId'); if(input) input.value=flId||'';
@@ -386,6 +386,49 @@ async function loadSec(id){
  if(id==='stores'&&supabaseClient){loadStoresAdmin();}
  if(id==='wallets'&&supabaseClient){const {data}=await supabaseClient.from('wallets').select('*').limit(20);document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9">${w.fl_id} - Rs.${w.balance||0}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets yet.</div>';}
 }
+
+async function loadLoanAdmin(){
+  var plansEl=document.getElementById('adminLoanPlans'), rowsEl=document.getElementById('adminLoanRows'), roiEl=document.getElementById('adminRoiRows');
+  if(plansEl) plansEl.innerHTML='<div style="padding:12px;color:#64748b">🔄 Loading loan plans...</div>';
+  if(rowsEl) rowsEl.innerHTML='<div style="padding:12px;color:#64748b">🔄 Loading member progress...</div>';
+  if(roiEl) roiEl.innerHTML='<div style="padding:12px;color:#64748b">🔄 Loading ROI cycles...</div>';
+  if(!supabaseClient){if(plansEl)plansEl.innerHTML='<div style="color:#991b1b">Supabase not connected.</div>';return;}
+  try{
+    var pr=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+    if(pr.error) throw pr.error;
+    var plans=pr.data||[];
+    if(plansEl){
+      if(!plans.length) plansEl.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found. Run the Loan/ROI SQL migration first.</div>';
+      else{
+        var h='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';
+        plans.forEach(function(x){var n=Number(x.level_no||0), req=Number(x.required_pairs||0), amt=Number(x.loan_amount||0), prev=Number(x.previous_loan_amount||0), inc=x.incremental_amount!=null?Number(x.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+escapeHtml(x.plan_name||('Loan '+n))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">Rs. '+amt.toLocaleString('en-IN')+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">Rs. '+inc.toLocaleString('en-IN')+'</td></tr>';});
+        h+='</tbody></table></div>';plansEl.innerHTML=h;
+      }
+    }
+    var mr=await supabaseClient.from('member_loans').select('*').order('created_at',{ascending:false}).limit(200);
+    if(mr.error) throw mr.error;
+    window.__adminMemberLoans=mr.data||[];
+    renderAdminLoanRows();
+    var rr=await supabaseClient.from('loan_roi_cycles').select('*').order('created_at',{ascending:false}).limit(100);
+    if(rr.error) throw rr.error;
+    var rois=rr.data||[];
+    if(roiEl){
+      if(!rois.length) roiEl.innerHTML='<div style="padding:12px;color:#64748b">No ROI cycles found.</div>';
+      else roiEl.innerHTML=rois.map(function(x){return '<div style="padding:10px;border-bottom:1px solid #e2e8f0"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.fl_id||'—')+'</b><b>Rs. '+Number(x.daily_amount||40).toLocaleString('en-IN')+'/day</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">'+escapeHtml(x.status||'—')+' · '+Number(x.days_completed||x.days_paid||0)+' / '+Number(x.total_days||50)+' days</div></div>';}).join('');
+    }
+  }catch(e){
+    var msg='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b">Loan/ROI data error: '+escapeHtml(e.message)+'</div>';
+    if(plansEl)plansEl.innerHTML=msg;if(rowsEl)rowsEl.innerHTML=msg;if(roiEl)roiEl.innerHTML=msg;
+  }
+}
+function renderAdminLoanRows(){
+  var el=document.getElementById('adminLoanRows'); if(!el)return;
+  var q=(document.getElementById('adminLoanSearch')?.value||'').trim().toUpperCase();
+  var rows=(window.__adminMemberLoans||[]).filter(function(x){return !q||String(x.fl_id||'').toUpperCase().includes(q);});
+  if(!rows.length){el.innerHTML='<div style="padding:12px;text-align:center;color:#64748b">No member loan records found.</div>';return;}
+  el.innerHTML=rows.map(function(x){var inc=Number(x.incremental_amount||x.loan_amount||x.gross_loan_amount||0),hold=Number(x.hold_amount||0),done=Number(x.renewal_completed_count||x.renewal_completed||0),req=Number(x.renewal_required_count||x.renewal_required||0);return '<div style="padding:11px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.fl_id||'—')+'</b><b>Loan '+escapeHtml(x.plan_level||x.level_no||'—')+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Pairs: '+Number(x.required_pairs||0)+':'+Number(x.required_pairs||0)+' · Status: '+escapeHtml(x.status||'—')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Increment: Rs. '+inc.toLocaleString('en-IN')+' · Held: Rs. '+hold.toLocaleString('en-IN')+' · Renewal: '+done+' / '+req+'</div></div>';}).join('');
+}
+
 window.addEventListener('load',()=>{checkAdminSession();});
 </script>
 <style>
