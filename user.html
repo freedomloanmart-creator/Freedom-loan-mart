@@ -18,7 +18,7 @@ function showSec(id){
  var menu=document.getElementById('menu');var overlay=document.getElementById('overlay');if(menu) menu.classList.remove('open');if(overlay) overlay.classList.remove('show');
  var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center'};
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='loans') loadLoanPanel();
 }
 function logout(){localStorage.removeItem('flm_session');location.href='./login.html';}
 </script>
@@ -123,7 +123,40 @@ body{background:#eef2f7;color:#0f172a}
 <div class="card" style="border:2px solid #2563eb;background:#f8fafc"><div style="font-weight:800;color:#1e40af">📋 Pin Purchase Status</div><div id="purchaseStatus" style="margin-top:10px;padding:12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;color:#64748b">Checking latest submission...</div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎟️</div><b style="color:#fff">Unused pins</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Ready to use - Green</div><div style="padding:0"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;background:#f0f9ff;padding:10px 16px;font-size:12px;font-weight:700;color:#1e3a5a;border-bottom:1px solid #e2e8f0"><div>TOKEN</div><div>AMOUNT</div></div><div id="unusedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎫</div><b style="color:#fff">Used pins</b></div><div style="text-align:center;padding:6px 0;color:#fef3c7;font-size:11px;background:linear-gradient(135deg,#b45309,#9f1239)">Already consumed - Brown</div><div style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff7ed;padding:10px 16px;font-size:12px;font-weight:700;color:#7c2d12;border-bottom:1px solid #fed7aa"><div>TOKEN</div><div>AMOUNT</div><div>USED IN</div></div><div id="usedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No used pins yet.</div></div></div></div>
 </div>
-<div id="sec-loans" style="display:none"><div class="card"><h3>🏦 Loan Plans</h3><div>Coming soon</div></div></div>
+<div id="sec-loans" style="display:none">
+<div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px">
+  <div style="font-size:11px;opacity:.8">FLM LOAN & ROI</div><div style="font-size:22px;font-weight:900;margin-top:4px">🏦 Loan Plans</div>
+  <div style="font-size:11px;opacity:.85;margin-top:6px">Eligibility is checked from your real binary/direct-referral data. After 40:40, renewal gating and held amounts are shown here.</div>
+  <button onclick="loadLoanPanel()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:11px;padding:12px;font-weight:800">🔄 Refresh Loan Status</button>
+</div>
+<div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="text-align:center;color:#64748b">Loading loan status...</div></div>
+<div class="grid2">
+ <div class="dark-card"><div style="font-size:11px;opacity:.75">Current Pair Progress</div><div id="loanPairProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 : 0</div></div>
+ <div class="dark-card"><div style="font-size:11px;opacity:.75">Eligible Loan</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
+ <div class="dark-card"><div style="font-size:11px;opacity:.75">Held Amount</div><div id="loanHeldAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
+ <div class="dark-card"><div style="font-size:11px;opacity:.75">Renewal Progress</div><div id="loanRenewalProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 / 0</div></div>
+</div>
+<div class="card" style="border:2px solid #059669">
+ <div style="font-weight:900;color:#065f46">🔄 Self Renewal</div>
+ <div id="selfRenewNote" style="font-size:11px;color:#64748b;margin-top:5px">Renewal becomes available only after the current 50-day ROI cycle is complete.</div>
+ <input id="loanRenewPin" class="input" placeholder="Enter any valid unused PIN" style="margin-top:10px">
+ <button id="loanRenewBtn" onclick="submitLoanSelfRenewal()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Renew with PIN</button>
+ <div id="loanRenewMsg" style="font-size:11px;text-align:center;margin-top:8px"></div>
+</div>
+<div class="card" style="border:2px solid #7c3aed">
+ <div style="font-weight:900;color:#5b21b6">📅 Current ROI Cycle</div>
+ <div id="loanRoiCycleBox" style="margin-top:10px;color:#64748b;font-size:12px">No ROI cycle found.</div>
+</div>
+<div class="card" style="border:2px solid #0ea5e9">
+ <div style="font-weight:900;color:#0369a1">📋 Loan Plan Levels</div>
+ <div style="font-size:11px;color:#64748b;margin-top:4px">Increment = current loan amount − previous loan amount. The 40:40 renewal rule is applied by the database functions.</div>
+ <div id="loanPlansTable" style="margin-top:10px;overflow:auto">Loading plans...</div>
+</div>
+<div class="card" style="border:2px solid #f59e0b">
+ <div style="font-weight:900;color:#92400e">🧾 My Loan History</div>
+ <div id="myLoanHistory" style="margin-top:10px">Loading...</div>
+</div>
+</div>
 <div id="sec-rewards" style="display:none"><div class="card"><h3>🏆 Rewards</h3><div>Coming soon</div></div></div>
 <div id="sec-support" style="display:none"><div class="card"><h3>💬 Help Center</h3><div>Support</div></div></div>
 </div>
@@ -446,5 +479,69 @@ async function checkMatchingStore(){
 }
 async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Store withdrawal request submitted. Give the request to the selected store. Status: Processing.');loadWalletHistory();}catch(e){alert('Store withdrawal failed: '+e.message);}}
 async function loadWalletHistory(){var el=document.getElementById('walletHistory');if(!el||!supabaseClient)return;var flId=getFlId();try{var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}var html='';rows.forEach(function(x){var st=(x.status||'processing').toUpperCase();var net=x.net_amount!=null?x.net_amount:x.amount;html+='<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:12px">'+(x.title||x.wallet_type||'Transaction')+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+(st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309')+'">'+st+(x.approved_by?' • Approved by '+x.approved_by:'')+(x.store_name?' • Store: '+x.store_name:'')+'</div></div>';});el.innerHTML=html;}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}}
+</script>
+<script>
+function loanNum(v){var n=Number(v);return Number.isFinite(n)?n:0;}
+function loanMoney(v){return 'Rs. '+loanNum(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function loanEsc(v){return String(v??'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});}
+function firstVal(o,keys,def){for(var i=0;i<keys.length;i++){if(o&&o[keys[i]]!==undefined&&o[keys[i]]!==null)return o[keys[i]];}return def;}
+async function loadLoanPanel(){
+  if(!requireLogin()||!supabaseClient)return;
+  var flId=getFlId();
+  var status=document.getElementById('loanStatusBox'); if(status)status.innerHTML='<div style="text-align:center;color:#64748b">🔄 Checking loan eligibility...</div>';
+  try{
+    // Refresh the database-side progress first. This is safe to call repeatedly because the RPC is designed for progress refresh.
+    try{var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});if(rr.error)console.log('loan progress refresh:',rr.error.message);}catch(e){console.log('loan progress refresh:',e.message);}
+    var elig=await supabaseClient.rpc('flm_check_loan_eligibility',{p_fl_id:flId});
+    if(elig.error)throw elig.error;
+    var e=Array.isArray(elig.data)?(elig.data[0]||{}):(elig.data||{});
+    var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+    if(plansR.error)throw plansR.error;
+    var plans=plansR.data||[];
+    var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
+    if(loansR.error)throw loansR.error;
+    var loans=loansR.data||[];
+    var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
+    if(roiR.error)throw roiR.error;
+    var rois=roiR.data||[];
+    var currentLoan=loans.length?loans[loans.length-1]:null;
+    var currentRoi=rois.length?rois[0]:null;
+    var totalPairs=loanNum(firstVal(e,['total_pairs','totalPairs'],0));
+    var ql=loanNum(firstVal(e,['qualifying_left','left_qualifying','left_tokens'],0));
+    var qr=loanNum(firstVal(e,['qualifying_right','right_qualifying','right_tokens'],0));
+    // Prefer binary_summary if the eligibility function does not return pair data.
+    if(!totalPairs||!ql&&!qr){var b=await supabaseClient.from('binary_summary').select('left_tokens,right_tokens,total_pairs').eq('fl_id',flId).single();if(b.data){ql=loanNum(b.data.left_tokens);qr=loanNum(b.data.right_tokens);totalPairs=loanNum(b.data.total_pairs);}}
+    var eligibleAmount=loanNum(firstVal(e,['incremental_amount','eligible_amount','loan_amount'],0));
+    var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
+    var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
+    var renewalDone=loanNum(firstVal(e,['renewal_completed_count','renewal_completed'],currentLoan?currentLoan.renewal_completed_count:0));
+    var eligible=Boolean(firstVal(e,['eligible','is_eligible'],false));
+    var msg=String(firstVal(e,['message','v_message'],''));
+    var lvl=firstVal(e,['level_no','next_level','plan_level'],currentLoan?currentLoan.plan_level:0);
+    if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
+    var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(eligibleAmount);
+    var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
+    var rp=document.getElementById('loanRenewalProgress');if(rp)rp.innerText=renewalDone+' / '+renewalReq;
+    var note=document.getElementById('selfRenewNote');var rb=document.getElementById('loanRenewBtn');
+    var roiStatus=String(firstVal(currentRoi,['status'],'' )).toLowerCase();
+    var end=firstVal(currentRoi,['end_date','ends_at'],null);var done=loanNum(firstVal(currentRoi,['days_completed','days_paid','completed_days'],0));var totalDays=loanNum(firstVal(currentRoi,['total_days','days'],50))||50;
+    var completed=roiStatus==='completed'||done>=totalDays||(end&&new Date(end).getTime()<=Date.now());
+    if(note)note.innerText=currentRoi&&!completed?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until 50 days complete.':'✅ No active ROI lock. If the database marks renewal as eligible, you can use any valid unused PIN.';
+    if(rb)rb.disabled=currentRoi&&!completed;
+    var rbbox=document.getElementById('loanRoiCycleBox');
+    if(rbbox){if(currentRoi){var daily=loanNum(firstVal(currentRoi,['daily_amount','amount_per_day','daily_roi'],40));rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
+    var pt=document.getElementById('loanPlansTable');
+    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">'+loanMoney(amt)+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
+    var hist=document.getElementById('myLoanHistory');
+    if(hist){if(!loans.length)hist.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">No member loan records yet.</div>';else{var hh='';loans.slice().reverse().forEach(function(l){var amt=loanNum(firstVal(l,['incremental_amount','loan_amount','gross_loan_amount'],0));var st=String(l.status||'').toLowerCase();var hold=loanNum(l.hold_amount);hh+='<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan '+loanEsc(l.plan_level||l.level_no||'—')+'</b><b>'+loanMoney(amt)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Required pairs: '+loanNum(l.required_pairs)+':'+loanNum(l.required_pairs)+' · Status: '+loanEsc(l.status||'—')+(hold?' · Held: '+loanMoney(hold):'')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Renewal: '+loanNum(l.renewal_completed_count||l.renewal_completed)+' / '+loanNum(l.renewal_required_count||l.renewal_required)+'</div></div>';});hist.innerHTML=hh;}}
+  }catch(err){if(status)status.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b">Loan status error: '+loanEsc(err.message)+'</div>';console.log('loan panel',err);}
+}
+async function submitLoanSelfRenewal(){
+  var pin=(document.getElementById('loanRenewPin')?.value||'').trim();var msg=document.getElementById('loanRenewMsg');
+  if(!pin){if(msg){msg.style.color='#dc2626';msg.innerText='Enter a valid unused PIN.';}return;}
+  var btn=document.getElementById('loanRenewBtn');if(btn)btn.disabled=true;if(msg){msg.style.color='#2563eb';msg.innerText='Checking PIN and renewal eligibility...';}
+  try{var flId=getFlId();var check=await supabaseClient.rpc('flm_check_renewal_pin',{p_pin_code:pin});if(check.error)throw check.error;var c=Array.isArray(check.data)?(check.data[0]||{}):(check.data||{});if(c.valid===false||c.is_valid===false){throw new Error(c.message||'PIN is not valid/unused.');}var r=await supabaseClient.rpc('flm_self_renew_with_pin',{p_fl_id:flId,p_pin_code:pin});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});if(d.success===false)throw new Error(d.message||'Renewal was not completed.');if(msg){msg.style.color='#059669';msg.innerText='✅ Renewal completed successfully. A new 50-day ₹40/day ROI cycle has been started.';}document.getElementById('loanRenewPin').value='';await loadLoanPanel();loadPins();loadWalletData();}catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Renewal failed: '+e.message;}}finally{if(btn)btn.disabled=false;}
+}
 </script>
 </body></html>

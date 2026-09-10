@@ -422,7 +422,7 @@ body{background:#eef2f7;color:#0f172a}
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('subAdmin')">👤 Sub Admin</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('wallets')">💰 Wallets - Real DB</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('binary')">🌳 Binary Summary - Real</div>
-<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('roi')">🔄 ROI - Real</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#7c3aed;color:#fff" onclick="showSec('roi')">🏦 Loans & ROI - Real</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('withdraw')">⬆️ Withdrawals</div>
 </div>
 
@@ -445,7 +445,13 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-subAdmin" style="display:none"><div class="card"><h3>👤 Sub Admin</h3><div>Sub admin management</div></div></div>
 <div id="sec-wallets" style="display:none"><div class="card" style="border:2px solid #8b5cf6"><div style="font-weight:800;color:#5b21b6">💰 Wallets - Real - Live DB</div><div id="walletsList" style="margin-top:10px">Loading wallets...</div></div></div>
 <div id="sec-binary" style="display:none"><div class="card"><h3>🌳 Binary Summary - Real</h3><div>Binary summary - Real data</div></div></div>
-<div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI - Real</h3><div>ROI management - Daily Rs.40</div></div></div>
+<div id="sec-roi" style="display:none">
+<div class="card" style="background:linear-gradient(135deg,#312e81,#7c3aed);color:#fff;border-radius:18px"><h3>🏦 Loans & ROI - Real DB</h3><div style="font-size:11px;opacity:.85;margin-top:5px">View loan levels, member progress, renewal holds and ROI cycles. Daily ROI uses the database RPC so a member cannot be credited twice for the same date.</div><button onclick="loadLoanAdmin()" style="width:100%;margin-top:12px;background:#fff;color:#5b21b6;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Loan & ROI Data</button></div>
+<div class="card" style="border:2px solid #2563eb"><div style="font-weight:900;color:#1e40af">📋 Loan Plan Configuration</div><div id="adminLoanPlans" style="margin-top:10px">Loading...</div></div>
+<div class="card" style="border:2px solid #059669"><div style="font-weight:900;color:#065f46">👥 Member Loan Progress</div><input id="adminLoanSearch" class="input" placeholder="Search FL ID" style="margin-top:10px" oninput="renderAdminLoanRows()"><div id="adminLoanRows" style="margin-top:10px">Loading...</div></div>
+<div class="card" style="border:2px solid #7c3aed"><div style="font-weight:900;color:#5b21b6">📅 ROI Cycles</div><div id="adminRoiRows" style="margin-top:10px">Loading...</div></div>
+<div class="card" style="border:2px solid #f59e0b"><div style="font-weight:900;color:#92400e">⚙️ Member Actions</div><input id="adminRoiFlId" class="input" placeholder="Member FL ID" style="margin-top:10px"><button onclick="refreshMemberLoanAdmin()" style="width:100%;margin-top:8px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Refresh This Member Progress</button><button onclick="creditMemberDailyRoiAdmin()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Credit Today's ₹40 ROI</button><div id="adminLoanMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div>
+</div>
 <div id="sec-withdraw" style="display:none"><div class="card"><h3>⬆️ Withdrawals</h3><div>Withdrawal requests</div></div></div>
 </div>
 </body></html>
