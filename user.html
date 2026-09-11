@@ -678,10 +678,22 @@ async function loadWalletData(){
   // Therefore the wallet balance returned by Supabase is already the AVAILABLE balance.
   // Do not subtract processing withdrawals a second time in the browser.
   var ma=Math.max(0,matching),la=Math.max(0,loan),ra=Math.max(0,roi);FLM_WALLET={roi:ra,matching:ma,loan:la,total:roi+matching+loan,pairs:0,dailyPairs:0,dailyIncome:0,totalWithdrawn:0,pendingMatching:pm,pendingLoan:pl,pendingRoi:pr,rawMatching:matching,rawLoan:loan,rawRoi:roi};
-  try{var lv2=await flmLoadLoanV2();var lw2=document.getElementById('loanWallet');if(lw2)lw2.innerText=money(lv2.wallet);var le2=document.getElementById('loanEligible');if(le2)le2.innerText=lv2.eligible?'Withdrawable: '+money(lv2.incremental):'Locked: '+money(lv2.incremental)+' — '+(lv2.message||'qualification pending');}catch(e){}
+  try{
+    var lv2=await flmLoadLoanV2();
+    // Use the post-sync loan wallet value everywhere below.
+    if(lv2 && Number.isFinite(Number(lv2.wallet))){
+      loan=Math.max(0,Number(lv2.wallet||0));
+      la=loan;
+      FLM_WALLET.loan=loan;
+      FLM_WALLET.rawLoan=loan;
+      FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+loan;
+    }
+    var lw2=document.getElementById('loanWallet');if(lw2)lw2.innerText=money(loan);
+    var le2=document.getElementById('loanEligible');if(le2)le2.innerText=lv2.eligible?'Withdrawable: '+money(lv2.incremental):'Locked: '+money(lv2.incremental)+' — '+(lv2.message||'qualification pending');
+  }catch(e){}
   var b=await supabaseClient.from('binary_summary').select('total_pairs,daily_pairs_today,daily_income_today').eq('fl_id',flId).single();var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
-  var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:roi+matching+loan,roiWallet:ra,matchingWallet:ma,loanWallet:la,totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
-  var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=la>0?'Eligible for direct company withdrawal':'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
+  var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
+  var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Withdrawable: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
   try{var t=await supabaseClient.from('wallet_transactions').select('amount,status').eq('fl_id',flId).in('status',['approved','completed']);var sum=(t.data||[]).reduce(function(a,x){return a+Number(x.amount||0)},0);FLM_WALLET.totalWithdrawn=sum;var te=document.getElementById('totalWithdrawn');if(te)te.innerText=money(sum);}catch(e){}
  }catch(e){console.log('wallet load',e.message);}
 }
@@ -738,7 +750,7 @@ function firstVal(o,keys,def){for(var i=0;i<keys.length;i++){if(o&&o[keys[i]]!==
 var FLM_LOAN_V2={eligible:false,level:0,totalLeft:0,totalRight:0,directLeft:0,directRight:0,loanAmount:0,previousLoan:0,incremental:0,wallet:0,message:''};
 async function flmLoadLoanV2(){
  var flId=getFlId();if(!flId||!supabaseClient)return FLM_LOAN_V2;
- try{await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});var r=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});if(r.error)throw r.error;var e=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});FLM_LOAN_V2={eligible:Boolean(e.eligible),level:loanNum(e.level_no),totalLeft:loanNum(e.total_left),totalRight:loanNum(e.total_right),directLeft:loanNum(e.direct_left),directRight:loanNum(e.direct_right),loanAmount:loanNum(e.loan_amount),previousLoan:loanNum(e.previous_loan_amount),incremental:loanNum(e.incremental_amount),wallet:0,message:String(e.message||'')};var w=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);return FLM_LOAN_V2;}catch(err){console.log('loan v2:',err.message);return FLM_LOAN_V2;}
+ try{await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});var r=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});if(r.error)throw r.error;var e=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});FLM_LOAN_V2={eligible:Boolean(e.eligible),level:loanNum(firstVal(e,['level','level_no','next_level','plan_level'],0)),totalLeft:loanNum(firstVal(e,['total_left','totalLeft'],0)),totalRight:loanNum(firstVal(e,['total_right','totalRight'],0)),directLeft:loanNum(firstVal(e,['direct_left','directLeft'],0)),directRight:loanNum(firstVal(e,['direct_right','directRight'],0)),loanAmount:loanNum(firstVal(e,['loan_amount','loanAmount'],0)),previousLoan:loanNum(firstVal(e,['previous_loan','previous_loan_amount','previousLoan'],0)),incremental:loanNum(firstVal(e,['incremental_amount','incrementalAmount'],0)),wallet:0,message:String(e.message||'')};var w=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);return FLM_LOAN_V2;}catch(err){console.log('loan v2:',err.message);return FLM_LOAN_V2;}
 }
 async function loadLoanPanel(){
   if(!requireLogin()||!supabaseClient)return;
