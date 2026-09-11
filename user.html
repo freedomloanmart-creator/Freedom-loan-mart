@@ -145,9 +145,15 @@ body{background:#eef2f7;color:#0f172a}
 <div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="text-align:center;color:#64748b">Loading loan status...</div></div>
 <div class="grid2">
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Current Pair Progress</div><div id="loanPairProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 : 0</div></div>
- <div class="dark-card"><div style="font-size:11px;opacity:.75">Eligible Loan</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
+ <div class="dark-card"><div style="font-size:11px;opacity:.75">Available Loan (After Previous)</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
+ <div class="dark-card"><div style="font-size:11px;opacity:.75">Previous Loan Deduction</div><div id="loanPreviousAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Held Amount</div><div id="loanHeldAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Renewal Progress</div><div id="loanRenewalProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 / 0</div></div>
+</div>
+<div class="card" style="border:2px solid #2563eb;background:#eff6ff">
+ <div style="font-weight:900;color:#1d4ed8">💰 Withdrawable Loan Amount</div>
+ <div id="loanWithdrawSummary" style="margin-top:8px;font-size:12px;color:#475569">Complete the required pair level to see the new available loan amount.</div>
+ <button type="button" onclick="showSec('wallets')" style="width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">💳 Open Loan Wallet</button>
 </div>
 <div class="card" style="border:2px solid #059669">
  <div style="font-weight:900;color:#065f46">🔄 Self Renewal</div>
@@ -652,6 +658,7 @@ window.addEventListener('load',function(){initDashboard();initFlmNavigation();})
 window.addEventListener('pageshow',function(){if(getFlId()){var saved=localStorage.getItem('flm_last_section');if(saved&&saved!=='dashboard'){setTimeout(function(){showSec(saved,true);},50);}}});
 </script>
 <script>
+var FLM_LOAN_AVAILABLE=0, FLM_LOAN_LEVEL=0, FLM_LOAN_PREVIOUS=0, FLM_LOAN_GROSS=0;
 var FLM_WALLET={roi:0,matching:0,loan:0,total:0,totalWithdrawn:0,pairs:0,dailyPairs:0,dailyIncome:0,store:null};
 function money(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 async function refreshWalletSection(){
@@ -683,7 +690,7 @@ function openWalletAction(type){
  var html='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+title+'</b><span style="font-size:12px;color:#2563eb">Balance: '+money(bal)+'</span></div>';
  if(type==='roi') html+='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Minimum ₹1,000. Redeem any amount from ₹1,000 up to your ROI balance. A store coupon will be generated immediately.</div><input id="walletActionAmount" type="number" min="1000" step="1" placeholder="Enter redeem amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><button onclick="submitRoiRedeem()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:800">Generate Store Coupon</button>';
  if(type==='matching') html+='<div id="matchingActionNote" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Minimum withdrawal ₹200. Until the ₹5,000/day store condition is reached, normal Bank/USDT withdrawal is available. Once ₹5,000 is reached in a day, the nearest store must be used if a store exists within 25 KM. If no store is available within 25 KM, Bank/USDT remains available.</div><input id="walletActionAmount" type="number" min="200" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:10px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:10px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:10px"></div>';
- if(type==='loan') html+='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Up to ₹2,00,000: no charge. Above ₹2,00,000: Bank 18% deduction, USDT BEP-20 5% deduction.</div><input id="walletActionAmount" type="number" min="1" step="1" placeholder="Enter loan withdrawal amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:10px"><button onclick="submitLoanWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank</button><button onclick="submitLoanWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT</button></div>';
+ if(type==='loan'){var loanAvail=Math.max(0,Math.min(Number(FLM_LOAN_AVAILABLE||0),Number(FLM_WALLET.loan||0)));html+='<div style=\"background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px\"><b>New available loan:</b> '+money(loanAvail)+'<br><span style=\"color:#475569\">Current loan − previous loan = new withdrawable amount. Example: ₹4,000 − ₹2,000 = ₹2,000.</span></div><input id=\"walletActionAmount\" type=\"number\" min=\"1\" max=\"'+loanAvail+'\" step=\"1\" value=\"'+(loanAvail>0?loanAvail:'')+'\" placeholder=\"Enter loan withdrawal amount\" style=\"width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px\"><div style=\"display:flex;gap:8px;margin-top:10px\"><button onclick=\"submitLoanWithdraw(\'bank\')\" style=\"flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800\">Bank</button><button onclick=\"submitLoanWithdraw(\'usdt\')\" style=\"flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800\">USDT</button></div>';}
  box.innerHTML=html;box.scrollIntoView({behavior:'smooth',block:'start'});if(type==='matching')checkMatchingStore();
 }
 function getActionAmount(){return Number(document.getElementById('walletActionAmount')?.value||0);}
@@ -701,7 +708,7 @@ async function submitMatchingWithdraw(method){var amt=getActionAmount();if(amt<2
   var input=document.getElementById('walletActionAmount');if(input)input.value='';
   await loadWalletData(); await loadWalletHistory(); showSec('wallets',true);
   alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
-async function submitLoanWithdraw(method){var amt=getActionAmount();if(amt<1){alert('Enter withdrawal amount.');return;}if(amt>FLM_WALLET.loan){alert('Insufficient available loan balance.');return;}if(!(await ensurePayout(method)))return;var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'loan',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;alert('Loan withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Withdrawal failed: '+e.message);}}
+async function submitLoanWithdraw(method){var amt=getActionAmount();var eligibleNow=Math.max(0,Number(FLM_LOAN_AVAILABLE||0));if(amt<1){alert('Enter withdrawal amount.');return;}if(eligibleNow>0&&amt>eligibleNow){alert('Maximum withdrawable amount for this loan level is '+money(eligibleNow)+'.');return;}if(amt>FLM_WALLET.loan){alert('Insufficient available loan balance.');return;}if(!(await ensurePayout(method)))return;var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'loan',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;alert('Loan withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();showSec('wallets',true);}catch(e){alert('Withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
  var el=document.getElementById('matchingStoreBox');if(!el)return;
  var force=(FLM_WALLET.dailyIncome>=5000 || FLM_WALLET.dailyPairs>=25);
@@ -759,10 +766,19 @@ async function loadLoanPanel(){
     var eligible=Boolean(firstVal(e,['eligible','is_eligible'],false));
     var msg=String(firstVal(e,['message','v_message'],''));
     var lvl=firstVal(e,['level_no','next_level','plan_level'],currentLoan?currentLoan.plan_level:0);
+    var matchedPlan=null;
+    for(var pi=0;pi<plans.length;pi++){if(String(plans[pi].level_no)===String(lvl)){matchedPlan=plans[pi];break;}}
+    var grossPlan=matchedPlan?loanNum(matchedPlan.loan_amount):0;
+    var prevPlan=matchedPlan?loanNum(matchedPlan.previous_loan_amount):0;
+    var incPlan=matchedPlan?(matchedPlan.incremental_amount!=null?loanNum(matchedPlan.incremental_amount):Math.max(0,grossPlan-prevPlan)):0;
+    var availableIncrement=eligible?(incPlan>0?incPlan:eligibleAmount):0;
+    FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
     if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(eligibleAmount);
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);
+    var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
+    var ws=document.getElementById('loanWithdrawSummary');if(ws){ws.innerHTML=eligible?'<b style=\"color:#1d4ed8\">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.':'No new loan amount is withdrawable until the required pair level is reached.';}
     var rp=document.getElementById('loanRenewalProgress');if(rp)rp.innerText=renewalDone+' / '+renewalReq;
     var note=document.getElementById('selfRenewNote');var rb=document.getElementById('loanRenewBtn');
     var roiStatus=String(firstVal(currentRoi,['status'],'' )).toLowerCase();
