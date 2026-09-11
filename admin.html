@@ -148,20 +148,10 @@ async function approveRegistration(requestId){
   try{
     const {data:req,error:reqErr}=await supabaseClient.from('registration_requests').select('*').eq('id',requestId).eq('status','pending').single();
     if(reqErr||!req)throw new Error(reqErr?.message||'Registration request not found or already processed.');
-    const normalizedMobile=String(req.mobile||'').replace(/\D/g,'');
-    const normalizedEmail=String(req.email||'').trim().toLowerCase();
-    if(!/^\d{10}$/.test(normalizedMobile)) throw new Error('Invalid mobile number. Member mobile number must be exactly 10 digits.');
-
-    const {data:mobileUsers,error:mobileErr}=await supabaseClient.from('users').select('fl_id').eq('mobile',normalizedMobile);
-    if(mobileErr)throw mobileErr;
-    const {data:emailUsers,error:emailErr}=await supabaseClient.from('users').select('fl_id').ilike('email',normalizedEmail);
-    if(emailErr)throw emailErr;
-
-    const mobileCount=mobileUsers?.length||0;
-    const emailCount=emailUsers?.length||0;
-
-    if(mobileCount>=7) throw new Error('This mobile number has already completed 7 IDs. Please use a different mobile number.');
-    if(emailCount>=7) throw new Error('This email address has already completed 7 IDs. Please use a different email address.');
+    const {data:existingMobile}=await supabaseClient.from('users').select('fl_id').eq('mobile',req.mobile).limit(1);
+    if(existingMobile&&existingMobile.length)throw new Error('This mobile number already has an account: '+existingMobile[0].fl_id);
+    const {data:existingEmail}=await supabaseClient.from('users').select('fl_id').eq('email',req.email).limit(1);
+    if(existingEmail&&existingEmail.length)throw new Error('This email already has an account: '+existingEmail[0].fl_id);
     const {data:sponsor}=await supabaseClient.from('users').select('fl_id').eq('fl_id',String(req.sponsor_id||'').toUpperCase()).limit(1);
     if(!sponsor||!sponsor.length)throw new Error('Sponsor ID not found: '+req.sponsor_id);
     const requestedSponsor=String(req.sponsor_id||'').toUpperCase();
@@ -177,10 +167,11 @@ async function approveRegistration(requestId){
     const u=await supabaseClient.from('users').insert({
       fl_id:flId,
       sponsor_id:placementParent,
+      direct_sponsor_id:requestedSponsor,
       side,
       full_name:req.full_name,
-      mobile:normalizedMobile,
-      email:normalizedEmail,
+      mobile:req.mobile,
+      email:req.email,
       password:req.password,
       left_own:0,right_own:0,left_spillover:0,right_spillover:0
     }).select().single();
@@ -548,6 +539,7 @@ async function createStore(){
     name:document.getElementById('storeName').value.trim(),
     store_code:document.getElementById('storeCode').value.trim().toUpperCase(),
     phone:document.getElementById('storePhone').value.trim(),
+    mobile:document.getElementById('storePhone').value.trim(),
     address:document.getElementById('storeAddress').value.trim(),
     town:document.getElementById('storeTown').value.trim(),
     pincode:document.getElementById('storePincode').value.trim(),
