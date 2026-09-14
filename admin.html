@@ -1,7 +1,7 @@
-<!-- FLM_ADMIN_FINAL_STORE_EDIT_20260910 -->
+<!-- FLM_ADMIN_7IDS_EMAIL_FIXED_20260914 -->
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Freedom Loans Mart - Platform Admin Dashboard</title>
+<title>Freedom Loans Mart - Platform Admin Dashboard - 7 ID Email Fix</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
@@ -148,10 +148,22 @@ async function approveRegistration(requestId){
   try{
     const {data:req,error:reqErr}=await supabaseClient.from('registration_requests').select('*').eq('id',requestId).eq('status','pending').single();
     if(reqErr||!req)throw new Error(reqErr?.message||'Registration request not found or already processed.');
-    const {data:existingMobile}=await supabaseClient.from('users').select('fl_id').eq('mobile',req.mobile).limit(1);
-    if(existingMobile&&existingMobile.length)throw new Error('This mobile number already has an account: '+existingMobile[0].fl_id);
-    const {data:existingEmail}=await supabaseClient.from('users').select('fl_id').eq('email',req.email).limit(1);
-    if(existingEmail&&existingEmail.length)throw new Error('This email already has an account: '+existingEmail[0].fl_id);
+    const normalizedMobile=String(req.mobile||'').replace(/\D/g,'');
+    const normalizedEmail=String(req.email||'').trim().toLowerCase();
+    if(!/^\d{10}$/.test(normalizedMobile)) throw new Error('Invalid mobile number. Member mobile number must be exactly 10 digits.');
+
+    const {data:mobileUsers,error:mobileErr}=await supabaseClient.from('users').select('fl_id').eq('mobile',normalizedMobile);
+    if(mobileErr)throw mobileErr;
+    const {data:emailUsers,error:emailErr}=await supabaseClient.from('users').select('fl_id,email').ilike('email',normalizedEmail);
+    if(emailErr)throw emailErr;
+
+    const mobileCount=mobileUsers?.length||0;
+    const emailCount=(emailUsers||[]).filter(x=>String(x.email||'').trim().toLowerCase()===normalizedEmail).length;
+
+    // Same mobile/email is allowed for up to 7 FL IDs.
+    // Do NOT reject ID #2-#7 just because the email already exists.
+    if(mobileCount>=7) throw new Error('This mobile number has already completed 7 IDs. Please use a different mobile number.');
+    if(emailCount>=7) throw new Error('This email address has already completed 7 IDs. Please use a different email address.');
     const {data:sponsor}=await supabaseClient.from('users').select('fl_id').eq('fl_id',String(req.sponsor_id||'').toUpperCase()).limit(1);
     if(!sponsor||!sponsor.length)throw new Error('Sponsor ID not found: '+req.sponsor_id);
     const requestedSponsor=String(req.sponsor_id||'').toUpperCase();
@@ -167,15 +179,23 @@ async function approveRegistration(requestId){
     const u=await supabaseClient.from('users').insert({
       fl_id:flId,
       sponsor_id:placementParent,
-      direct_sponsor_id:requestedSponsor,
       side,
       full_name:req.full_name,
-      mobile:req.mobile,
-      email:req.email,
+      mobile:normalizedMobile,
+      email:normalizedEmail,
       password:req.password,
       left_own:0,right_own:0,left_spillover:0,right_spillover:0
     }).select().single();
-    if(u.error)throw u.error;
+    if(u.error){
+      const raw=String(u.error.message||'');
+      if(u.error.code==='23505' && /email|users_email_key/i.test(raw)){
+        throw new Error('Email is still blocked by an old UNIQUE constraint. Run the FLM 7-ID email/mobile SQL fix in Supabase SQL Editor, then approve again.');
+      }
+      if(u.error.code==='23505' && /mobile|users_mobile_key/i.test(raw)){
+        throw new Error('Mobile is still blocked by an old UNIQUE constraint. Run the FLM 7-ID email/mobile SQL fix in Supabase SQL Editor, then approve again.');
+      }
+      throw u.error;
+    }
     const w=await supabaseClient.from('wallets').insert({fl_id:flId,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
     if(w.error)throw w.error;
     const b=await supabaseClient.from('binary_summary').insert({fl_id:flId,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
@@ -352,7 +372,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 <div id="sec-dashboard"><div class="card" style="background:#f0fdf4;border:2px solid #059669"><div style="font-weight:800;color:#065f46">✅  Version - All Sections Restored - Before Pins Session Files + Pins Logic</div><div style="font-size:11px;color:#166534;margin-top:6px">This is  version - Before pins session had 11 sections: Dashboard, Users, Pins, Store Locator, Create Store, Store Points, Sub Admin, Wallets, Binary, ROI, Withdraw - Now same + pins logic implemented - As you requested - 40KB+ file</div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Members</div><div style="font-size:24px;font-weight:800" id="statMembers">0</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pins</div><div style="font-size:24px;font-weight:800" id="statTokens">0</div></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Stores</div><div style="font-size:24px;font-weight:800" id="statStores">0</div><div style="font-size:11px;color:#64748b">Restored from 40KB+ before pins session</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pairs</div><div style="font-size:20px;font-weight:800" id="binaryPairs">0 pairs</div></div></div><div class="card"><h3>Recent Members - Real - Live DB</h3><div id="recentMembers">Loading...</div></div></div>
 <div id="sec-users" style="display:none"><div class="card"><h3>👥 Users - Real - Live DB</h3><div id="usersList">Loading...</div></div></div>
-<div id="sec-registrationPayments" style="display:none"><div class="card" style="border:3px solid #f59e0b;background:#fffbeb"><div style="font-weight:800;color:#92400e;font-size:16px">💳 Registration Payment Approvals</div><div style="font-size:11px;color:#78350f;margin-top:6px">Direct ₹2,000 payment registrations. Verify UTR/Hash + screenshot, then approve to create the member account and FL ID.</div><button onclick="loadRegistrationRequests()" style="width:100%;margin-top:12px;background:#f59e0b;color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">🔄 Load Pending Registrations</button><div class="grid2" style="margin-top:12px"><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Total</div><div id="regTodayTotal" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Pending</div><div id="regTodayPending" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Approved</div><div id="regTodayApproved" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Rejected</div><div id="regTodayRejected" style="font-size:24px;font-weight:900">0</div></div></div><div id="registrationHistoryList" style="margin-top:12px"></div><div id="registrationRequestsList" style="margin-top:12px"></div></div></div>
+<div id="sec-registrationPayments" style="display:none"><div class="card" style="border:3px solid #f59e0b;background:#fffbeb"><div style="font-weight:800;color:#92400e;font-size:16px">💳 Registration Payment Approvals</div><div style="font-size:11px;color:#78350f;margin-top:6px">Direct ₹2,000 payment registrations. Verify UTR/Hash + screenshot, then approve to create the member account and FL ID.</div><div style="margin-top:8px;padding:9px;border-radius:10px;background:#ecfdf5;border:1px solid #86efac;color:#166534;font-size:11px;font-weight:700">📧 7-ID Rule: Same mobile/email can be used for up to 7 FL IDs. Email #2–#7 will be accepted after the database UNIQUE constraint has been removed.</div><button onclick="loadRegistrationRequests()" style="width:100%;margin-top:12px;background:#f59e0b;color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">🔄 Load Pending Registrations</button><div class="grid2" style="margin-top:12px"><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Total</div><div id="regTodayTotal" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Pending</div><div id="regTodayPending" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Approved</div><div id="regTodayApproved" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Rejected</div><div id="regTodayRejected" style="font-size:24px;font-weight:900">0</div></div></div><div id="registrationHistoryList" style="margin-top:12px"></div><div id="registrationRequestsList" style="margin-top:12px"></div></div></div>
   <div id="sec-pins" style="display:none">
 <div class="card" style="background:#f0fdf4;border:2px solid #2563eb"><h3>🎫 My Pins - Admin Generate + Deposit Confirm + Delete - Pins Logic Implemented - Before Pins Session + Pins Logic</h3><div style="font-size:11px;color:#64748b;margin-top:4px">Direct Generate - User FL ID - Town Wise - Deposit Check & Approve with Screenshot - Delete - Town Wise Analytics - Color Wise Green Unused Brown Used - Copy Button - Status by UTR - Double Approve Prevent version</div></div>
 <div class="card" style="border:2px solid #2563eb"><div style="font-weight:800;color:#1e40af;font-size:16px">📌 Pins Analytics - Live</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px"><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#64748b">Total</div><div style="font-size:22px;font-weight:800" id="pinsTotal">0</div></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#64748b">Unused Green</div><div style="font-size:22px;font-weight:800;color:#166534" id="pinsUnused">0</div></div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#64748b">Used Brown</div><div style="font-size:22px;font-weight:800;color:#991b1b" id="pinsUsed">0</div></div></div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="filterPins('all')" style="background:#0f172a;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700">All</button><button onclick="filterPins('unused')" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700">Unused Green</button><button onclick="filterPins('used')" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700">Used Brown</button></div></div>
@@ -471,7 +491,6 @@ function payoutHtml(x){
   return '';
 }
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
-// IMPORTANT: withdrawal requests are created as PROCESSING. This page never calls approval automatically; only adminApproveWithdrawal() can approve after the Approve button is clicked.
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
 function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
 function wdIsStore(x){const m=safeText(x.method||'').trim().toLowerCase(),t=safeText(x.wallet_type||x.type||'').toLowerCase(),y=safeText(x.transaction_type||'').toLowerCase();return m==='store'||y==='roi_coupon'||t.includes('store')||t.includes('roi');}
@@ -540,7 +559,6 @@ async function createStore(){
     name:document.getElementById('storeName').value.trim(),
     store_code:document.getElementById('storeCode').value.trim().toUpperCase(),
     phone:document.getElementById('storePhone').value.trim(),
-    mobile:document.getElementById('storePhone').value.trim(),
     address:document.getElementById('storeAddress').value.trim(),
     town:document.getElementById('storeTown').value.trim(),
     pincode:document.getElementById('storePincode').value.trim(),
