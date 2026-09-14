@@ -471,6 +471,7 @@ function payoutHtml(x){
   return '';
 }
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
+// IMPORTANT: withdrawal requests are created as PROCESSING. This page never calls approval automatically; only adminApproveWithdrawal() can approve after the Approve button is clicked.
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
 function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
 function wdIsStore(x){const m=safeText(x.method||'').trim().toLowerCase(),t=safeText(x.wallet_type||x.type||'').toLowerCase(),y=safeText(x.transaction_type||'').toLowerCase();return m==='store'||y==='roi_coupon'||t.includes('store')||t.includes('roi');}
