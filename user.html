@@ -431,7 +431,7 @@ function zoomTree(delta){treeZoomLevel+=delta;if(treeZoomLevel<20) treeZoomLevel
    even if the scheduled summary reset has not yet run.
 */
 async function flmFetchTeamStats(rootFlId){
-  var out={left:0,right:0,total:0,pairs:0,teamSize:0};
+  var out={left:0,right:0,total:0,pairs:0,teamSize:0,directLeft:0,directRight:0};
   if(!supabaseClient||!rootFlId)return out;
   try{
     var r=await supabaseClient.from('users').select('fl_id,sponsor_id,side').limit(5000);
@@ -448,8 +448,8 @@ async function flmFetchTeamStats(rootFlId){
     var queue=[];
     (byParent[root]||[]).forEach(function(u){
       var s=String(u.side||'').trim().toLowerCase();
-      if(s==='left')out.left++;
-      if(s==='right')out.right++;
+      if(s==='left'){out.left++;out.directLeft++;}
+      if(s==='right'){out.right++;out.directRight++;}
       queue.push({fl:String(u.fl_id||'').trim().toUpperCase(),rootSide:s});
     });
     var seen={}; queue.forEach(function(x){seen[x.fl]=true;});
@@ -704,7 +704,20 @@ async function loadWalletData(){
 }
 async function openWalletAction(type){
  var box=document.getElementById('walletActionBox');if(!box)return;box.style.display='block';
- if(type==='loan'){try{var freshLoan=await flmLoadLoanV2();var grossLoan=loanNum(freshLoan.wallet);var eligibleLoan=freshLoan.eligible?loanNum(freshLoan.incremental):0;var availableLoan=loanNum(FLM_WALLET.loan);if(availableLoan<=0 && freshLoan.eligible)availableLoan=loanNum(freshLoan.incremental||freshLoan.wallet);FLM_WALLET.loan=availableLoan;FLM_WALLET.rawLoan=grossLoan;FLM_WALLET.loanGross=grossLoan;FLM_WALLET.loanEligible=grossLoan;}catch(e){console.log('loan action refresh',e.message);}}
+ if(type==='loan'){
+   try{
+     // The Loan Wallet card is the actual withdrawable wallet balance. Do not recalculate it
+     // with a second eligibility check, because that can turn a valid ₹1,000 wallet into ₹0.
+     var currentWallet=loanNum(FLM_WALLET.loan);
+     var freshLoan=await flmLoadLoanV2();
+     var freshWallet=loanNum(freshLoan.wallet);
+     if(currentWallet<=0 && freshWallet>0)currentWallet=freshWallet;
+     FLM_WALLET.loan=currentWallet;
+     FLM_WALLET.rawLoan=freshWallet||currentWallet;
+     FLM_WALLET.loanGross=freshWallet||currentWallet;
+     FLM_WALLET.loanEligible=currentWallet;
+   }catch(e){console.log('loan action refresh',e.message);}
+ }
  var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income — Withdraw':'🏦 Loan Wallet — Direct Withdraw';
  var bal=FLM_WALLET[type==='roi'?'roi':type];
  var html='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+title+'</b><span style="font-size:12px;color:#2563eb">Balance: '+money(bal)+'</span></div>';
@@ -762,12 +775,49 @@ var FLM_LOAN_V2={eligible:false,level:0,totalLeft:0,totalRight:0,directLeft:0,di
 async function flmLoadLoanV2(){
  var flId=getFlId();if(!flId||!supabaseClient)return FLM_LOAN_V2;
  try{
-   // Sync is a wallet-release helper. If it fails, do not block the whole Loan page.
+   // Wallet sync is optional. Never let a database-side progress error blank the Loan page.
    try{var sr=await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});if(sr.error)console.log('loan wallet sync:',sr.error.message);}catch(syncErr){console.log('loan wallet sync:',syncErr.message);}
-   var r=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
-   if(r.error)throw r.error;
-   var e=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
-   FLM_LOAN_V2={eligible:Boolean(e.eligible),level:loanNum(firstVal(e,['level','level_no','next_level','plan_level'],0)),totalLeft:loanNum(firstVal(e,['total_left','totalLeft'],0)),totalRight:loanNum(firstVal(e,['total_right','totalRight'],0)),directLeft:loanNum(firstVal(e,['direct_left','directLeft'],0)),directRight:loanNum(firstVal(e,['direct_right','directRight'],0)),loanAmount:loanNum(firstVal(e,['loan_amount','loanAmount'],0)),previousLoan:loanNum(firstVal(e,['previous_loan','previous_loan_amount','previousLoan'],0)),incremental:loanNum(firstVal(e,['incremental_amount','incrementalAmount'],0)),wallet:0,message:String(e.message||'')};
+
+   var e=null, rpcErr=null;
+   try{
+     var r=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
+     if(r.error) rpcErr=r.error; else e=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+   }catch(err){rpcErr=err;}
+
+   // Read the same live users tree used by the Binary Tree popup. This keeps TOTAL BINARY
+   // and Current Pair Progress consistent and also gives a safe fallback when the v2 RPC
+   // has a stale/invalid database variable (for example "msg is not defined").
+   var live=await flmFetchTeamStats(flId);
+   var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+   if(plansR.error)throw plansR.error;
+   var plans=plansR.data||[];
+   var loansR=await supabaseClient.from('member_loans').select('plan_level,level_no,status,loan_amount,previous_loan_amount,incremental_amount,hold_amount,renewal_required_count,renewal_completed_count').eq('fl_id',flId).order('plan_level',{ascending:true});
+   if(loansR.error)throw loansR.error;
+   var loans=loansR.data||[];
+   var activeLoans=loans.filter(function(x){var st=String(x.status||'').toLowerCase();return st!=='rejected'&&st!=='cancelled';});
+   var latestLevel=activeLoans.length?loanNum(firstVal(activeLoans[activeLoans.length-1],['plan_level','level_no'],0)):0;
+   var nextPlan=null;
+   for(var i=0;i<plans.length;i++){
+     var req=loanNum(plans[i].required_pairs);
+     if(loanNum(plans[i].level_no)>latestLevel && req<=live.pairs){nextPlan=plans[i];break;}
+   }
+   if(!nextPlan && !latestLevel && plans.length)nextPlan=plans[0];
+
+   var gross=nextPlan?loanNum(nextPlan.loan_amount):0;
+   var prev=nextPlan?loanNum(nextPlan.previous_loan_amount):0;
+   var inc=nextPlan?(nextPlan.incremental_amount!=null?loanNum(nextPlan.incremental_amount):Math.max(0,gross-prev)):0;
+   var firstEligible=!latestLevel && live.left>=1 && live.right>=1;
+   var fallbackEligible=Boolean(nextPlan) && (loanNum(nextPlan.level_no)===1?firstEligible:live.pairs>=loanNum(nextPlan.required_pairs));
+
+   if(e && !rpcErr){
+     FLM_LOAN_V2={eligible:Boolean(e.eligible),level:loanNum(firstVal(e,['level','level_no','next_level','plan_level'],0)),totalLeft:live.left,totalRight:live.right,directLeft:live.directLeft,directRight:live.directRight,loanAmount:loanNum(firstVal(e,['loan_amount','loanAmount'],gross)),previousLoan:loanNum(firstVal(e,['previous_loan','previous_loan_amount','previousLoan'],prev)),incremental:loanNum(firstVal(e,['incremental_amount','incrementalAmount'],inc)),wallet:0,message:String(e.message||'')};
+     // Keep live tree counts authoritative even if the RPC returns cached 5:3 values.
+     FLM_LOAN_V2.eligible=fallbackEligible || Boolean(e.eligible && !nextPlan);
+     if(nextPlan){FLM_LOAN_V2.level=loanNum(nextPlan.level_no);FLM_LOAN_V2.loanAmount=gross;FLM_LOAN_V2.previousLoan=prev;FLM_LOAN_V2.incremental=inc;}
+     if(FLM_LOAN_V2.eligible && !FLM_LOAN_V2.message)FLM_LOAN_V2.message='Loan '+FLM_LOAN_V2.level+' eligible: required binary pair level completed.';
+   }else{
+     FLM_LOAN_V2={eligible:fallbackEligible,level:nextPlan?loanNum(nextPlan.level_no):latestLevel,totalLeft:live.left,totalRight:live.right,directLeft:live.directLeft,directRight:live.directRight,loanAmount:gross,previousLoan:prev,incremental:inc,wallet:0,message:rpcErr?'Using live binary data because loan status RPC failed: '+String(rpcErr.message||rpcErr):''};
+   }
    var w=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
    if(w.error)console.log('loan wallet read:',w.error.message);
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
@@ -781,16 +831,9 @@ async function loadLoanPanel(){
   try{
     var v2=await flmLoadLoanV2();
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+v2.totalLeft+'</b> &nbsp; Right: <b>'+v2.totalRight+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+v2.directLeft+'</b> &nbsp; Right Direct: <b>'+v2.directRight+'</b></div><div style="margin-top:8px;font-weight:900;color:'+(v2.eligible?'#059669':'#dc2626')+'">FIRST LOAN: '+(v2.eligible?'ELIGIBLE':'NOT ELIGIBLE')+'</div>';
-    // Refresh the database-side progress first. This is safe to call repeatedly because the RPC is designed for progress refresh.
+    // Keep the optional DB progress refresh non-fatal. The live users-tree count is authoritative for UI.
     try{var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});if(rr.error)console.log('loan progress refresh:',rr.error.message);}catch(e){console.log('loan progress refresh:',e.message);}
-    // Legacy eligibility is optional here. The v2 eligibility data is the primary source.
     var e={};
-    try{
-      var elig=await supabaseClient.rpc('flm_check_loan_eligibility',{p_fl_id:flId});
-      if(!elig.error)e=Array.isArray(elig.data)?(elig.data[0]||{}):(elig.data||{});
-      else console.log('legacy loan eligibility:',elig.error.message);
-    }catch(legacyErr){console.log('legacy loan eligibility:',legacyErr.message);}
-    if(!e||typeof e!=='object')e={};
     var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
     if(plansR.error)throw plansR.error;
     var plans=plansR.data||[];
@@ -802,53 +845,32 @@ async function loadLoanPanel(){
     var rois=roiR.data||[];
     var currentLoan=loans.length?loans[loans.length-1]:null;
     var currentRoi=rois.length?rois[0]:null;
-    var totalPairs=loanNum(firstVal(e,['total_pairs','totalPairs'],0));
-    var ql=loanNum(firstVal(e,['qualifying_left','left_qualifying','left_tokens'],0));
-    var qr=loanNum(firstVal(e,['qualifying_right','right_qualifying','right_tokens'],0));
-    // Prefer binary_summary if the eligibility function does not return pair data.
-    if(!totalPairs||!ql&&!qr){var b=await supabaseClient.from('binary_summary').select('left_tokens,right_tokens,total_pairs').eq('fl_id',flId).single();if(b.data){ql=loanNum(b.data.left_tokens);qr=loanNum(b.data.right_tokens);totalPairs=loanNum(b.data.total_pairs);}}
-    var eligibleAmount=loanNum(v2.incremental);
+    // Use exactly the same live tree calculation as the Binary Tree popup.
+    // This prevents the old cached 5:3 / 2:0 values from disagreeing with the visible tree.
+    var liveStats=await flmFetchTeamStats(flId);
+    var totalPairs=Math.min(loanNum(liveStats.left),loanNum(liveStats.right));
+    var ql=loanNum(liveStats.left);
+    var qr=loanNum(liveStats.right);
+    var eligibleAmount=v2.incremental;
     var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
     var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
     var renewalDone=loanNum(firstVal(e,['renewal_completed_count','renewal_completed'],currentLoan?currentLoan.renewal_completed_count:0));
-
-    // Determine the NEXT loan level from total binary team progress + already recorded loans.
-    // Total binary counts include spillover. For Loan 1, direct left + direct right is still required.
-    var totalLeft=loanNum(v2.totalLeft), totalRight=loanNum(v2.totalRight);
-    var totalPairsLive=Math.min(totalLeft,totalRight);
-    var latestLevel=0;
-    loans.forEach(function(l){
-      var st=String(l.status||'').toLowerCase();
-      var lvx=loanNum(firstVal(l,['plan_level','level_no'],0));
-      if(lvx>latestLevel && st!=='rejected' && st!=='cancelled')latestLevel=lvx;
-    });
-    var targetPlan=null;
-    for(var pi2=0;pi2<plans.length;pi2++){
-      var candidate=plans[pi2], cl=loanNum(candidate.level_no), cp=loanNum(candidate.required_pairs);
-      if(cl<=latestLevel)continue;
-      if(totalPairsLive>=cp){targetPlan=candidate;break;}
-    }
-    // If there is no recorded loan yet, Loan 1 is eligible only with one direct on each side.
-    if(!latestLevel && !targetPlan){
-      for(var pi3=0;pi3<plans.length;pi3++){if(loanNum(plans[pi3].level_no)===1){targetPlan=plans[pi3];break;}}
-    }
-    var lvl=targetPlan?loanNum(targetPlan.level_no):0;
-    var matchedPlan=targetPlan;
+    var eligible=v2.eligible;
+    var msg=String(firstVal(e,['message','v_message'],''));
+    var lvl=firstVal(e,['level_no','next_level','plan_level'],currentLoan?currentLoan.plan_level:0);
+    var matchedPlan=null;
+    for(var pi=0;pi<plans.length;pi++){if(String(plans[pi].level_no)===String(lvl)){matchedPlan=plans[pi];break;}}
     var grossPlan=matchedPlan?loanNum(matchedPlan.loan_amount):0;
-    var prevPlan=matchedPlan?(matchedPlan.previous_loan_amount!=null?loanNum(matchedPlan.previous_loan_amount):0):0;
+    var prevPlan=matchedPlan?loanNum(matchedPlan.previous_loan_amount):0;
     var incPlan=matchedPlan?(matchedPlan.incremental_amount!=null?loanNum(matchedPlan.incremental_amount):Math.max(0,grossPlan-prevPlan)):0;
-    var firstDirectOK=loanNum(v2.directLeft)>=1 && loanNum(v2.directRight)>=1;
-    var eligible=!!targetPlan && totalPairsLive>=loanNum(targetPlan.required_pairs) && (lvl!==1 || firstDirectOK);
-    var availableIncrement=eligible?(incPlan>0?incPlan:eligibleAmount):0;
-    // For the next level, show the plan's gross amount and previous loan deduction clearly.
-    FLM_LOAN_LEVEL=lvl;FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
-    ql=totalLeft; qr=totalRight; totalPairs=totalPairsLive;
+    var availableIncrement=eligible?(v2.incremental>0?v2.incremental:(incPlan>0?incPlan:eligibleAmount)):0;
+    FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
     if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
     var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);
     var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
-    var ws=document.getElementById('loanWithdrawSummary');if(ws){ws.innerHTML=eligible?'<b style=\"color:#1d4ed8\">Loan '+loanEsc(lvl)+' eligible: '+loanMoney(grossPlan)+'</b><br>Available Loan (After Previous): '+loanMoney(grossPlan)+' − '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.':'No new loan amount is withdrawable until the required pair level is reached.';}
+    var ws=document.getElementById('loanWithdrawSummary');if(ws){ws.innerHTML=eligible?'<b style=\"color:#1d4ed8\">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.':'No new loan amount is withdrawable until the required pair level is reached.';}
     var rp=document.getElementById('loanRenewalProgress');if(rp)rp.innerText=renewalDone+' / '+renewalReq;
     var note=document.getElementById('selfRenewNote');var rb=document.getElementById('loanRenewBtn');
     var roiStatus=String(firstVal(currentRoi,['status'],'' )).toLowerCase();
