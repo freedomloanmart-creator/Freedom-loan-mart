@@ -419,7 +419,7 @@ async function register(){
         return;
       }
       msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'</span>';
-      setTimeout(()=>location.href='./login.html',2500);
+      setTimeout(()=>location.href='./user.html',800);
     }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
   }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';}
 }
