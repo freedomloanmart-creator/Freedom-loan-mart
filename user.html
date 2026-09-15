@@ -987,6 +987,17 @@ async function loadLoanPanel(){
     var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
     if(loansR.error)throw loansR.error;
     var loans=loansR.data||[];
+    // Read completed loan-release transactions as the authoritative wallet release record.
+    // This prevents a stale member_loans status='pending' row from hiding an already released loan.
+    var loanReleaseTxR=await supabaseClient.from('wallet_transactions')
+      .select('id,fl_id,title,wallet_type,transaction_type,amount,net_amount,status,remarks,created_at')
+      .eq('fl_id',flId)
+      .eq('wallet_type','loan')
+      .eq('transaction_type','loan_release')
+      .in('status',['completed','approved'])
+      .order('created_at',{ascending:true});
+    if(loanReleaseTxR.error) console.log('loan release history:',loanReleaseTxR.error.message);
+    var loanReleaseTxs=loanReleaseTxR.data||[];
     var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
     if(roiR.error)throw roiR.error;
     var rois=roiR.data||[];
@@ -1008,6 +1019,21 @@ async function loadLoanPanel(){
       return ['approved','active','completed','disbursed','released'].indexOf(st)>=0
         || ['released','completed','disbursed'].indexOf(rs)>=0
         || !!x.released_at || !!x.paid_at;
+    });
+    // If the member_loans row is stale/pending but a completed loan_release transaction
+    // exists, treat that level as released for DISPLAY only. No wallet credit is created here.
+    loanReleaseTxs.forEach(function(tx){
+      if(releasedLoans2.some(function(x){return loanNum(x.plan_level)===1;})) return;
+      releasedLoans2.push({
+        plan_level:1,
+        gross_loan_amount:loanNum(tx.amount),
+        incremental_amount:loanNum(tx.net_amount!=null?tx.net_amount:tx.amount),
+        status:'released',
+        release_status:'released',
+        released_at:tx.created_at,
+        paid_at:null,
+        __wallet_release:true
+      });
     });
     var latestLevel2=releasedLoans2.reduce(function(mx,x){
       return Math.max(mx,loanNum(firstVal(x,['plan_level'],0)));
@@ -1049,7 +1075,14 @@ async function loadLoanPanel(){
     var incPlan=displayInc;
     var availableIncrement=eligible?displayInc:0;
     FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
-    if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
+    if(status){
+      var latestDisplayLoan=currentLoan;
+      var latestRelease=latestDisplayLoan?releasedLoans2.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).pop():null;
+      var latestStatus=latestRelease?(latestRelease.release_status||latestRelease.status||'released'):(latestDisplayLoan?latestDisplayLoan.status:'—');
+      var latestLevelText=latestRelease?latestRelease.plan_level:(latestDisplayLoan?firstVal(latestDisplayLoan,['plan_level','level_no'],'—'):'—');
+      var latestHtml=latestDisplayLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(latestLevelText)+' · Status: '+loanEsc(latestStatus)+'</div>':'';
+      status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
+    }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
     var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);
     // FIX: Save eligible loan for wallet display and force wallet UI update
@@ -1111,7 +1144,25 @@ async function loadLoanPanel(){
     var pt=document.getElementById('loanPlansTable');
     if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">'+loanMoney(amt)+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
     var hist=document.getElementById('myLoanHistory');
-    if(hist){if(!loans.length)hist.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">No member loan records yet.</div>';else{var hh='';loans.slice().reverse().forEach(function(l){var amt=loanNum(firstVal(l,['incremental_amount','loan_amount','gross_loan_amount'],0));var st=String(l.status||'').toLowerCase();var hold=loanNum(l.hold_amount);hh+='<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan '+loanEsc(l.plan_level||l.level_no||'—')+'</b><b>'+loanMoney(amt)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Required pairs: '+loanNum(l.required_pairs)+':'+loanNum(l.required_pairs)+' · Status: '+loanEsc(l.status||'—')+(hold?' · Held: '+loanMoney(hold):'')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Renewal: '+loanNum(l.renewal_completed_count||l.renewal_completed)+' / '+loanNum(l.renewal_required_count||l.renewal_required)+'</div></div>';});hist.innerHTML=hh;}}
+    if(hist){
+      if(!loans.length && !releasedLoans2.length) hist.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">No member loan records yet.</div>';
+      else{
+        var hh='';
+        loans.slice().reverse().forEach(function(l){
+          var amt=loanNum(firstVal(l,['incremental_amount','gross_loan_amount','loan_amount'],0));
+          var st=String(l.status||'').toLowerCase();
+          var rel=releasedLoans2.find(function(x){return loanNum(x.plan_level)===loanNum(l.plan_level);});
+          var shownStatus=rel?(rel.release_status||rel.status||'released'):(l.status||'—');
+          var hold=loanNum(l.hold_amount);
+          hh+='<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan '+loanEsc(l.plan_level||l.level_no||'—')+'</b><b>'+loanMoney(amt)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Required pairs: '+loanNum(l.required_pairs)+':'+loanNum(l.required_pairs)+' · Status: '+loanEsc(shownStatus)+(hold?' · Held: '+loanMoney(hold):'')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Renewal: '+loanNum(l.renewal_completed_count||l.renewal_completed)+' / '+loanNum(l.renewal_required_count||l.renewal_required)+'</div></div>';
+        });
+        if(!loans.some(function(l){return loanNum(l.plan_level)===1;}) && releasedLoans2.some(function(l){return loanNum(l.plan_level)===1;})){
+          var rl=releasedLoans2.find(function(l){return loanNum(l.plan_level)===1;});
+          hh+='<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan 1</b><b>'+loanMoney(firstVal(rl,['incremental_amount','gross_loan_amount'],0))+'</b></div><div style="font-size:10px;color:#059669;margin-top:4px;font-weight:800">Required pairs: 1:1 · Status: Released</div></div>';
+        }
+        hist.innerHTML=hh;
+      }
+    }
   }catch(err){if(status)status.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b">Loan status error: '+loanEsc(err.message)+'</div>';console.log('loan panel',err);}
 }
 async function submitLoanSelfRenewal(){
