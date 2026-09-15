@@ -704,7 +704,7 @@ async function loadWalletData(){
 }
 async function openWalletAction(type){
  var box=document.getElementById('walletActionBox');if(!box)return;box.style.display='block';
- if(type==='loan'){try{var freshLoan=await flmLoadLoanV2();var grossLoan=loanNum(freshLoan.wallet);var eligibleLoan=freshLoan.eligible?loanNum(freshLoan.incremental):0;var availableLoan=Math.min(grossLoan,eligibleLoan);FLM_WALLET.loan=availableLoan;FLM_WALLET.rawLoan=grossLoan;FLM_WALLET.loanGross=grossLoan;FLM_WALLET.loanEligible=grossLoan;}catch(e){console.log('loan action refresh',e.message);}}
+ if(type==='loan'){try{var freshLoan=await flmLoadLoanV2();var grossLoan=loanNum(freshLoan.wallet);var eligibleLoan=freshLoan.eligible?loanNum(freshLoan.incremental):0;var availableLoan=loanNum(FLM_WALLET.loan);if(availableLoan<=0 && freshLoan.eligible)availableLoan=loanNum(freshLoan.incremental||freshLoan.wallet);FLM_WALLET.loan=availableLoan;FLM_WALLET.rawLoan=grossLoan;FLM_WALLET.loanGross=grossLoan;FLM_WALLET.loanEligible=grossLoan;}catch(e){console.log('loan action refresh',e.message);}}
  var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income — Withdraw':'🏦 Loan Wallet — Direct Withdraw';
  var bal=FLM_WALLET[type==='roi'?'roi':type];
  var html='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+title+'</b><span style="font-size:12px;color:#2563eb">Balance: '+money(bal)+'</span></div>';
@@ -807,26 +807,48 @@ async function loadLoanPanel(){
     var qr=loanNum(firstVal(e,['qualifying_right','right_qualifying','right_tokens'],0));
     // Prefer binary_summary if the eligibility function does not return pair data.
     if(!totalPairs||!ql&&!qr){var b=await supabaseClient.from('binary_summary').select('left_tokens,right_tokens,total_pairs').eq('fl_id',flId).single();if(b.data){ql=loanNum(b.data.left_tokens);qr=loanNum(b.data.right_tokens);totalPairs=loanNum(b.data.total_pairs);}}
-    var eligibleAmount=v2.incremental;
+    var eligibleAmount=loanNum(v2.incremental);
     var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
     var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
     var renewalDone=loanNum(firstVal(e,['renewal_completed_count','renewal_completed'],currentLoan?currentLoan.renewal_completed_count:0));
-    var eligible=v2.eligible;
-    var msg=String(firstVal(e,['message','v_message'],''));
-    var lvl=firstVal(e,['level_no','next_level','plan_level'],currentLoan?currentLoan.plan_level:0);
-    var matchedPlan=null;
-    for(var pi=0;pi<plans.length;pi++){if(String(plans[pi].level_no)===String(lvl)){matchedPlan=plans[pi];break;}}
+
+    // Determine the NEXT loan level from total binary team progress + already recorded loans.
+    // Total binary counts include spillover. For Loan 1, direct left + direct right is still required.
+    var totalLeft=loanNum(v2.totalLeft), totalRight=loanNum(v2.totalRight);
+    var totalPairsLive=Math.min(totalLeft,totalRight);
+    var latestLevel=0;
+    loans.forEach(function(l){
+      var st=String(l.status||'').toLowerCase();
+      var lvx=loanNum(firstVal(l,['plan_level','level_no'],0));
+      if(lvx>latestLevel && st!=='rejected' && st!=='cancelled')latestLevel=lvx;
+    });
+    var targetPlan=null;
+    for(var pi2=0;pi2<plans.length;pi2++){
+      var candidate=plans[pi2], cl=loanNum(candidate.level_no), cp=loanNum(candidate.required_pairs);
+      if(cl<=latestLevel)continue;
+      if(totalPairsLive>=cp){targetPlan=candidate;break;}
+    }
+    // If there is no recorded loan yet, Loan 1 is eligible only with one direct on each side.
+    if(!latestLevel && !targetPlan){
+      for(var pi3=0;pi3<plans.length;pi3++){if(loanNum(plans[pi3].level_no)===1){targetPlan=plans[pi3];break;}}
+    }
+    var lvl=targetPlan?loanNum(targetPlan.level_no):0;
+    var matchedPlan=targetPlan;
     var grossPlan=matchedPlan?loanNum(matchedPlan.loan_amount):0;
-    var prevPlan=matchedPlan?loanNum(matchedPlan.previous_loan_amount):0;
+    var prevPlan=matchedPlan?(matchedPlan.previous_loan_amount!=null?loanNum(matchedPlan.previous_loan_amount):0):0;
     var incPlan=matchedPlan?(matchedPlan.incremental_amount!=null?loanNum(matchedPlan.incremental_amount):Math.max(0,grossPlan-prevPlan)):0;
-    var availableIncrement=eligible?(v2.incremental>0?v2.incremental:(incPlan>0?incPlan:eligibleAmount)):0;
-    FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
+    var firstDirectOK=loanNum(v2.directLeft)>=1 && loanNum(v2.directRight)>=1;
+    var eligible=!!targetPlan && totalPairsLive>=loanNum(targetPlan.required_pairs) && (lvl!==1 || firstDirectOK);
+    var availableIncrement=eligible?(incPlan>0?incPlan:eligibleAmount):0;
+    // For the next level, show the plan's gross amount and previous loan deduction clearly.
+    FLM_LOAN_LEVEL=lvl;FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
+    ql=totalLeft; qr=totalRight; totalPairs=totalPairsLive;
     if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
     var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);
     var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
-    var ws=document.getElementById('loanWithdrawSummary');if(ws){ws.innerHTML=eligible?'<b style=\"color:#1d4ed8\">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.':'No new loan amount is withdrawable until the required pair level is reached.';}
+    var ws=document.getElementById('loanWithdrawSummary');if(ws){ws.innerHTML=eligible?'<b style=\"color:#1d4ed8\">Loan '+loanEsc(lvl)+' eligible: '+loanMoney(grossPlan)+'</b><br>Available Loan (After Previous): '+loanMoney(grossPlan)+' − '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.':'No new loan amount is withdrawable until the required pair level is reached.';}
     var rp=document.getElementById('loanRenewalProgress');if(rp)rp.innerText=renewalDone+' / '+renewalReq;
     var note=document.getElementById('selfRenewNote');var rb=document.getElementById('loanRenewBtn');
     var roiStatus=String(firstVal(currentRoi,['status'],'' )).toLowerCase();
