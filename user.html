@@ -815,7 +815,23 @@ async function submitLoanWithdraw(method){
         else console.log('wallet force updated to', amt);
       }
     }catch(e){ console.log('wallet direct update', e.message); }
-    var r=await supabaseClient.rpc('flm_request_full_loan_withdrawal_v2',{p_fl_id:flId,p_method:method});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});alert('Loan withdrawal request submitted for full Loan Wallet amount ₹'+loanNum(d.amount||amt).toLocaleString('en-IN')+'. Status: Processing.');var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
+    // Before withdrawal, ensure amt is from UI not 0
+    try{
+      var uiLoan = document.getElementById('loanWallet');
+      var uiVal = uiLoan ? parseFloat(uiLoan.innerText.replace(/[^0-9.]/g,''))||0 : 0;
+      if(uiVal>amt) amt=uiVal;
+    }catch(e){}
+    var r=await supabaseClient.rpc('flm_request_full_loan_withdrawal_v2',{p_fl_id:flId,p_method:method});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+      // FIX: After successful withdraw request, clear loan wallet to 0
+      try{
+        localStorage.setItem('flm_available_loan','0');
+        localStorage.setItem('flm_loan_eligible','0');
+        FLM_WALLET.loan=0;
+        var lw=document.getElementById('loanWallet'); if(lw) lw.innerText=money(0);
+        var ta=document.getElementById('totalAmount'); if(ta){ var tot=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0); ta.innerText=money(tot); }
+        var le=document.getElementById('loanEligible'); if(le) le.innerText='Processing: Rs.'+money(amt)+' pending';
+      }catch(e){}
+      alert('Loan withdrawal request submitted for full Loan Wallet amount ₹'+loanNum(d.amount||amt).toLocaleString('en-IN')+'. Status: Processing.');var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
  var el=document.getElementById('matchingStoreBox');if(!el)return;
  var force=(FLM_WALLET.dailyIncome>=5000 || FLM_WALLET.dailyPairs>=25);
