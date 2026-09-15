@@ -513,7 +513,7 @@ function renderAdminWithdrawals(){
   try{
     const q=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
     const st=(document.getElementById('wdStatus')?.value||'all').trim().toLowerCase();
-    const rows=adminWithdrawalRows.filter(x=>{const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();const z=safeText(x.status||'processing').trim().toLowerCase();return(!q||hay.includes(q))&&(st==='all'||st===z);});
+    const rows=adminWithdrawalRows.filter(x=>{const tx=safeText(x.transaction_type||'').trim().toLowerCase();if(tx!=='withdrawal' && tx!=='roi_coupon')return false;const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();const z=safeText(x.status||'processing').trim().toLowerCase();return(!q||hay.includes(q))&&(st==='all'||st===z);});
     const d=rows.filter(x=>!wdIsStore(x)),r=rows.filter(x=>wdIsStore(x));
     l.innerHTML=d.length?d.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No matching/loan direct withdrawal requests.</div>';
     s.innerHTML=r.length?r.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No ROI/store redemption records.</div>';
@@ -535,10 +535,11 @@ async function loadAdminWithdrawals(){
       if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[safeText(u.fl_id).toUpperCase()]=u;});
     }
     const n=x=>safeText(x.status).trim().toLowerCase();
-    document.getElementById('wdPendingCount').innerText=adminWithdrawalRows.filter(x=>n(x)==='processing').length;
-    document.getElementById('wdApprovedCount').innerText=adminWithdrawalRows.filter(x=>['approved','completed'].includes(n(x))).length;
-    document.getElementById('wdRejectedCount').innerText=adminWithdrawalRows.filter(x=>n(x)==='rejected').length;
-    document.getElementById('wdTotalCount').innerText=adminWithdrawalRows.length;
+    const financeRows=adminWithdrawalRows.filter(x=>{const tx=safeText(x.transaction_type||'').trim().toLowerCase();return tx==='withdrawal'||tx==='roi_coupon';});
+    document.getElementById('wdPendingCount').innerText=financeRows.filter(x=>n(x)==='processing').length;
+    document.getElementById('wdApprovedCount').innerText=financeRows.filter(x=>['approved','completed'].includes(n(x))).length;
+    document.getElementById('wdRejectedCount').innerText=financeRows.filter(x=>n(x)==='rejected').length;
+    document.getElementById('wdTotalCount').innerText=financeRows.length;
     renderAdminWithdrawals();
   }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load wallet transactions: '+escapeHtml(e.message)+'</div>';}
 }
