@@ -7,6 +7,57 @@
 var SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
 var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 var supabaseClient=null;
+
+// ===== FIXED: Sync Loan Plans -> Wallet =====
+var FLM_LAST_AVAILABLE_LOAN = 0;
+function syncLoanToWallet(availableIncrement, isEligible){
+  FLM_LAST_AVAILABLE_LOAN = Number(availableIncrement)||0;
+  try{
+    localStorage.setItem('flm_available_loan', String(FLM_LAST_AVAILABLE_LOAN));
+    localStorage.setItem('flm_loan_eligible', isEligible?'1':'0');
+  }catch(e){}
+  // Update Loan Wallet UI (covers all id variations)
+  ['loanWalletAmount','walletLoanAmount','LoanWalletAmount','wallet_loan_amount','totalLoanWallet'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.innerText='Rs. '+FLM_LAST_AVAILABLE_LOAN.toFixed(2);
+  });
+  document.querySelectorAll('div').forEach(function(div){
+    if(div.innerText && div.innerText.includes('LOAN WALLET')){
+      div.querySelectorAll('b').forEach(function(b){
+        if(b.innerText.includes('Rs.') || /[0-9]/.test(b.innerText)){
+          // only update if inside loan wallet card and looks like amount
+          if(div.contains(b) && div.innerText.includes('LOAN WALLET')){
+            // avoid updating label
+            if(b.innerText.includes('Rs.') || parseFloat(b.innerText.replace(/[^0-9.]/g,''))>=0){
+              // check parent is this card
+              b.innerText='Rs. '+FLM_LAST_AVAILABLE_LOAN.toFixed(2);
+            }
+          }
+        }
+      });
+      div.querySelectorAll('div').forEach(function(sd){
+        if(sd.innerText.includes('Not currently eligible') && FLM_LAST_AVAILABLE_LOAN>0){
+          sd.innerText='Eligible: Level 2 - Rs.'+FLM_LAST_AVAILABLE_LOAN.toFixed(2)+' ready to withdraw';
+          sd.style.color='#059669'; sd.style.fontWeight='700';
+        }
+      });
+    }
+    if(div.innerText && div.innerText.trim()==='TOTAL AMOUNT'){
+      var nxt=div.nextElementSibling;
+      if(nxt && nxt.innerText.includes('Rs.')){
+        var roi=0, match=0;
+        document.querySelectorAll('div').forEach(function(c){
+          if(c.innerText.includes('ROI WALLET')){ var b=c.querySelector('b'); if(b) roi=parseFloat(b.innerText.replace(/[^0-9.]/g,''))||roi; }
+          if(c.innerText.includes('MATCHING INCOME')){ var b=c.querySelector('b'); if(b) match=parseFloat(b.innerText.replace(/[^0-9.]/g,''))||match; }
+        });
+        var total = roi+match+FLM_LAST_AVAILABLE_LOAN;
+        nxt.innerText='Rs. '+total.toFixed(2);
+        var t2=document.getElementById('totalWalletAmount')||document.getElementById('walletTotalAmount');
+        if(t2) t2.innerText='Rs. '+total.toFixed(2);
+      }
+    }
+  });
+}
+
 try{supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}catch(e){}
 function getSession(){try{var s=localStorage.getItem('flm_session');if(!s) return null;return JSON.parse(s);}catch(e){return null;}}
 function getFlId(){var sess=getSession();if(!sess) return null;var fl=(sess.flId||sess.fl_id||'').toUpperCase();return fl||null;}
@@ -764,7 +815,10 @@ async function checkMatchingStore(){
   }else{el.innerHTML='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px">No store found within 25 KM. Bank/USDT withdrawal is available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';var sb2=document.getElementById('matchingStoreWithdrawBtn');if(sb2)sb2.style.display='none';}
  }catch(e){el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px">Location permission is needed to find the nearest store. If no store can be located, Bank/USDT withdrawal remains available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';}
 }
-async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Store withdrawal failed: '+e.message);}}
+async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Store withdrawal failed: '+e.message);}  // FIX: Apply saved eligible loan to wallet
+  try{ var savedLoan=parseFloat(localStorage.getItem('flm_available_loan')||'0')||0; if(savedLoan>0) syncLoanToWallet(savedLoan, localStorage.getItem('flm_loan_eligible')==='1'); }catch(e){}
+}
+
 async function loadWalletHistory(){var el=document.getElementById('walletHistory');if(!el||!supabaseClient)return;var flId=getFlId();try{var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}var g={matching:[],loan:[],roi:[],other:[]};rows.forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase();if(t==='matching'&&y==='withdrawal')g.matching.push(x);else if(t==='loan'&&y==='withdrawal')g.loan.push(x);else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);});function card(x){var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+(x.title||x.wallet_type||'Transaction')+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+x.store_name:'')+(x.store_code?' • Code: '+x.store_code:'')+(x.coupon_code?' • Coupon: '+x.coupon_code:'')+'</div></div>';}function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}el.innerHTML=group('💰 Matching Income Withdrawals',g.matching)+group('🏦 Loan Amount Withdrawals',g.loan)+group('🛒 ROI Store Redemptions',g.roi)+(g.other.length?group('📋 Other Wallet Transactions',g.other):'');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}}
 
 function loanNum(v){var n=Number(v);return Number.isFinite(n)?n:0;}
@@ -909,6 +963,8 @@ async function loadLoanPanel(){
     if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
     var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);
+    // FIX: Sync to Wallet
+    try{ syncLoanToWallet(availableIncrement, eligible); }catch(e){}
     var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
     var ws=document.getElementById('loanWithdrawSummary');if(ws){ws.innerHTML=eligible?'<b style=\"color:#1d4ed8\">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.':'No new loan amount is withdrawable until the required pair level is reached.';}
