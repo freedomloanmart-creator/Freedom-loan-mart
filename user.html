@@ -488,25 +488,44 @@ async function flmFetchTodayMatchingStats(flId){
   var out={pairs:0,income:0};
   if(!supabaseClient||!flId)return out;
   try{
+    // Calculate the exact current IST calendar date first.  Do not depend on
+    // the browser's local timezone/offset because that can make the midnight
+    // query start at the wrong UTC time.
     var now=new Date();
-    var ist=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+    var istText=now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'});
+    var ist=new Date(istText);
     var y=ist.getFullYear(),m=ist.getMonth(),d=ist.getDate();
-    var start=new Date(ist.getFullYear(),ist.getMonth(),ist.getDate(),0,0,0);
-    var utcStart=new Date(start.getTime()-(ist.getTimezoneOffset()*60000));
+    // IST = UTC+05:30.  This is today's IST midnight expressed as UTC.
+    var utcStart=new Date(Date.UTC(y,m,d,0,0,0)-330*60000);
+
+    // Read matching transactions broadly and normalize transaction_type/status
+    // in JavaScript. This avoids missing records because of capitalization or
+    // a small naming variation such as matching_bonus/matching_income.
     var r=await supabaseClient.from('wallet_transactions')
-      .select('amount,transaction_type,status,created_at')
+      .select('amount,wallet_type,transaction_type,status,created_at')
       .eq('fl_id',flId)
-      .in('transaction_type',['matching_bonus','matching income','matching_income'])
-      .in('status',['completed','approved'])
       .gte('created_at',utcStart.toISOString());
     if(r.error)throw r.error;
+
     var rows=(r.data||[]).filter(function(x){
       if(!x.created_at)return false;
+      var wt=String(x.wallet_type||'').trim().toLowerCase();
+      var tt=String(x.transaction_type||'').trim().toLowerCase();
+      var st=String(x.status||'').trim().toLowerCase();
+      if(st!=='completed'&&st!=='approved')return false;
+      // Matching income records can be stored under either wallet_type or
+      // transaction_type. Withdrawal transactions are explicitly excluded.
+      if(tt==='withdrawal')return false;
+      var isMatching=(wt==='matching' || tt==='matching_bonus' || tt==='matching_income' || tt==='matching income');
+      if(!isMatching)return false;
       var z=new Date(new Date(x.created_at).toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
       return z.getFullYear()===y&&z.getMonth()===m&&z.getDate()===d;
     });
+
     out.income=rows.reduce(function(a,x){return a+Number(x.amount||0);},0);
+    // ₹200 = 1 matching pair, capped at 25 pairs / ₹5,000 per day.
     out.pairs=Math.min(25,Math.floor(out.income/200));
+    out.income=Math.min(5000,out.pairs*200);
   }catch(e){console.log('today matching stats:',e.message);}
   return out;
 }
