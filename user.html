@@ -832,20 +832,30 @@ async function loadLoanPanel(){
   try{
     var v2=await flmLoadLoanV2();
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+v2.totalLeft+'</b> &nbsp; Right: <b>'+v2.totalRight+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+v2.directLeft+'</b> &nbsp; Right Direct: <b>'+v2.directRight+'</b></div><div style="margin-top:8px;font-weight:900;color:'+(v2.eligible?'#059669':'#dc2626')+'">LOAN ELIGIBILITY: '+(v2.eligible?'ELIGIBLE':'NOT ELIGIBLE')+'</div>';
-    // Keep the optional DB progress refresh non-fatal. The live users-tree count is authoritative for UI.
-    try{var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});if(rr.error)console.log('loan progress refresh:',rr.error.message);}catch(e){console.log('loan progress refresh:',e.message);}
+    // The final loan flow is handled by flmLoadLoanV2() / flm_loan_eligibility_v2().
+    // Do not call the old flm_refresh_loan_progress RPC here; it can break the Loan panel on databases where that legacy function differs.
     var e={};
-    var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
-    if(plansR.error)throw plansR.error;
-    var plans=plansR.data||[];
-    var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
-    if(loansR.error)throw loansR.error;
-    var loans=loansR.data||[];
-    var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
-    if(roiR.error)throw roiR.error;
-    var rois=roiR.data||[];
+    // Read optional display data independently. A failure in one secondary table
+    // must not make the whole Loan panel fail/loading forever.
+    var plans=[],loans=[],rois=[];
+    var plansErr=null,loansErr=null,roiErr=null;
+    try{
+      var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+      if(plansR.error) plansErr=plansR.error; else plans=plansR.data||[];
+    }catch(pe){plansErr=pe;}
+    try{
+      var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
+      if(loansR.error) loansErr=loansR.error; else loans=loansR.data||[];
+    }catch(le){loansErr=le;}
+    try{
+      var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
+      if(roiR.error) roiErr=roiR.error; else rois=roiR.data||[];
+    }catch(re){roiErr=re;}
     var currentLoan=loans.length?loans[loans.length-1]:null;
     var currentRoi=rois.length?rois[0]:null;
+    if(plansErr) console.log('loan plans display:',plansErr.message||plansErr);
+    if(loansErr) console.log('member loans display:',loansErr.message||loansErr);
+    if(roiErr) console.log('ROI cycle display:',roiErr.message||roiErr);
     // Use exactly the same live tree calculation as the Binary Tree popup.
     // This prevents the old cached 5:3 / 2:0 values from disagreeing with the visible tree.
     var liveStats=await flmFetchTeamStats(flId);
