@@ -698,12 +698,9 @@ async function loadWalletData(){
     // Example: gross/current loan ₹2,000, previous loan ₹1,000 => available ₹1,000.
     var grossLoan=Math.max(0,Number(lv2.wallet||loan||0));
     var eligibleLoan=(lv2.eligible?Math.max(0,Number(lv2.incremental||0)):0);
-    // FIX: If wallet gross is 0 but eligible incremental exists (pending sync), show eligible
-    var availableLoan = grossLoan;
-    if(eligibleLoan>0) availableLoan = eligibleLoan;
-    if(grossLoan>0 && eligibleLoan>0) availableLoan = Math.max(grossLoan, eligibleLoan);
-    // If still 0, try incremental directly
-    if(availableLoan<=0 && eligibleLoan>0) availableLoan = eligibleLoan;
+    // FIX: Loan Wallet display must come only from the real DB wallet balance.
+    // Eligibility alone must NEVER recreate/display cash after withdrawal.
+    var availableLoan = Math.max(0,grossLoan);
     loan=availableLoan;
     la=availableLoan;
     FLM_WALLET.loan=availableLoan;
@@ -789,38 +786,12 @@ async function submitMatchingWithdraw(method){var amt=getActionAmount();if(amt<2
 async function submitLoanWithdraw(method){
   var flId=getFlId();
   var st=await flmLoadLoanV2();
-  // FIX V4: Calculate eligible loan even if wallet is 0 in DB
-  var directCalc=null;
-  try{ directCalc=await flmCalcEligibleLoanDirect(); }catch(e){}
-  var amt=loanNum(FLM_WALLET.loan||st.wallet|| (directCalc?directCalc.incremental:0) || parseFloat(localStorage.getItem('flm_available_loan')||'0')||0);
-  if(amt<1){
-    // Last attempt: try direct calc
-    if(directCalc && directCalc.eligible && directCalc.incremental>0) amt=directCalc.incremental;
-  }
+  // IMPORTANT: withdraw only the real Loan Wallet balance. Never use eligibility/localStorage as cash.
+  var amt=loanNum(FLM_WALLET.loan||st.wallet||0);
   if(amt<1){alert('Loan Wallet balance is ₹0. No loan amount is currently available for withdrawal.');return;}
   if(!(await ensurePayout(method)))return;
   try{
-    // FIX V4: Force sync wallet to DB before requesting withdrawal
-    try{
-      // First try to sync via RPC
-      await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});
-    }catch(e){ console.log('sync rpc',e.message); }
-    // Directly update wallets table to ensure balance exists for RPC check
-    try{
-      var wCheck=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
-      var currentW = wCheck.data ? Number(wCheck.data.loan_wallet||0) : 0;
-      if(currentW < amt){
-        var upd=await supabaseClient.from('wallets').update({loan_wallet: amt}).eq('fl_id', flId);
-        if(upd.error) console.log('wallet update error', upd.error.message);
-        else console.log('wallet force updated to', amt);
-      }
-    }catch(e){ console.log('wallet direct update', e.message); }
-    // Before withdrawal, ensure amt is from UI not 0
-    try{
-      var uiLoan = document.getElementById('loanWallet');
-      var uiVal = uiLoan ? parseFloat(uiLoan.innerText.replace(/[^0-9.]/g,''))||0 : 0;
-      if(uiVal>amt) amt=uiVal;
-    }catch(e){}
+    // IMPORTANT: never write/re-credit loan_wallet from the browser.
     var r=await supabaseClient.rpc('flm_request_full_loan_withdrawal_v2',{p_fl_id:flId,p_method:method});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
       // FIX: After successful withdraw request, clear loan wallet to 0
       try{
