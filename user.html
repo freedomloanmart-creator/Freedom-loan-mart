@@ -1000,8 +1000,18 @@ async function loadLoanPanel(){
     var qr=loanNum(liveStats.right);
     // Determine the NEXT loan level from the live binary pair count and member loan history.
     // Do not trust the legacy v2 RPC for the displayed level/counts when it returns stale data.
-    var activeLoans2=loans.filter(function(x){var st=String(x.status||'').toLowerCase();return st!=='rejected'&&st!=='cancelled';});
-    var latestLevel2=activeLoans2.length?loanNum(firstVal(activeLoans2[activeLoans2.length-1],['plan_level','level_no'],0)):0;
+    // A member_loans row is a completed level only after the loan was actually released.
+    // Pending/eligible rows must NOT move the UI to the next level.
+    var releasedLoans2=loans.filter(function(x){
+      var st=String(x.status||'').toLowerCase().trim();
+      var rs=String(x.release_status||'').toLowerCase().trim();
+      return ['approved','active','completed','disbursed','released'].indexOf(st)>=0
+        || ['released','completed','disbursed'].indexOf(rs)>=0
+        || !!x.released_at || !!x.paid_at;
+    });
+    var latestLevel2=releasedLoans2.reduce(function(mx,x){
+      return Math.max(mx,loanNum(firstVal(x,['plan_level'],0)));
+    },0);
     var nextPlan2=null;
     for(var np=0;np<plans.length;np++){var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no);if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;}}
     if(!nextPlan2 && !latestLevel2 && plans.length)nextPlan2=plans[0];
@@ -1016,7 +1026,18 @@ async function loadLoanPanel(){
     // The UI only says eligible when the next configured plan's pair/direct requirement is met.
     v2.totalLeft=ql;v2.totalRight=qr;v2.directLeft=loanNum(liveStats.directLeft);v2.directRight=loanNum(liveStats.directRight);
     v2.level=displayLevel;v2.loanAmount=displayGross;v2.previousLoan=displayPrev;v2.incremental=displayInc;v2.eligible=eligible;
-    var nextMsg=eligible ? ('Loan '+displayLevel+' eligible: required pair level completed.') : (nextPlan2 ? ('Loan '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' pairs.') : 'No next loan level is currently available.');
+    var nextMsg;
+    if(eligible){
+      nextMsg = displayLevel===1
+        ? 'Loan 1 eligible: 1 direct LEFT + 1 direct RIGHT referral completed.'
+        : ('Loan '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs completed.');
+    }else if(nextPlan2){
+      nextMsg = displayLevel===1
+        ? 'Loan 1 requires 1 direct LEFT + 1 direct RIGHT referral.'
+        : ('Loan '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs.');
+    }else{
+      nextMsg = 'No next loan level is currently available.';
+    }
     var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
     var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
     var renewalDone=loanNum(firstVal(e,['renewal_completed_count','renewal_completed'],currentLoan?currentLoan.renewal_completed_count:0));
@@ -1058,6 +1079,35 @@ async function loadLoanPanel(){
     if(rb)rb.disabled=currentRoi&&!completed;
     var rbbox=document.getElementById('loanRoiCycleBox');
     if(rbbox){if(currentRoi){var daily=loanNum(firstVal(currentRoi,['daily_amount','amount_per_day','daily_roi'],40));var credited=loanNum(firstVal(currentRoi,['total_credited','total_amount_credited','credited_amount'],0));var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanEsc(firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
+    // Show the released loan history separately from the NEXT eligible loan.
+    // This makes it clear that the ₹1,000 Loan 1 release is already completed while
+    // the next Loan 2 remains locked until 4:4.
+    var releaseSummary=document.getElementById('loanReleasedSummary');
+    if(!releaseSummary){
+      var anchor=document.getElementById('loanPlansTable');
+      if(anchor){
+        releaseSummary=document.createElement('div');
+        releaseSummary.id='loanReleasedSummary';
+        releaseSummary.style.cssText='margin-bottom:12px;padding:12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;';
+        anchor.parentNode.insertBefore(releaseSummary,anchor);
+      }
+    }
+    if(releaseSummary){
+      if(releasedLoans2.length){
+        var sh='';
+        releasedLoans2.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).forEach(function(l){
+          var la=loanNum(firstVal(l,['incremental_amount','gross_loan_amount','loan_amount'],0));
+          sh+='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #dbeafe">'+
+              '<span><b>✅ Loan '+loanEsc(l.plan_level||'—')+' Released</b><br><span style="font-size:10px;color:#64748b">'+loanEsc(l.release_status||l.status||'Released')+'</span></span>'+
+              '<b style="color:#166534">'+loanMoney(la)+'</b></div>';
+        });
+        sh+='<div style="margin-top:9px;font-size:11px;color:#475569">Next available level: <b>Loan '+loanEsc(displayLevel||'—')+'</b> · '+loanEsc(nextMsg)+'</div>';
+        releaseSummary.innerHTML=sh;
+      }else{
+        releaseSummary.innerHTML='<b>Loan Release History</b><div style="margin-top:6px;font-size:11px;color:#64748b">No released loan recorded yet.</div>';
+      }
+    }
+
     var pt=document.getElementById('loanPlansTable');
     if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">'+loanMoney(amt)+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
     var hist=document.getElementById('myLoanHistory');
