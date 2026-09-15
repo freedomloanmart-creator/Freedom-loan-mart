@@ -830,7 +830,8 @@ async function loadLoanPanel(){
   var status=document.getElementById('loanStatusBox'); if(status)status.innerHTML='<div style="text-align:center;color:#64748b">🔄 Checking loan eligibility...</div>';
   try{
     var v2=await flmLoadLoanV2();
-    var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+v2.totalLeft+'</b> &nbsp; Right: <b>'+v2.totalRight+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+v2.directLeft+'</b> &nbsp; Right Direct: <b>'+v2.directRight+'</b></div><div style="margin-top:8px;font-weight:900;color:'+(v2.eligible?'#059669':'#dc2626')+'">FIRST LOAN: '+(v2.eligible?'ELIGIBLE':'NOT ELIGIBLE')+'</div>';
+    var liveTop=await flmFetchTeamStats(flId);
+    var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
     // Keep the optional DB progress refresh non-fatal. The live users-tree count is authoritative for UI.
     try{var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});if(rr.error)console.log('loan progress refresh:',rr.error.message);}catch(e){console.log('loan progress refresh:',e.message);}
     var e={};
@@ -847,23 +848,39 @@ async function loadLoanPanel(){
     var currentRoi=rois.length?rois[0]:null;
     // Use exactly the same live tree calculation as the Binary Tree popup.
     // This prevents the old cached 5:3 / 2:0 values from disagreeing with the visible tree.
-    var liveStats=await flmFetchTeamStats(flId);
+    var liveStats=liveTop;
     var totalPairs=Math.min(loanNum(liveStats.left),loanNum(liveStats.right));
     var ql=loanNum(liveStats.left);
     var qr=loanNum(liveStats.right);
-    var eligibleAmount=v2.incremental;
+    // Determine the NEXT loan level from the live binary pair count and member loan history.
+    // Do not trust the legacy v2 RPC for the displayed level/counts when it returns stale data.
+    var activeLoans2=loans.filter(function(x){var st=String(x.status||'').toLowerCase();return st!=='rejected'&&st!=='cancelled';});
+    var latestLevel2=activeLoans2.length?loanNum(firstVal(activeLoans2[activeLoans2.length-1],['plan_level','level_no'],0)):0;
+    var nextPlan2=null;
+    for(var np=0;np<plans.length;np++){var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no);if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;}}
+    if(!nextPlan2 && !latestLevel2 && plans.length)nextPlan2=plans[0];
+    var displayLevel=nextPlan2?loanNum(nextPlan2.level_no):latestLevel2;
+    var displayGross=nextPlan2?loanNum(nextPlan2.loan_amount):0;
+    var displayPrev=nextPlan2?loanNum(nextPlan2.previous_loan_amount):0;
+    var displayInc=nextPlan2?(nextPlan2.incremental_amount!=null?loanNum(nextPlan2.incremental_amount):Math.max(0,displayGross-displayPrev)):0;
+    var firstEligible=!latestLevel2 && loanNum(liveStats.directLeft)>=1 && loanNum(liveStats.directRight)>=1;
+    var eligibleAmount=nextPlan2 ? displayInc : 0;
+    var eligible=Boolean(nextPlan2) && (displayLevel===1 ? firstEligible : totalPairs>=loanNum(nextPlan2.required_pairs));
+    // A pending/rejected/cancelled record must not be treated as an already released previous loan.
+    // The UI only says eligible when the next configured plan's pair/direct requirement is met.
+    v2.totalLeft=ql;v2.totalRight=qr;v2.directLeft=loanNum(liveStats.directLeft);v2.directRight=loanNum(liveStats.directRight);
+    v2.level=displayLevel;v2.loanAmount=displayGross;v2.previousLoan=displayPrev;v2.incremental=displayInc;v2.eligible=eligible;
+    var nextMsg=eligible ? ('Loan '+displayLevel+' eligible: required pair level completed.') : (nextPlan2 ? ('Loan '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' pairs.') : 'No next loan level is currently available.');
     var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
     var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
     var renewalDone=loanNum(firstVal(e,['renewal_completed_count','renewal_completed'],currentLoan?currentLoan.renewal_completed_count:0));
-    var eligible=v2.eligible;
-    var msg=String(firstVal(e,['message','v_message'],''));
-    var lvl=firstVal(e,['level_no','next_level','plan_level'],currentLoan?currentLoan.plan_level:0);
-    var matchedPlan=null;
-    for(var pi=0;pi<plans.length;pi++){if(String(plans[pi].level_no)===String(lvl)){matchedPlan=plans[pi];break;}}
-    var grossPlan=matchedPlan?loanNum(matchedPlan.loan_amount):0;
-    var prevPlan=matchedPlan?loanNum(matchedPlan.previous_loan_amount):0;
-    var incPlan=matchedPlan?(matchedPlan.incremental_amount!=null?loanNum(matchedPlan.incremental_amount):Math.max(0,grossPlan-prevPlan)):0;
-    var availableIncrement=eligible?(v2.incremental>0?v2.incremental:(incPlan>0?incPlan:eligibleAmount)):0;
+    var msg=nextMsg;
+    var lvl=displayLevel;
+    var matchedPlan=nextPlan2;
+    var grossPlan=displayGross;
+    var prevPlan=displayPrev;
+    var incPlan=displayInc;
+    var availableIncrement=eligible?displayInc:0;
     FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
     if(status)status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+(currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(firstVal(currentLoan,['plan_level','level_no'],''))+' · Status: '+loanEsc(currentLoan.status||'—')+'</div>':'');
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
