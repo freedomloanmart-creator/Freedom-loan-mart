@@ -739,8 +739,20 @@ async function openWalletAction(type){
      var currentWallet=loanNum(FLM_WALLET.loan);
      var freshLoan=await flmLoadLoanV2();
      var freshWallet=loanNum(freshLoan.wallet);
+     var freshInc=loanNum(freshLoan.incremental||0);
+     var isElig = Boolean(freshLoan.eligible);
      if(currentWallet<=0 && freshWallet>0)currentWallet=freshWallet;
+     // FIX: If wallet still 0 but eligible incremental exists, use it for withdraw
+     if(currentWallet<=0 && isElig && freshInc>0)currentWallet=freshInc;
+     // Also try localStorage fallback
+     if(currentWallet<=0){
+       try{ var saved=parseFloat(localStorage.getItem('flm_available_loan')||'0')||0; if(saved>0) currentWallet=saved; }catch(e){}
+     }
      FLM_WALLET.loan=currentWallet;
+     FLM_WALLET.loanEligible=currentWallet;
+     if(freshWallet>0) FLM_WALLET.rawLoan=freshWallet;
+     else if(freshInc>0) FLM_WALLET.rawLoan=freshInc;
+
      FLM_WALLET.rawLoan=freshWallet||currentWallet;
      FLM_WALLET.loanGross=freshWallet||currentWallet;
      FLM_WALLET.loanEligible=currentWallet;
@@ -876,6 +888,30 @@ async function flmLoadLoanV2(){
    if(FLM_LOAN_V2.wallet<=0 && FLM_LOAN_V2.eligible && FLM_LOAN_V2.incremental>0) FLM_LOAN_V2.wallet=FLM_LOAN_V2.incremental;
    return FLM_LOAN_V2;
  }catch(err){console.log('loan v2:',err.message);FLM_LOAN_V2.message=String(err.message||'Loan status unavailable');return FLM_LOAN_V2;}
+}
+
+
+// FIX V3: Direct wallet open chesina kuda loan calculate chese independent function
+async function flmCalcEligibleLoanDirect(){
+  try{
+    var flId=getFlId(); if(!flId) return {eligible:false,incremental:0};
+    var live=await flmFetchTeamStats(flId);
+    var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+    var plans=plansR.data||[];
+    var loansR=await supabaseClient.from('member_loans').select('plan_level,level_no,status').eq('fl_id',flId).order('plan_level',{ascending:true});
+    var loans=loansR.data||[];
+    var active=loans.filter(function(x){ var st=String(x.status||'').toLowerCase(); return st!=='rejected'&&st!=='cancelled'; });
+    var latest=active.length?loanNum(active[active.length-1].plan_level||active[active.length-1].level_no||0):0;
+    var totalPairs=Math.min(loanNum(live.left),loanNum(live.right));
+    var nextPlan=null;
+    for(var i=0;i<plans.length;i++){ var lv=loanNum(plans[i].level_no), req=loanNum(plans[i].required_pairs); if(lv>latest && req<=totalPairs){ nextPlan=plans[i]; break; } }
+    if(!nextPlan && !latest && plans.length) nextPlan=plans[0];
+    if(!nextPlan) return {eligible:false,incremental:0};
+    var gross=loanNum(nextPlan.loan_amount), prev=loanNum(nextPlan.previous_loan_amount);
+    var inc=nextPlan.incremental_amount!=null?loanNum(nextPlan.incremental_amount):Math.max(0,gross-prev);
+    var eligible = (loanNum(nextPlan.level_no)===1) ? (live.directLeft>=1 && live.directRight>=1) : (totalPairs>=loanNum(nextPlan.required_pairs));
+    return {eligible:eligible, incremental:eligible?inc:0, level:loanNum(nextPlan.level_no), gross:gross, prev:prev};
+  }catch(e){ console.log('direct calc',e.message); return {eligible:false,incremental:0}; }
 }
 
 async function loadLoanPanel(){
