@@ -523,27 +523,43 @@ async function flmFetchTeamStats(rootFlId){
   }catch(e){console.log('team stats:',e.message);}
   return out;
 }
+/* FLM DAILY MATCHING 00:30 IST WINDOW — UI FIX */
 async function flmFetchTodayMatchingStats(flId){
   var out={pairs:0,income:0};
   if(!supabaseClient||!flId)return out;
   try{
-    // Calculate the exact current IST calendar date first.  Do not depend on
-    // the browser's local timezone/offset because that can make the midnight
-    // query start at the wrong UTC time.
+    /*
+      FLM DAILY MATCHING WINDOW:
+      Every day starts at 00:30 AM IST and ends at the next day's 00:30 AM IST.
+      Therefore the UI shows 0/25 again immediately after 00:30.
+      Lifetime total_pairs is NOT reset.
+    */
     var now=new Date();
     var istText=now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'});
     var ist=new Date(istText);
-    var y=ist.getFullYear(),m=ist.getMonth(),d=ist.getDate();
-    // IST = UTC+05:30.  This is today's IST midnight expressed as UTC.
-    var utcStart=new Date(Date.UTC(y,m,d,0,0,0)-330*60000);
 
-    // Read matching transactions broadly and normalize transaction_type/status
-    // in JavaScript. This avoids missing records because of capitalization or
-    // a small naming variation such as matching_bonus/matching_income.
+    // Build today's 00:30 IST boundary.
+    var startY=ist.getFullYear();
+    var startM=ist.getMonth();
+    var startD=ist.getDate();
+
+    // Before 00:30, the current daily window belongs to yesterday.
+    if(ist.getHours()<0 || (ist.getHours()===0 && ist.getMinutes()<30)){
+      var prev=new Date(startY,startM,startD);
+      prev.setDate(prev.getDate()-1);
+      startY=prev.getFullYear();
+      startM=prev.getMonth();
+      startD=prev.getDate();
+    }
+
+    // Convert 00:30 IST to UTC (IST = UTC+05:30).
+    var utcStart=new Date(Date.UTC(startY,startM,startD,0,30,0)-330*60000);
+
     var r=await supabaseClient.from('wallet_transactions')
       .select('amount,wallet_type,transaction_type,status,created_at')
       .eq('fl_id',flId)
       .gte('created_at',utcStart.toISOString());
+
     if(r.error)throw r.error;
 
     var rows=(r.data||[]).filter(function(x){
@@ -551,21 +567,33 @@ async function flmFetchTodayMatchingStats(flId){
       var wt=String(x.wallet_type||'').trim().toLowerCase();
       var tt=String(x.transaction_type||'').trim().toLowerCase();
       var st=String(x.status||'').trim().toLowerCase();
+
       if(st!=='completed'&&st!=='approved')return false;
-      // Matching income records can be stored under either wallet_type or
-      // transaction_type. Withdrawal transactions are explicitly excluded.
       if(tt==='withdrawal')return false;
-      var isMatching=(wt==='matching' || tt==='matching_bonus' || tt==='matching_income' || tt==='matching income');
+
+      var isMatching=(
+        wt==='matching' ||
+        tt==='matching_bonus' ||
+        tt==='matching_income' ||
+        tt==='matching income'
+      );
       if(!isMatching)return false;
-      var z=new Date(new Date(x.created_at).toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
-      return z.getFullYear()===y&&z.getMonth()===m&&z.getDate()===d;
+
+      return new Date(x.created_at).getTime()>=utcStart.getTime();
     });
 
-    out.income=rows.reduce(function(a,x){return a+Number(x.amount||0);},0);
-    // ₹200 = 1 matching pair, capped at 25 pairs / ₹5,000 per day.
-    out.pairs=Math.min(25,Math.floor(out.income/200));
-    out.income=Math.min(5000,out.pairs*200);
-  }catch(e){console.log('today matching stats:',e.message);}
+    /*
+      ₹200 = 1 pair.
+      Hard UI cap: maximum 25 paid pairs = ₹5,000 in one daily window.
+      Extra historical/duplicate rows can never make the UI show more than 25.
+    */
+    out.pairs=Math.min(25,Math.floor(
+      rows.reduce(function(a,x){return a+Number(x.amount||0);},0)/200
+    ));
+    out.income=out.pairs*200;
+  }catch(e){
+    console.log('today matching stats:',e.message);
+  }
   return out;
 }
 
