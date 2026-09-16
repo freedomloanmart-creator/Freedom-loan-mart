@@ -5,7 +5,7 @@
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
 // Supabase client-side anon/publishable key supplied for this project.
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sIjoiYW5vbiIsImlhdCI6MTc4ODY0MTgwOCwiZXhwIjoyMTA0MjE3ODA4fQ.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+const SUPABASE_ANON_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
 let supabaseClient=null;
 function initSupabase(){
   try{
@@ -114,12 +114,13 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
     <button onclick="sendForgotSupport('mail')" id="mailSupportBtn" class="btn" style="background:#0f172a;color:#fff;padding:12px">📨 Send to Admin</button>
   </div>
 
-  <div id="adminOpt" style="display:none">
+    <div id="adminOpt" style="display:none">
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px;color:#92400e">
       <b>Admin Reset:</b> Send your FL ID and explain the problem. The request will appear in Admin Support. Admin can reset the password from the Admin panel.
       <br><br>FL ID: <span id="supportFlId">FL ID</span>
     </div>
-    <textarea id="adminResetMessage" placeholder="Example: I forgot my password. Please reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-top:8px;resize:vertical"></textarea>
+    <input id="adminFlIdInput" placeholder="Enter FL ID - ex: FL241190" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-top:10px;margin-bottom:8px;text-transform:uppercase">
+    <textarea id="adminResetMessage" placeholder="Example: I forgot my password. Please reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;resize:vertical"></textarea>
     <button onclick="sendForgotSupport('admin')" id="adminSupportBtn" class="btn" style="background:#2563eb;color:#fff;padding:12px;margin-top:8px">📨 Send to Admin</button>
   </div>
 
@@ -156,20 +157,31 @@ function selectForgotOpt(opt){
 async function sendForgotSupport(type){
   const msg=document.getElementById('forgotMsg');
   const btn=document.getElementById(type==='mail'?'mailSupportBtn':'adminSupportBtn');
-
-  const flId=(type==='mail'
-    ? document.getElementById('forgotMailFlId').value
-    : ((document.getElementById('loginId').value||'')||'')
-  ).trim().toUpperCase();
-
-  const message=(type==='mail'
-    ? document.getElementById('forgotMailMessage').value
-    : document.getElementById('adminResetMessage').value
-  ).trim();
-
-  if(!/^FL[A-Z0-9]+$/i.test(flId)){
+  function normalizeFlId(raw){
+    if(!raw) return '';
+    let s = String(raw).trim().toUpperCase();
+    s = s.replace(/\s+/g, '');
+    const m = s.match(/FL[0-9A-Z]+/);
+    return m ? m[0] : s;
+  }
+  let flIdRaw = type==='mail' ? document.getElementById('forgotMailFlId').value : (document.getElementById('adminFlIdInput')?.value || document.getElementById('loginId').value || '');
+  let flId = normalizeFlId(flIdRaw);
+  let messageRaw = type==='mail' ? document.getElementById('forgotMailMessage').value : document.getElementById('adminResetMessage').value;
+  let message = String(messageRaw||'').trim();
+  if(!flId || !/^FL[0-9A-Z]+$/i.test(flId)){
+    const fromMsg = normalizeFlId(message);
+    if(fromMsg && /^FL[0-9A-Z]+$/i.test(fromMsg)){
+      flId = fromMsg;
+      if(message.toUpperCase().replace(/\s+/g,'') === flId){
+        message = 'Forgot password - please reset for '+flId;
+      }
+      const inputEl = document.getElementById(type==='mail'?'forgotMailFlId':'adminFlIdInput');
+      if(inputEl) inputEl.value = flId;
+    }
+  }
+  if(!/^FL[0-9A-Z]+$/i.test(flId)){
     msg.style.color='#dc2626';
-    msg.innerText='Please enter your correct FL ID.';
+    msg.innerText='Please enter correct FL ID. Use FL241190 without space. You typed: '+(flIdRaw||'empty');
     return;
   }
   if(!message){
@@ -182,41 +194,25 @@ async function sendForgotSupport(type){
     msg.innerText='Database not available.';
     return;
   }
-
   btn.disabled=true;
   btn.style.opacity='.65';
   msg.style.color='#2563eb';
   msg.innerText='Sending request to Admin...';
-
   try{
     const client=supabaseClient||initSupabase();
-    if(!client) throw new Error('Database connection failed. Please try again.');
+    if(!client) throw new Error('Database connection failed.');
     let userName=flId;
     try{
       const q=await client.from('users').select('full_name').eq('fl_id',flId).limit(1);
       if(!q.error && q.data && q.data[0] && q.data[0].full_name) userName=q.data[0].full_name;
     }catch(e){}
-
-    const subject=type==='mail'
-      ? 'Forgot Password / Mail OTP Help'
-      : 'Forgot Password / Admin Reset';
-
-    const r=await client.from('support_requests').insert({
-      fl_id:flId,
-      user_name:userName,
-      subject:subject,
-      message:message,
-      screenshot_data:null,
-      status:'pending'
-    }).select().single();
-
+    const subject=type==='mail' ? 'Forgot Password / Mail OTP Help' : 'Forgot Password / Admin Reset';
+    const r=await client.from('support_requests').insert({fl_id: flId, user_name: userName, subject: subject, message: message, screenshot_data: null, status: 'pending'}).select().single();
     if(r.error) throw r.error;
-
     msg.style.color='#047857';
-    msg.innerText='✅ Request sent. Admin will check and reply in Help Center.';
-
+    msg.innerText='✅ Request sent for '+flId+'. Admin will reply.';
     if(type==='mail') document.getElementById('forgotMailMessage').value='';
-    else document.getElementById('adminResetMessage').value='';
+    else {document.getElementById('adminResetMessage').value=''; document.getElementById('adminFlIdInput').value='';}
   }catch(e){
     msg.style.color='#dc2626';
     msg.innerText='❌ Failed: '+String(e.message||e);
@@ -227,6 +223,7 @@ async function sendForgotSupport(type){
 }
 
 function toast(m){
+
   let t=document.createElement('div');
   t.className='toast';
   t.innerText=m;
