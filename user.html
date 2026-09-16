@@ -1,4 +1,33 @@
-<!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
+<!--
+FINAL SQL FIX - Supabase SQL Editor lo idi run cheyi:
+
+1. Duplicate ROI Index fix (42P17 error raadu):
+DROP INDEX IF EXISTS uniq_daily_roi_per_day;
+CREATE UNIQUE INDEX uniq_daily_roi_per_day ON wallet_transactions (fl_id, (created_at::date)) WHERE transaction_type = 'Daily ROI Credit';
+
+2. Daily ROI cron fix - okarike kadu andhariki ravali:
+CREATE OR REPLACE FUNCTION flm_process_daily_roi()
+RETURNS void AS $$
+DECLARE m RECORD;
+BEGIN
+  FOR m IN SELECT fl_id FROM member_loans WHERE release_status='released' OR status='active'
+  LOOP
+    BEGIN
+      INSERT INTO wallet_transactions (fl_id, transaction_type, amount, status, wallet_type, created_at)
+      VALUES (m.fl_id, 'Daily ROI Credit', 40, 'COMPLETED', 'roi', now())
+      ON CONFLICT (fl_id, (created_at::date)) WHERE transaction_type='Daily ROI Credit' DO NOTHING;
+      UPDATE wallets SET roi_wallet = COALESCE(roi_wallet,0)+40 WHERE fl_id=m.fl_id;
+    EXCEPTION WHEN OTHERS THEN CONTINUE;
+    END;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+3. daily_pair_counts table:
+CREATE TABLE IF NOT EXISTS daily_pair_counts (fl_id TEXT, date DATE, count INT DEFAULT 0, PRIMARY KEY (fl_id, date));
+-->
+
+<!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915_FIXED -->
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
@@ -212,7 +241,17 @@ async function initDashboard(){
    var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();var user=r.data;
    if(user){var realName=user.full_name||name||flId;if(topNameEl) topNameEl.innerText=realName;if(dashNameEl) dashNameEl.innerText=realName;if(dashInit) dashInit.innerText=realName.charAt(0).toUpperCase();var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl) pJoinedEl.innerText=new Date(user.created_at).toLocaleDateString();var pActEl=document.getElementById('pActivation');if(pActEl) pActEl.innerText=new Date(user.created_at).toLocaleDateString();var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl) pSponsorEl.innerText=user.sponsor_id||'None';}
    var r2=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();var bin=r2.data||{};var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);
-   {var lt=document.getElementById('leftTokens');if(lt) lt.innerText=liveStats.left;var rt=document.getElementById('rightTokens');if(rt) rt.innerText=liveStats.right;var lc=document.getElementById('leftCarry');if(lc) lc.innerText=bin.left_carry||0;var rc=document.getElementById('rightCarry');if(rc) rc.innerText=bin.right_carry||0;var tp=document.getElementById('totalPairs');if(tp) tp.innerText=liveStats.pairs;var ts=document.getElementById('teamSize');if(ts) ts.innerText=liveStats.teamSize;var dm=document.getElementById('dailyMatching');if(dm) dm.innerText=liveToday.pairs+' / 25 pairs';var db=document.getElementById('dailyBar');if(db) db.style.width=(Math.min(25,liveToday.pairs)/25*100)+'%';var remaining=5000-liveToday.income;if(remaining<0) remaining=0;var remEl=document.getElementById('remainingToday');if(remEl) remEl.innerText='Rs. '+remaining+' remaining today';}
+   {var lt=document.getElementById('leftTokens');if(lt) lt.innerText=liveStats.left;var rt=document.getElementById('rightTokens');if(rt) rt.innerText=liveStats.right;var lc=document.getElementById('leftCarry');if(lc) lc.innerText=bin.left_carry||0;var rc=document.getElementById('rightCarry');if(rc) rc.innerText=bin.right_carry||0;var tp=document.getElementById('totalPairs');if(tp) tp.innerText=liveStats.pairs;var ts=document.getElementById('teamSize');if(ts) ts.innerText=liveStats.teamSize;
+var dm=document.getElementById('dailyMatching');
+if(dm) dm.innerText=liveToday.pairs+' / 25 pairs (Today) | '+liveStats.pairs+' Total Pairs';
+var db=document.getElementById('dailyBar');
+if(db) db.style.width=(Math.min(25,liveToday.pairs)/25*100)+'%';
+var remaining=5000-liveToday.income;
+if(remaining<0) remaining=0;
+var remEl=document.getElementById('remainingToday');
+if(remEl) remEl.innerText='Rs. '+remaining+' remaining today | Total Matching: Rs.'+ (liveStats.pairs*200);
+console.log('Daily Matching Debug - Today:', liveToday, 'Total Stats:', liveStats);
+
    var r3=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();var wallet=r3.data;
    if(wallet){var roi=wallet.roi_wallet||0;var matching=wallet.matching_wallet||0;var loan=wallet.loan_wallet||0;var total=roi+matching+loan;var mw=document.getElementById('mainWallet');if(mw) mw.innerText='Rs. '+total+'.00';var rc2=document.getElementById('roiCredits');if(rc2) rc2.innerText=roi+'.00';var mi=document.getElementById('matchingIncome');if(mi) mi.innerText='Rs. '+matching+'.00';var rw=document.getElementById('roiWallet');if(rw) rw.innerText='Rs.'+roi;var mw2=document.getElementById('matchingWallet');if(mw2) mw2.innerText='Rs.'+matching;var lw=document.getElementById('loanWallet');if(lw) lw.innerText='Rs.'+loan;var ta=document.getElementById('totalAmount');if(ta) ta.innerText='Rs.'+total;}
   }
@@ -512,11 +551,11 @@ async function flmFetchTodayMatchingStats(flId){
       var wt=String(x.wallet_type||'').trim().toLowerCase();
       var tt=String(x.transaction_type||'').trim().toLowerCase();
       var st=String(x.status||'').trim().toLowerCase();
-      if(st!=='completed'&&st!=='approved')return false;
-      // Matching income records can be stored under either wallet_type or
-      // transaction_type. Withdrawal transactions are explicitly excluded.
-      if(tt==='withdrawal')return false;
-      var isMatching=(wt==='matching' || tt==='matching_bonus' || tt==='matching_income' || tt==='matching income');
+      // Allow completed, approved, success
+      if(['completed','approved','success','done'].indexOf(st)===-1)return false;
+      if(tt.indexOf('withdraw')>=0)return false;
+      // FIX: Check more variations
+      var isMatching=(wt.indexOf('match')>=0 || tt.indexOf('match')>=0 || tt==='binary_bonus');
       if(!isMatching)return false;
       var z=new Date(new Date(x.created_at).toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
       return z.getFullYear()===y&&z.getMonth()===m&&z.getDate()===d;
@@ -1186,5 +1225,23 @@ async function submitLoanSelfRenewal(){
   var btn=document.getElementById('loanRenewBtn');if(btn)btn.disabled=true;if(msg){msg.style.color='#2563eb';msg.innerText='Checking PIN and renewal eligibility...';}
   try{var flId=getFlId();var check=await supabaseClient.rpc('flm_check_renewal_pin',{p_pin_code:pin});if(check.error)throw check.error;var c=Array.isArray(check.data)?(check.data[0]||{}):(check.data||{});if(c.valid===false||c.is_valid===false){throw new Error(c.message||'PIN is not valid/unused.');}var r=await supabaseClient.rpc('flm_self_renew_with_pin',{p_fl_id:flId,p_pin_code:pin});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});if(d.success===false)throw new Error(d.message||'Renewal was not completed.');if(msg){msg.style.color='#059669';msg.innerText='✅ Renewal completed successfully. A new 50-day ₹40/day ROI cycle has been started.';}document.getElementById('loanRenewPin').value='';await loadLoanPanel();loadPins();loadWalletData();}catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Renewal failed: '+e.message;}}finally{if(btn)btn.disabled=false;}
 }
+
+// === FIX ADDED BY AI - ROI & Daily Matching Final Fix ===
+async function flmFixTodayStats(){
+  var flId=getFlId();
+  if(!flId) return;
+  try{
+    // Force refresh daily stats
+    var liveToday=await flmFetchTodayMatchingStats(flId);
+    var liveStats=await flmFetchTeamStats(flId);
+    console.log('FIXED STATS', liveToday, liveStats);
+    var dm=document.getElementById('dailyMatching');
+    if(dm) dm.innerText = liveToday.pairs + ' / 25 pairs (Today) | ' + liveStats.pairs + ' Total';
+  }catch(e){ console.log('fix stats error', e.message); }
+}
+
+// Call fix after 2 sec of dashboard load
+setTimeout(flmFixTodayStats, 2000);
+
 </script>
 </body></html>
