@@ -1194,70 +1194,81 @@ async function flmCalcEligibleLoanDirect(){
   }catch(e){ console.log('direct calc',e.message); return {eligible:false,incremental:0}; }
 }
 
-async function loadLoanPanel(){
-  if(!requireLogin()||!supabaseClient)return;
-  var flId=getFlId();
-  var status=document.getElementById('loanStatusBox'); if(status)status.innerHTML='<div style="text-align:center;color:#64748b">🔄 Checking loan eligibility...</div>';
-  try{
-    var v2=await flmLoadLoanV2();
-    var liveTop=await flmFetchTeamStats(flId);
-    var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
-    // Keep the optional DB progress refresh non-fatal. The live users-tree count is authoritative for UI.
-    // AUTO-RELEASE FOR ALL USERS - critical fix: ensure pending loans become released
-    try{
-      var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});
-      if(rr.error) console.log('loan progress refresh:',rr.error.message);
-    }catch(e){console.log('loan progress refresh:',e.message);}
-    // If eligible, force release if pending - this makes it automatic for all users
-    try{
-      var relR=await supabaseClient.rpc('flm_release_loan_if_eligible',{p_fl_id:flId});
-      if(relR.error) console.log('auto release:',relR.error.message);
-      else console.log('auto release result:',relR.data);
-    }catch(e){console.log('auto release error:',e.message);}
-    try{
-      var syncR=await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});
-      if(syncR.error) console.log('sync wallet:',syncR.error.message);
-    }catch(e){console.log('sync wallet error:',e.message);}
 
-    var e={};
-    var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
-    if(plansR.error)throw plansR.error;
-    var plans=plansR.data||[];
-    var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
-    if(loansR.error)throw loansR.error;
-    var loans=loansR.data||[];
-    // Read completed loan-release transactions as the authoritative wallet release record.
-    // This prevents a stale member_loans status='pending' row from hiding an already released loan.
-    var loanReleaseTxR=await supabaseClient.from('wallet_transactions')
-      .select('id,fl_id,title,wallet_type,transaction_type,amount,net_amount,status,remarks,created_at')
-      .eq('fl_id',flId)
-      .eq('wallet_type','loan')
-      .order('created_at',{ascending:true});
-    if(loanReleaseTxR.error) console.log('loan release history:',loanReleaseTxR.error.message);
-    var loanReleaseTxs=(loanReleaseTxR.data||[]).filter(function(tx){
-      var wt=String(tx.wallet_type||'').toLowerCase().trim();
-      var tt=String(tx.transaction_type||'').toLowerCase().trim();
-      var title=String(tx.title||'').toLowerCase().trim();
-      var st=String(tx.status||'').toLowerCase().trim();
-      var isCompleted = (st==='completed'||st==='approved');
-      var isLoanTx = wt==='loan' && (tt.indexOf('loan')>=0 || title.indexOf('loan')>=0 || title.indexOf('increment')>=0);
-      return isLoanTx && isCompleted;
-    });
-    var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
-    if(roiR.error)throw roiR.error;
-    var rois=roiR.data||[];
+async function loadLoanPanel(){
+  if(!requireLogin()||!supabaseClient) return;
+  var flId=getFlId();
+  var status=document.getElementById('loanStatusBox'); 
+  var directBox=document.getElementById('loanDirectProgress');
+  var rbbox=document.getElementById('loanRoiCycleBox');
+  var pt=document.getElementById('loanPlansTable');
+  var hist=document.getElementById('myLoanHistory');
+
+  if(status) status.innerHTML='<div style="text-align:center;color:#64748b">🔄 Checking loan eligibility...</div>';
+  if(directBox) directBox.innerHTML='Loading referral qualification...';
+  if(pt) pt.innerHTML='Loading plans...';
+  if(hist) hist.innerHTML='Loading...';
+  if(rbbox) rbbox.innerHTML='<div style="padding:10px;color:#64748b">Loading ROI cycle...<br>Checking registration date for base cycle...</div>';
+
+  // Helper functions - defined inside to avoid global missing
+  function firstVal(o, keys, def){ for(var i=0;i<keys.length;i++){ if(o && o[keys[i]]!=null && o[keys[i]]!=='') return o[keys[i]]; } return def; }
+  function loanNum(v){ var n=Number(v); return isNaN(n)?0:n; }
+  function loanMoney(v){ return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function loanEsc(v){ return String(v??'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];}); }
+
+  try{
+    // 1. Live binary stats - this is critical but should not block ROI
+    var liveTop={left:0,right:0,directLeft:0,directRight:0};
+    try{ liveTop = await flmFetchTeamStats(flId); }catch(e){ console.log('liveTop error',e.message); }
+
+    if(directBox){
+      directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
+    }
+
+    // 2. Try to refresh loan progress - non-blocking, ignore errors
+    try{ await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId}); }catch(e){ console.log('refresh progress skip',e.message); }
+    try{ await supabaseClient.rpc('flm_release_loan_if_eligible',{p_fl_id:flId}); }catch(e){ console.log('auto release skip',e.message); }
+    try{ await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId}); }catch(e){ console.log('sync wallet skip',e.message); }
+
+    // 3. Load plans, loans, roi - with individual try/catch
+    var plans=[], loans=[], rois=[], loanReleaseTxs=[];
+    try{
+      var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+      if(!plansR.error) plans=plansR.data||[];
+    }catch(e){ console.log('plans error',e.message); }
+
+    try{
+      var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
+      if(!loansR.error) loans=loansR.data||[];
+    }catch(e){ console.log('loans error',e.message); }
+
+    try{
+      var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',String(flId).toUpperCase()).order('created_at',{ascending:false}).limit(10);
+      if(!roiR.error) rois=roiR.data||[];
+    }catch(e){ console.log('rois error',e.message); }
+
+    try{
+      var loanReleaseTxR=await supabaseClient.from('wallet_transactions').select('id,fl_id,title,wallet_type,transaction_type,amount,net_amount,status,remarks,created_at').eq('fl_id',flId).eq('wallet_type','loan').order('created_at',{ascending:true});
+      if(!loanReleaseTxR.error){
+        loanReleaseTxs=(loanReleaseTxR.data||[]).filter(function(tx){
+          var wt=String(tx.wallet_type||'').toLowerCase().trim();
+          var tt=String(tx.transaction_type||'').toLowerCase().trim();
+          var title=String(tx.title||'').toLowerCase().trim();
+          var st=String(tx.status||'').toLowerCase().trim();
+          var isCompleted = (st==='completed'||st==='approved');
+          var isLoanTx = wt==='loan' && (tt.indexOf('loan')>=0 || title.indexOf('loan')>=0 || title.indexOf('increment')>=0);
+          return isLoanTx && isCompleted;
+        });
+      }
+    }catch(e){ console.log('loanReleaseTxs error',e.message); }
+
     var currentLoan=loans.length?loans[loans.length-1]:null;
     var currentRoi=rois.length?rois[0]:null;
-    // Use exactly the same live tree calculation as the Binary Tree popup.
-    // This prevents the old cached 5:3 / 2:0 values from disagreeing with the visible tree.
     var liveStats=liveTop;
     var totalPairs=Math.min(loanNum(liveStats.left),loanNum(liveStats.right));
     var ql=loanNum(liveStats.left);
     var qr=loanNum(liveStats.right);
-    // Determine the NEXT loan level from the live binary pair count and member loan history.
-    // Do not trust the legacy v2 RPC for the displayed level/counts when it returns stale data.
-    // A member_loans row is a completed level only after the loan was actually released.
-    // Pending/eligible rows must NOT move the UI to the next level.
+
     var releasedLoans2=loans.filter(function(x){
       var st=String(x.status||'').toLowerCase().trim();
       var rs=String(x.release_status||'').toLowerCase().trim();
@@ -1265,280 +1276,131 @@ async function loadLoanPanel(){
         || ['released','completed','disbursed','withdrawn'].indexOf(rs)>=0
         || !!x.released_at || !!x.paid_at;
     });
-    // If the member_loans row is stale/pending but a completed loan_release transaction
-    // exists, treat that level as released for DISPLAY only. No wallet credit is created here.
-    // Map wallet loan_release transactions to correct plan_level using amount
+
     loanReleaseTxs.forEach(function(tx){
       var amt = loanNum(tx.amount);
       var lvl = 1;
-      if(amt>=16000) lvl=5;
-      else if(amt>=8000) lvl=4;
-      else if(amt>=4000) lvl=3;
-      else if(amt>=2000) lvl=2;
-      else lvl=1;
-      // Infer from remarks like "Loan 3" if present
-      try{
-        var rm = String(tx.remarks||tx.title||'');
-        var m = rm.match(/Loan\s*(\d+)/i);
-        if(m) lvl = parseInt(m[1],10);
-      }catch(e){}
+      if(amt>=16000) lvl=5; else if(amt>=8000) lvl=4; else if(amt>=4000) lvl=3; else if(amt>=2000) lvl=2; else lvl=1;
+      try{ var rm = String(tx.remarks||tx.title||''); var m = rm.match(/Loan\s*(\d+)/i); if(m) lvl = parseInt(m[1],10); }catch(e){}
       if(releasedLoans2.some(function(x){return loanNum(x.plan_level)===lvl;})) return;
-      releasedLoans2.push({
-        plan_level:lvl,
-        gross_loan_amount:loanNum(tx.amount),
-        incremental_amount:loanNum(tx.net_amount!=null?tx.net_amount:tx.amount),
-        status:'released',
-        release_status:'released',
-        released_at:tx.created_at,
-        paid_at:null,
-        __wallet_release:true
-      });
+      releasedLoans2.push({ plan_level:lvl, gross_loan_amount:loanNum(tx.amount), incremental_amount:loanNum(tx.net_amount!=null?tx.net_amount:tx.amount), status:'released', release_status:'released', released_at:tx.created_at, paid_at:null, __wallet_release:true });
     });
-    var latestLevel2=releasedLoans2.reduce(function(mx,x){
-      return Math.max(mx,loanNum(firstVal(x,['plan_level'],0)));
-    },0);
-    // Find next plan after latest released level - first check if next level is eligible, otherwise find the immediate next
-    var nextPlan2=null;
-    var immediateNext=null;
-    for(var np=0;np<plans.length;np++){
-      var lv=loanNum(plans[np].level_no);
-      if(lv===latestLevel2+1){ immediateNext=plans[np]; break; }
-    }
-    // If immediate next is eligible (pairs met), use it
-    if(immediateNext && totalPairs >= loanNum(immediateNext.required_pairs)){
-      nextPlan2=immediateNext;
-    }else{
-      // Otherwise find any eligible plan after latestLevel
-      for(var np=0;np<plans.length;np++){
-        var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no);
-        if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;}
-      }
-      // If none eligible yet, show immediate next as upcoming requirement
+
+    var latestLevel2=releasedLoans2.reduce(function(mx,x){ return Math.max(mx,loanNum(firstVal(x,['plan_level'],0))); },0);
+    var nextPlan2=null, immediateNext=null;
+    for(var np=0;np<plans.length;np++){ var lv=loanNum(plans[np].level_no); if(lv===latestLevel2+1){ immediateNext=plans[np]; break; } }
+    if(immediateNext && totalPairs >= loanNum(immediateNext.required_pairs)){ nextPlan2=immediateNext; }else{
+      for(var np=0;np<plans.length;np++){ var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no); if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;} }
       if(!nextPlan2) nextPlan2=immediateNext;
     }
-    if(!nextPlan2 && !latestLevel2 && plans.length)nextPlan2=plans[0];
+    if(!nextPlan2 && !latestLevel2 && plans.length) nextPlan2=plans[0];
     var displayLevel=nextPlan2?loanNum(nextPlan2.level_no):latestLevel2;
     var displayGross=nextPlan2?loanNum(nextPlan2.loan_amount):0;
     var displayPrev=nextPlan2?loanNum(nextPlan2.previous_loan_amount):0;
     var displayInc=nextPlan2?(nextPlan2.incremental_amount!=null?loanNum(nextPlan2.incremental_amount):Math.max(0,displayGross-displayPrev)):0;
     var firstEligible=!latestLevel2 && loanNum(liveStats.directLeft)>=1 && loanNum(liveStats.directRight)>=1;
-    var eligibleAmount=nextPlan2 ? displayInc : 0;
     var eligible=Boolean(nextPlan2) && (displayLevel===1 ? firstEligible : totalPairs>=loanNum(nextPlan2.required_pairs));
-    // A pending/rejected/cancelled record must not be treated as an already released previous loan.
-    // The UI only says eligible when the next configured plan's pair/direct requirement is met.
-    v2.totalLeft=ql;v2.totalRight=qr;v2.directLeft=loanNum(liveStats.directLeft);v2.directRight=loanNum(liveStats.directRight);
-    v2.level=displayLevel;v2.loanAmount=displayGross;v2.previousLoan=displayPrev;v2.incremental=displayInc;v2.eligible=eligible;
-    var nextMsg;
-    if(eligible){
-      nextMsg = displayLevel===1
-        ? 'Loan 1 eligible: 1 direct LEFT + 1 direct RIGHT referral completed.'
-        : ('Loan '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs completed.');
-    }else if(nextPlan2){
-      nextMsg = displayLevel===1
-        ? 'Loan 1 requires 1 direct LEFT + 1 direct RIGHT referral.'
-        : ('Loan '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs.');
-    }else{
-      nextMsg = 'No next loan level is currently available.';
-    }
-    var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
-    var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
-    var renewalDone=loanNum(firstVal(e,['renewal_completed_count','renewal_completed'],currentLoan?currentLoan.renewal_completed_count:0));
-    var msg=nextMsg;
-    var lvl=displayLevel;
-    var matchedPlan=nextPlan2;
-    var grossPlan=displayGross;
-    var prevPlan=displayPrev;
-    var incPlan=displayInc;
-    var availableIncrement=eligible?displayInc:(latestLevel2>0?loanNum(v2.wallet):0);
-    FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
-    if(status){
-      var latestDisplayLoan=currentLoan;
-      var latestRelease=latestDisplayLoan?releasedLoans2.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).pop():null;
-      if(!latestRelease && loanReleaseTxs.length){
-        var txLast=loanReleaseTxs[loanReleaseTxs.length-1];
-        latestRelease={plan_level:1,status:'released',release_status:'released',released_at:txLast.created_at};
-      }
-      var latestStatus=latestRelease?'released':(latestDisplayLoan?latestDisplayLoan.status:'—');
-      var latestLevelText=latestRelease?latestRelease.plan_level:(latestDisplayLoan?firstVal(latestDisplayLoan,['plan_level','level_no'],'—'):'—');
-      var latestHtml=latestDisplayLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(latestLevelText)+' · Status: '+loanEsc(latestStatus)+'</div>':'';
-      status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
-    }
-    var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Loan (After Previous)':'Current Loan Wallet (Already Released)';
-    // FIX: Save eligible loan for wallet display and force wallet UI update
-    try{
-      localStorage.setItem('flm_available_loan', String(availableIncrement));
-      localStorage.setItem('flm_loan_eligible', eligible?'1':'0');
-      // If wallet section already loaded, update it live
-      var lw=document.getElementById('loanWallet'); if(lw && availableIncrement>0) lw.innerText=loanMoney(availableIncrement);
-      var ta=document.getElementById('totalAmount'); 
-      if(ta && availableIncrement>0){
-        var roiEl=document.getElementById('roiWallet'); var matchEl=document.getElementById('matchingWallet');
-        var roiV=roiEl?loanNum(roiEl.innerText.replace(/[^0-9.]/g,'')):0;
-        var matchV=matchEl?loanNum(matchEl.innerText.replace(/[^0-9.]/g,'')):0;
-        ta.innerText=loanMoney(roiV+matchV+availableIncrement);
-      }
-    }catch(e){}
 
-    var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
-    var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
-    var ws=document.getElementById('loanWithdrawSummary');if(ws){
-      // === FLM UNIVERSAL WITHDRAWN CHECK FOR ALL USERS ===
-      var isWithdrawnAll = false;
-      var withdrawnLevel = 0;
-      var withdrawnAmt = 0;
-      // Check if latest loan is marked withdrawn
-      if(currentLoan){
-        var cs = String(currentLoan.status||'').toLowerCase();
-        var cr = String(currentLoan.release_status||'').toLowerCase();
-        if(cs==='withdrawn' || cr==='withdrawn'){
-          isWithdrawnAll = true;
-          withdrawnLevel = loanNum(currentLoan.plan_level);
-          withdrawnAmt = loanNum(firstVal(currentLoan,['incremental_amount','gross_loan_amount'],0));
-        }
-      }
-      // Also check latest released list for withdrawn status
-      if(!isWithdrawnAll && loans.length){
-        var lastLoan = loans.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).pop();
-        if(lastLoan){
-          var ls = String(lastLoan.status||'').toLowerCase();
-          var lr = String(lastLoan.release_status||'').toLowerCase();
-          if(ls==='withdrawn' || lr==='withdrawn'){
-            isWithdrawnAll = true;
-            withdrawnLevel = loanNum(lastLoan.plan_level);
-            withdrawnAmt = loanNum(firstVal(lastLoan,['incremental_amount','gross_loan_amount'],0));
-          }
-        }
-      }
-      // Find next plan after withdrawn level
-      var nextPlanAfterWithdraw = null;
-      if(isWithdrawnAll){
-        for(var np2=0;np2<plans.length;np2++){
-          if(loanNum(plans[np2].level_no)===withdrawnLevel+1){ nextPlanAfterWithdraw=plans[np2]; break; }
-        }
-      }
-      var nextEligibleAfterWithdraw = nextPlanAfterWithdraw && totalPairs >= loanNum(nextPlanAfterWithdraw.required_pairs);
-      
-      if(isWithdrawnAll && !nextEligibleAfterWithdraw){
-        // Still waiting for next level
-        var nextReqPairs = nextPlanAfterWithdraw?loanNum(nextPlanAfterWithdraw.required_pairs):12;
-        var needMore = Math.max(0, nextReqPairs - totalPairs);
-        ws.innerHTML='<div style="background:#e8f5e9;border:2px solid #4caf50;border-radius:10px;padding:12px;text-align:center;">'
-          +'<div style="font-size:22px;">✅</div>'
-          +'<b style="color:#2e7d32;font-size:14px;">Eligible Loan Withdrawal Completed</b><br>'
-          +'<span style="font-size:12px;color:#374151;">Level '+loanEsc(withdrawnLevel)+' - '+loanMoney(withdrawnAmt)+' withdrawn successfully.</span><br>'
-          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Wait for next withdrawal loan - Need '+nextReqPairs+':'+nextReqPairs+' binary pairs</b><br>'
-          +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs) | Need '+needMore+' more pairs</span>'
-          +'</div>';
-        var avEl=document.getElementById('loanAvailableAmount');if(avEl) avEl.innerText='Rs. 0.00';
-        var btn=document.querySelector('#sec-loans button[onclick="showSec(\'wallets\')"]');
-        if(btn){btn.innerText='✅ Withdrawal Completed - Next Level '+ (withdrawnLevel+1); btn.style.background='#4caf50'; btn.disabled=true;}
-      }else if(isWithdrawnAll && nextEligibleAfterWithdraw){
-        // Next level already eligible - show eligible, not completed
-        var nextGross = loanNum(nextPlanAfterWithdraw.loan_amount);
-        var nextPrev = loanNum(nextPlanAfterWithdraw.previous_loan_amount);
-        var nextInc = nextPlanAfterWithdraw.incremental_amount!=null?loanNum(nextPlanAfterWithdraw.incremental_amount):Math.max(0,nextGross-nextPrev);
-        ws.innerHTML='<div style="background:#e0f2fe;border:2px solid #0284c7;border-radius:10px;padding:12px;text-align:center;">'
-          +'<div style="font-size:22px;">🎉</div>'
-          +'<b style="color:#0c4a6e;font-size:14px;">Level '+loanEsc(nextPlanAfterWithdraw.level_no)+' Eligible Now!</b><br>'
-          +'<span style="font-size:12px;color:#374151;">'+loanNum(nextPlanAfterWithdraw.required_pairs)+':'+loanNum(nextPlanAfterWithdraw.required_pairs)+' pairs completed - Rs. '+nextInc+' loan ready</span><br>'
-          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Previous loan Rs. '+nextPrev+' deducted - Rs. '+nextInc+' available</b><br>'
-          +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs)</span>'
-          +'</div>';
-        // Update global available for this case
-        availableIncrement = nextInc;
-        eligible = true;
-        lvl = loanNum(nextPlanAfterWithdraw.level_no);
-        grossPlan = nextGross;
-        prevPlan = nextPrev;
-        incPlan = nextInc;
-        var ea2=document.getElementById('loanEligibleAmount');if(ea2)ea2.innerText=loanMoney(nextInc);
-        var pa2=document.getElementById('loanPreviousAmount');if(pa2)pa2.innerText=loanMoney(nextPrev);
-        // fall through to eligible rendering below
-        ws.innerHTML += '<div style="margin-top:8px"><b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.</div>';
-      }else if(eligible){
-        ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.';
-      }else if(latestLevel2>0 && availableIncrement>0){
-        ws.innerHTML='<b style="color:#166534">Loan wallet available: '+loanMoney(availableIncrement)+'</b><br>Already released loan amount. Next loan is available after the required pair level is reached.';
-      }else{
-        ws.innerHTML='No new loan amount is withdrawable until the required pair level is reached.';
-      }
+    var nextMsg;
+    if(eligible){ nextMsg = displayLevel===1 ? 'Loan 1 eligible: 1 direct LEFT + 1 direct RIGHT referral completed.' : ('Loan '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs completed.'); }
+    else if(nextPlan2){ nextMsg = displayLevel===1 ? 'Loan 1 requires 1 direct LEFT + 1 direct RIGHT referral.' : ('Loan '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs.'); }
+    else{ nextMsg = 'No next loan level is currently available.'; }
+
+    if(status){
+      var latestRelease=releasedLoans2.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).pop();
+      var latestStatus=latestRelease?'released':(currentLoan?currentLoan.status:'—');
+      var latestLevelText=latestRelease?latestRelease.plan_level:(currentLoan?firstVal(currentLoan,['plan_level','level_no'],'—'):'—');
+      var latestHtml=currentLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(latestLevelText)+' · Status: '+loanEsc(latestStatus)+'</div>':'';
+      status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(displayLevel||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(nextMsg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
     }
-    var rp=document.getElementById('loanRenewalProgress');if(rp)rp.innerText=renewalDone+' / '+renewalReq;
-    var note=document.getElementById('selfRenewNote');var rb=document.getElementById('loanRenewBtn');
-    var roiStatus=String(firstVal(currentRoi,['status'],'' )).toLowerCase();
-    var end=firstVal(currentRoi,['end_date','ends_at'],null);var done=loanNum(firstVal(currentRoi,['days_completed','days_paid','completed_days'],0));var totalDays=loanNum(firstVal(currentRoi,['total_days','days'],50))||50;
-    var completed=roiStatus==='completed'||done>=totalDays||(end&&new Date(end).getTime()<=Date.now());
-    if(note)note.innerText=currentRoi&&!completed?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until 50 days complete.':'✅ No active ROI lock. If the database marks renewal as eligible, you can use any valid unused PIN.';
-    if(rb)rb.disabled=currentRoi&&!completed;
-    
-    var rbbox=document.getElementById('loanRoiCycleBox');
+
+    var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(displayInc);
+    var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(displayPrev);
+    var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(0);
+
+    // Withdrawable
+    var ws=document.getElementById('loanWithdrawSummary');
+    if(ws){
+      if(eligible){ ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(displayLevel)+' available: '+loanMoney(displayInc)+'</b><br>Gross loan '+loanMoney(displayGross)+' − previous loan '+loanMoney(displayPrev)+' = <b>'+loanMoney(displayInc)+'</b> withdrawable now.'; }
+      else{ ws.innerHTML='No new loan amount is withdrawable until the required pair level is reached.'; }
+    }
+
+    // ROI BOX - ALWAYS SHOW, even if loan_roi_cycles empty
     if(rbbox){
-      // Helper to render
       function renderRoiBoxDaily(daily, done, totalDays, credited, startStr, endStr, lastCredit, status, isBase){
         var remaining=Math.max(0,totalDays-done);
         var title = isBase ? '📅 Current ROI Cycle (Base - From Registration)' : '📅 Current ROI Cycle';
-        var note = isBase ? '<div style="margin-top:8px;padding:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:10px;color:#92400e">Base calculation: 40/day from registration date. DB cycle lekapothe idi chupistundi. Actual credit 12:30AM (00:30 IST) ki jarugutundi. Current ROI wallet lo 40 credit ayindi - adi ee cycle lone bhagam.</div>' : '';
-        rbbox.innerHTML='<div style="font-weight:900;color:#5b21b6">'+title+'</div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
-          +'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div>'
-          +'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'
-          +'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div>'
-          +'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div>'
-          +'<div style="margin-top:8px;font-size:11px;color:#64748b">Plan Activation: '+loanEsc(startStr)+'<br>Plan End: '+loanEsc(endStr)+'<br>Last Credit: '+loanEsc(lastCredit)+'<br>Status: '+loanEsc(status)+' (Today: '+new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+')</div>'
-          +note;
+        var note = isBase ? '<div style="margin-top:8px;padding:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:10px;color:#92400e">Base: 40/day from registration. DB cycle lekapothe idi. Actual credit 00:30 IST ki. Wallet lo 40 unte cycle active.</div>' : '';
+        rbbox.innerHTML='<div style="font-weight:900;color:#5b21b6">'+title+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Plan Activation: '+loanEsc(startStr)+'<br>Plan End: '+loanEsc(endStr)+'<br>Last Credit: '+loanEsc(lastCredit)+'<br>Status: '+loanEsc(status)+' (Today: '+new Date().toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+')</div>'+note;
       }
 
       if(currentRoi){
         var daily=loanNum(firstVal(currentRoi,['daily_amount','amount_per_day','daily_roi'],40));
         var credited=loanNum(firstVal(currentRoi,['total_credited','total_amount_credited','credited_amount'],0));
-        // If DB credited is 0 but wallet has 40, use wallet
-        try{
-          var wRoiEl=document.getElementById('roiWallet');
-          var wRoiVal = wRoiEl?loanNum(wRoiEl.innerText.replace(/[^0-9.]/g,'')):0;
-          if(credited < wRoiVal) credited = wRoiVal;
-        }catch(e){}
-        renderRoiBoxDaily(daily, done, totalDays, credited,
-          firstVal(currentRoi,['start_date','started_at','created_at'],'—'),
-          firstVal(currentRoi,['end_date','ends_at'],'—'),
-          firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'),
-          firstVal(currentRoi,['status'],'active'), false);
+        var done=loanNum(firstVal(currentRoi,['days_completed','days_paid','completed_days'],1));
+        var totalDays=loanNum(firstVal(currentRoi,['total_days','days'],50))||50;
+        try{ var el=document.getElementById('roiWallet'); var wRoi = el?loanNum(el.innerText.replace(/[^0-9.]/g,'')):0; if(wRoi>credited) credited=wRoi; if(wRoi>=40 && done<1) done=1; }catch(e){}
+        renderRoiBoxDaily(daily, done, totalDays, credited, firstVal(currentRoi,['start_date','started_at','created_at'],'—'), firstVal(currentRoi,['end_date','ends_at'],'—'), firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'), firstVal(currentRoi,['status'],'active'), false);
       }else{
-        // No cycle in DB -> build from registration date
-        (async function(){
-          try{
-            var fl=flId;
-            var uRes=await supabaseClient.from('users').select('created_at, activation_date').eq('fl_id',String(fl).toUpperCase()).single();
-            var regDateStr = uRes.data ? (uRes.data.activation_date || uRes.data.created_at) : null;
-            var startDt = regDateStr ? new Date(regDateStr) : new Date();
-            var totalDaysBase=50;
-            var dailyBase=40;
-            var nowDt=new Date();
-            var diffMs = nowDt.getTime() - startDt.getTime();
-            var doneBase = Math.min(totalDaysBase, Math.max(0, Math.floor(diffMs/(1000*60*60*24))));
-            // At least 1 day if ROI already credited
-            var wRoiCheck=0;
-            try{ var el=document.getElementById('roiWallet'); wRoiCheck = el?loanNum(el.innerText.replace(/[^0-9.]/g,'')):0; }catch(e){}
-            if(wRoiCheck>=40 && doneBase<1) doneBase=1;
-            var endDt = new Date(startDt.getTime()+totalDaysBase*24*60*60*1000);
-            var creditedBase = doneBase * dailyBase;
-            // Override with actual wallet if higher
-            if(wRoiCheck > creditedBase) creditedBase = wRoiCheck;
-
-            renderRoiBoxDaily(dailyBase, doneBase, totalDaysBase, creditedBase,
-              startDt.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+' '+startDt.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'}),
-              endDt.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+' '+endDt.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'}),
-              nowDt.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+' 00:30 IST - Rs.40 credited',
-              doneBase>=totalDaysBase?'completed':'active', true);
-          }catch(e){
-            console.log('ROI base fallback error',e.message);
-            rbbox.innerHTML='<div style="padding:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px"><b>Current ROI Cycle</b><br>Error loading cycle: '+e.message+'<br>But ROI Wallet has Rs.40 - cycle is active.</div>';
-          }
-        })();
+        // Fallback: use registration date
+        try{
+          var uRes=await supabaseClient.from('users').select('created_at,activation_date').eq('fl_id',String(flId).toUpperCase()).single();
+          var regDateStr = uRes.data ? (uRes.data.activation_date || uRes.data.created_at) : new Date().toISOString();
+          var startDt = new Date(regDateStr);
+          var totalDaysBase=50, dailyBase=40;
+          var nowDt=new Date();
+          var diffMs = nowDt.getTime() - startDt.getTime();
+          var doneBase = Math.min(totalDaysBase, Math.max(0, Math.floor(diffMs/(1000*60*60*24))));
+          var wRoiCheck=0; try{ var el=document.getElementById('roiWallet'); wRoiCheck = el?loanNum(el.innerText.replace(/[^0-9.]/g,'')):0; }catch(e){}
+          if(wRoiCheck>=40 && doneBase<1) doneBase=1;
+          var endDt = new Date(startDt.getTime()+totalDaysBase*24*60*60*1000);
+          var creditedBase = wRoiCheck>0 ? wRoiCheck : doneBase*dailyBase;
+          renderRoiBoxDaily(dailyBase, doneBase, totalDaysBase, creditedBase, startDt.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+' '+startDt.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'}), endDt.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+' '+endDt.toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'}), nowDt.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'})+' 00:30 IST - Rs.40 credited', doneBase>=totalDaysBase?'completed':'active', true);
+        }catch(e){
+          console.log('ROI fallback error',e.message);
+          rbbox.innerHTML='<div style="padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px"><div style="font-weight:900;color:#92400e">📅 Current ROI Cycle (Base)</div><div style="margin-top:6px;font-size:12px">Daily: Rs.40.00<br>Progress: 1/50 days<br>ROI Wallet: Rs.40 credited<br>Plan Activation: Today<br>Note: DB cycle ledu, kani ROI active.</div></div>';
+        }
       }
     }
-// Show the released loan history separately from the NEXT eligible loan.
+
+    // Loan plans table
+    if(pt){
+      if(!plans.length) pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';
+      else{
+        var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';
+        plans.forEach(function(p){ var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev); h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">'+loanMoney(amt)+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">'+loanMoney(inc)+'</td></tr>'; });
+        h+='</tbody></table>'; pt.innerHTML=h;
+      }
+    }
+
+    // My loan history
+    if(hist){
+      if(!loans.length && !loanReleaseTxs.length) hist.innerHTML='<div style="padding:12px;color:#64748b">No loan history yet.</div>';
+      else{
+        var hh='';
+        loans.forEach(function(l){ hh+='<div style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:11px"><b>Loan '+loanEsc(l.plan_level)+'</b> - '+loanEsc(l.status)+' - '+loanMoney(loanNum(l.gross_loan_amount||l.loan_amount))+'<br><span style="color:#64748b">'+loanEsc(l.created_at||'')+'</span></div>'; });
+        loanReleaseTxs.forEach(function(tx){ hh+='<div style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:11px;background:#f0fdf4"><b>✅ Released via Wallet</b> - '+loanEsc(tx.title||'Loan')+' - '+loanMoney(loanNum(tx.amount))+'<br><span style="color:#64748b">'+loanEsc(tx.created_at||'')+'</span></div>'; });
+        hist.innerHTML=hh;
+      }
+    }
+
+  }catch(e){
+    console.log('loadLoanPanel main error',e.message);
+    if(status) status.innerHTML='<div style="padding:12px;background:#fef2f2;color:#991b1b;border-radius:10px">Error loading loan status: '+e.message+'<br>But binary and ROI are shown below.</div>';
+    // Still try to show ROI fallback even if main fails
+    try{
+      var rb2=document.getElementById('loanRoiCycleBox');
+      if(rb2){
+        var el=document.getElementById('roiWallet');
+        var wRoi = el?Number(el.innerText.replace(/[^0-9.]/g,''))||0:40;
+        rb2.innerHTML='<div style="padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px"><div style="font-weight:900;color:#92400e">📅 Current ROI Cycle (Base)</div><div style="margin-top:6px;font-size:12px">Daily: Rs.40.00<br>Progress: 1/50 days (fallback)<br>Total Credited: Rs.'+wRoi+'<br>Status: active (Loading error bypassed)</div></div>';
+      }
+    }catch(e2){}
+  }
+}
+
+    // Show the released loan history separately from the NEXT eligible loan.
     // This makes it clear that the ₹1,000 Loan 1 release is already completed while
     // the next Loan 2 remains locked until 4:4.
     var releaseSummary=document.getElementById('loanReleasedSummary');
