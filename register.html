@@ -89,7 +89,15 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
       const pinUpdate=await supabaseClient.from('pins').update({status:'used',used_by_mobile:mobile,used_at:new Date().toISOString()}).eq('id',pinData.id).eq('status','unused');
       if(pinUpdate.error) throw pinUpdate.error;
       if(sponsorId) await updateSponsorBinary(sponsorId,side);
-      localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName,email,mobile,sponsorId,side}));
+      try{
+        if(window.localStorage){
+          window.localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName,email,mobile,sponsorId,side}));
+        }else if(window.sessionStorage){
+          window.sessionStorage.setItem('flm_session',JSON.stringify({flId,name:fullName,email,mobile,sponsorId,side}));
+        }
+      }catch(storageErr){
+        console.log('Session storage unavailable:',storageErr.message);
+      }
       return {success:true,flId,message:'Registration Success - FL ID: '+flId+' - Token/Pin accepted'};
     }
 
@@ -432,7 +440,9 @@ async function register(){
       '</div>';
       // Keep the generated ID in the existing session/local storage and do not auto-redirect,
       // so the member has time to copy the FL ID.
-      try{ localStorage.setItem('flm_last_registered_fl_id',String(result.flId||'')); }catch(e){}
+      try{
+        if(window.localStorage) window.localStorage.setItem('flm_last_registered_fl_id',String(result.flId||''));
+      }catch(e){}
     }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
   }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';}
 }
