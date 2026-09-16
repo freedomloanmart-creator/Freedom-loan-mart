@@ -979,8 +979,47 @@ async function flmLoadLoanV2(){
    var w=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
    if(w.error)console.log('loan wallet read:',w.error.message);
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
-   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0)FLM_LOAN_V2.wallet=syncWalletAmount;
+   // FIX CRITICAL: Don't show next level gross as available when not eligible
+   // Wallet should be actual wallet balance only
+   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0){
+     // Only use sync if we are eligible for that level, else keep 0 or actual
+     var isEligibleForNext = false;
+     try{
+       var nextPairsReq = 0;
+       if(FLM_LOAN_V2.level==2) nextPairsReq=4; else if(FLM_LOAN_V2.level==3) nextPairsReq=12; else if(FLM_LOAN_V2.level==4) nextPairsReq=40;
+       var totalPairs = Math.min(loanNum(live.left||0), loanNum(live.right||0));
+       if(totalPairs >= nextPairsReq) isEligibleForNext=true;
+     }catch(e){}
+     if(isEligibleForNext || FLM_LOAN_V2.level==1) FLM_LOAN_V2.wallet=syncWalletAmount;
+   }
+   // CRITICAL FIX: If current pairs < required for next level, don't show next loan as available
+   // Available Loan should be only released amount, not future gross
+   try{
+     var currPairs = Math.min(loanNum(live.left||0), loanNum(live.right||0));
+     var reqForNext = 0;
+     var plansArr = plansR && plansR.data ? plansR.data : [];
+     var nextPlan = plansArr.find(function(p){return loanNum(p.level_no)===(loanNum(FLM_LOAN_V2.latest_level||0)+1);});
+     if(nextPlan) reqForNext = loanNum(nextPlan.required_pairs||0);
+     if(currPairs < reqForNext){
+       // Not eligible for next, so available is only current wallet, not next gross
+       // Force wallet to actual released sum
+       if(w && w.data) FLM_LOAN_V2.wallet = loanNum(w.data.loan_wallet);
+     }
+   }catch(e){console.log('wallet eligibility fix',e.message);}
    // Eligibility/incremental is NOT a wallet balance. Never display it as cash.
+   // FINAL SAFETY: If not enough pairs for next level, wallet must not show next level gross
+   try{
+     var finalPairs = Math.min(loanNum(live.left||0), loanNum(live.right||0));
+     var finalReq = 0;
+     if(FLM_LOAN_V2.level==2) finalReq=4; else if(FLM_LOAN_V2.level==3) finalReq=12; else if(FLM_LOAN_V2.level==4) finalReq=40; else if(FLM_LOAN_V2.level==5) finalReq=80;
+     if(finalPairs < finalReq){
+       // Fetch real wallet again to avoid showing inflated amount
+       var realW = await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
+       if(realW.data) FLM_LOAN_V2.wallet = loanNum(realW.data.loan_wallet);
+       FLM_LOAN_V2.eligible = false;
+     }
+   }catch(e){}
+
    return FLM_LOAN_V2;
  }catch(err){console.log('loan v2:',err.message);FLM_LOAN_V2.message=String(err.message||'Loan status unavailable');return FLM_LOAN_V2;}
 }
