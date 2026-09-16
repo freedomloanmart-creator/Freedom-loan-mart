@@ -4,23 +4,37 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sIjoiYW5vbiIsImlhdCI6MTc4ODY0MTgwOCwiZXhwIjoyMTA0MjE3ODA4fQ.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient=null;
 try{if(typeof supabase!=='undefined'){supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}}catch(e){}
+
+function safeStorageSet(key,value){
+  try{
+    if(window.localStorage){window.localStorage.setItem(key,value);return true;}
+  }catch(e){console.warn('localStorage set failed:',e);}
+  return false;
+}
+function safeStorageGet(key){
+  try{
+    if(window.localStorage)return window.localStorage.getItem(key);
+  }catch(e){console.warn('localStorage get failed:',e);}
+  return null;
+}
+
 async function loginReal(flIdOrMobile,password){
- if(!supabaseClient){return {success:false,message:'Not connected'};}
- try{
-  let user=null;
-  const {data: byFlId} = await supabaseClient.from('users').select('*').eq('fl_id',flIdOrMobile.toUpperCase()).limit(1);
-  if(byFlId&&byFlId.length>0) user=byFlId[0];
-  if(!user){
-   const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile',flIdOrMobile).limit(1);
-   if(byMobile&&byMobile.length>0) user=byMobile[0];
-  }
-  if(!user) return {success:false,message:'No account found'};
-  if(user.password!==password) return {success:false,message:'Wrong password'};
-  return {success:true,user:user};
- }catch(err){return {success:false,message:err.message};}
+  if(!supabaseClient){return {success:false,message:'Not connected'};}
+  try{
+    let user=null;
+    const {data: byFlId} = await supabaseClient.from('users').select('*').eq('fl_id',flIdOrMobile.toUpperCase()).limit(1);
+    if(byFlId&&byFlId.length>0) user=byFlId[0];
+    if(!user){
+      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile',flIdOrMobile).limit(1);
+      if(byMobile&&byMobile.length>0) user=byMobile[0];
+    }
+    if(!user) return {success:false,message:'No account found'};
+    if(user.password!==password) return {success:false,message:'Wrong password'};
+    return {success:true,user:user};
+  }catch(err){return {success:false,message:err.message};}
 }
 </script>
 <style>
@@ -37,127 +51,217 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
 </head>
 <body>
 <div class="card" id="loginWrap">
-<div style="text-align:center;margin-bottom:24px"><div style="width:64px;height:64px;background:#2563eb;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div><div style="margin-top:12px;font-weight:800;font-size:18px">FREEDOM LOANS MART</div><div style="font-size:12px;color:#64748b;margin-top:4px">Way to your Financial Freedom</div></div>
+<div style="text-align:center;margin-bottom:24px">
+  <div style="width:64px;height:64px;background:#2563eb;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div>
+  <div style="margin-top:12px;font-weight:800;font-size:18px">FREEDOM LOANS MART</div>
+  <div style="font-size:12px;color:#64748b;margin-top:4px">Way to your Financial Freedom</div>
+</div>
+
 <div id="err" style="display:none;background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;font-size:12px;margin-bottom:12px"></div>
 <input id="loginId" placeholder="Enter username" class="input">
 <input id="loginPass" type="password" placeholder="Enter password" class="input">
 <button id="loginBtn" class="btn btn-primary">Login</button>
+
 <div style="display:flex;gap:8px;margin-top:12px">
-<button onclick="demoLogin('FL100001','admin123')" style="flex:1;background:#0f172a;color:#fff;border:0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Admin</button>
-<button onclick="document.getElementById('forgotBox').style.display=document.getElementById('forgotBox').style.display==='none'?'block':'none'" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Forgot?</button>
+  <button onclick="demoLogin('FL100001','admin123')" style="flex:1;background:#0f172a;color:#fff;border:0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Admin</button>
+  <button onclick="toggleForgot()" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Forgot?</button>
 </div>
+
 <div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register</a></div>
 
 <div id="forgotBox" style="display:none;margin-top:16px;border-top:1px solid #f1f5f9;padding-top:16px">
-<div style="font-weight:700;font-size:14px;margin-bottom:8px">Forgot Password?</div>
-<div style="display:flex;gap:8px;margin-bottom:12px">
-<button id="optMailBtn" onclick="selectForgotOpt('mail')" style="flex:1;background:#2563eb;color:#fff;border:0;padding:10px;border-radius:8px;font-size:12px;font-weight:600">📧 Mail OTP</button>
-<button id="optAdminBtn" onclick="selectForgotOpt('admin')" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:8px;font-size:12px;font-weight:600">👨‍💼 Admin Reset</button>
-</div>
-<div id="mailOpt" style="display:none">
-<div style="font-size:11px;color:#64748b;margin-bottom:6px">Enter your registered email or FL ID - OTP will be sent to mail (via Supabase). For now demo OTP shown.</div>
-<input id="forgotEmail" placeholder="Enter email or FL ID" type="text" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px">
-<button onclick="sendOtp()" class="btn" style="width:100%;background:#0f172a;color:#fff;padding:12px;border-radius:10px">Send OTP</button>
-<div id="otpBox" style="display:none;margin-top:10px">
-<input id="otpInput" placeholder="Enter 6-digit OTP from mail" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px">
-<input id="newPass" type="password" placeholder="New Password" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px">
-<button onclick="resetWithOtp()" class="btn" style="width:100%;background:#059669;color:#fff;padding:12px;border-radius:10px">Reset Password</button>
-</div>
-<div id="forgotMsg" style="margin-top:8px;font-size:11px"></div>
-</div>
-<div id="adminOpt" style="display:none">
-<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px;color:#92400e">
-<b>Admin Reset:</b> Contact support with FL ID. Admin will reset password from admin panel. No OTP needed. Admin can set new password for you in users table.
-<br><br>Support: WhatsApp / Call - Share FL ID: <span id="supportFlId">FL ID</span>
-</div>
+  <div style="font-weight:700;font-size:14px;margin-bottom:8px">Forgot Password?</div>
+
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button id="optMailBtn" onclick="selectForgotOpt('mail')" style="flex:1;background:#2563eb;color:#fff;border:0;padding:10px;border-radius:8px;font-size:12px;font-weight:600">📧 Mail OTP</button>
+    <button id="optAdminBtn" onclick="selectForgotOpt('admin')" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:8px;font-size:12px;font-weight:600">👨‍💼 Admin Reset</button>
+  </div>
+
+  <div id="mailOpt" style="display:none">
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px;color:#1e3a8a;margin-bottom:8px">
+      <b>Mail OTP</b><br>
+      Enter your FL ID and send a request to Admin. After mail service is configured, this same flow can be connected to email OTP without exposing an OTP on the page.
+    </div>
+    <input id="forgotMailFlId" placeholder="Enter FL ID" type="text" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px;text-transform:uppercase">
+    <textarea id="forgotMailMessage" placeholder="Example: I forgot my password. Please help me reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px;resize:vertical"></textarea>
+    <button onclick="sendForgotSupport('mail')" id="mailSupportBtn" class="btn" style="background:#0f172a;color:#fff;padding:12px">📨 Send to Admin</button>
+  </div>
+
+  <div id="adminOpt" style="display:none">
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px;color:#92400e">
+      <b>Admin Reset:</b> Send your FL ID and explain the problem. The request will appear in Admin Support. Admin can reset the password from the Admin panel.
+      <br><br>FL ID: <span id="supportFlId">FL ID</span>
+    </div>
+    <textarea id="adminResetMessage" placeholder="Example: I forgot my password. Please reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-top:8px;resize:vertical"></textarea>
+    <button onclick="sendForgotSupport('admin')" id="adminSupportBtn" class="btn" style="background:#2563eb;color:#fff;padding:12px;margin-top:8px">📨 Send to Admin</button>
+  </div>
+
+  <div id="forgotMsg" style="margin-top:8px;font-size:11px;min-height:18px"></div>
 </div>
 </div>
 
-</div>
-</div>
 <script>
+function toggleForgot(){
+  const box=document.getElementById('forgotBox');
+  box.style.display=box.style.display==='none'?'block':'none';
+  if(box.style.display==='block'){
+    const id=(document.getElementById('loginId').value||'').trim().toUpperCase();
+    if(id){
+      document.getElementById('supportFlId').innerText=id;
+      document.getElementById('forgotMailFlId').value=id;
+    }
+  }
+}
 
 function selectForgotOpt(opt){
- document.getElementById('mailOpt').style.display=opt==='mail'?'block':'none';
- document.getElementById('adminOpt').style.display=opt==='admin'?'block':'none';
- document.getElementById('optMailBtn').style.background=opt==='mail'?'#2563eb':'#fff';
- document.getElementById('optMailBtn').style.color=opt==='mail'?'#fff':'#0f172a';
- document.getElementById('optAdminBtn').style.background=opt==='admin'?'#2563eb':'#fff';
- document.getElementById('optAdminBtn').style.color=opt==='admin'?'#fff':'#0f172a';
- var fl=document.getElementById('loginId').value.trim()||'FL ID';
- document.getElementById('supportFlId').innerText=fl;
+  document.getElementById('mailOpt').style.display=opt==='mail'?'block':'none';
+  document.getElementById('adminOpt').style.display=opt==='admin'?'block':'none';
+  document.getElementById('optMailBtn').style.background=opt==='mail'?'#2563eb':'#fff';
+  document.getElementById('optMailBtn').style.color=opt==='mail'?'#fff':'#0f172a';
+  document.getElementById('optAdminBtn').style.background=opt==='admin'?'#2563eb':'#fff';
+  document.getElementById('optAdminBtn').style.color=opt==='admin'?'#fff':'#0f172a';
+
+  const fl=(document.getElementById('loginId').value||'').trim().toUpperCase()||'FL ID';
+  document.getElementById('supportFlId').innerText=fl;
+  document.getElementById('forgotMailFlId').value=fl==='FL ID'?'':fl;
 }
 
-async function resetWithOtp(){
- var emailOrFl=document.getElementById('forgotEmail').value.trim();
- var otp=document.getElementById('otpInput').value.trim();
- var newP=document.getElementById('newPass').value.trim();
- var msg=document.getElementById('forgotMsg');
- if(!otp||!newP){msg.style.color='#dc2626';msg.innerText='Enter OTP and new password';return;}
- try{
-  if(supabaseClient){
-   // Check OTP from password_otps table
-   var r=await supabaseClient.from('password_otps').select('*').eq('email',emailOrFl.toLowerCase()).order('created_at',{ascending:false}).limit(1).single();
-   var stored=r.data;
-   if(!stored){
-     // Try by FL ID
-     var r2=await supabaseClient.from('users').select('email').eq('fl_id',emailOrFl.toUpperCase()).single();
-     if(r2.data){
-       var r3=await supabaseClient.from('password_otps').select('*').eq('email',r2.data.email.toLowerCase()).order('created_at',{ascending:false}).limit(1).single();
-       stored=r3.data;
-     }
-   }
-   if(!stored || stored.otp!=otp){
-     // For demo allow if localStorage OTP matches
-     var localOtp=localStorage.getItem('flm_otp_'+emailOrFl);
-     if(localOtp!=otp){msg.style.color='#dc2626';msg.innerText='Wrong OTP';return;}
-   }
-   // Update password in users table
-   var targetEmail=emailOrFl;
-   if(stored) targetEmail=stored.email;
-   var upd=await supabaseClient.from('users').select('*').eq('email',targetEmail.toLowerCase()).limit(1);
-   var user=upd.data&&upd.data[0]?upd.data[0]:null;
-   if(!user){
-     // Try FL ID
-     var upd2=await supabaseClient.from('users').select('*').eq('fl_id',emailOrFl.toUpperCase()).single();
-     user=upd2.data;
-   }
-   if(!user){msg.style.color='#dc2626';msg.innerText='User not found';return;}
-   var {error}=await supabaseClient.from('users').update({password:newP}).eq('fl_id',user.fl_id);
-   if(error) throw error;
-   msg.style.color='#059669';msg.innerText='Password reset success! Login now with new password.';
-   document.getElementById('otpBox').style.display='none';
-  } else {
-   msg.style.color='#059669';msg.innerText='Demo reset success';
+async function sendForgotSupport(type){
+  const msg=document.getElementById('forgotMsg');
+  const btn=document.getElementById(type==='mail'?'mailSupportBtn':'adminSupportBtn');
+
+  const flId=(type==='mail'
+    ? document.getElementById('forgotMailFlId').value
+    : ((document.getElementById('loginId').value||'')||'')
+  ).trim().toUpperCase();
+
+  const message=(type==='mail'
+    ? document.getElementById('forgotMailMessage').value
+    : document.getElementById('adminResetMessage').value
+  ).trim();
+
+  if(!/^FL[A-Z0-9]+$/i.test(flId)){
+    msg.style.color='#dc2626';
+    msg.innerText='Please enter your correct FL ID.';
+    return;
   }
- }catch(e){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}
+  if(!message){
+    msg.style.color='#dc2626';
+    msg.innerText='Please explain your problem.';
+    return;
+  }
+  if(!supabaseClient){
+    msg.style.color='#dc2626';
+    msg.innerText='Database not available.';
+    return;
+  }
+
+  btn.disabled=true;
+  btn.style.opacity='.65';
+  msg.style.color='#2563eb';
+  msg.innerText='Sending request to Admin...';
+
+  try{
+    let userName=flId;
+    try{
+      const q=await supabaseClient.from('users').select('full_name').eq('fl_id',flId).limit(1);
+      if(!q.error && q.data && q.data[0] && q.data[0].full_name) userName=q.data[0].full_name;
+    }catch(e){}
+
+    const subject=type==='mail'
+      ? 'Forgot Password / Mail OTP Help'
+      : 'Forgot Password / Admin Reset';
+
+    const r=await supabaseClient.from('support_requests').insert({
+      fl_id:flId,
+      user_name:userName,
+      subject:subject,
+      message:message,
+      screenshot_data:null,
+      status:'pending'
+    }).select().single();
+
+    if(r.error) throw r.error;
+
+    msg.style.color='#047857';
+    msg.innerText='✅ Request sent. Admin will check and reply in Help Center.';
+
+    if(type==='mail') document.getElementById('forgotMailMessage').value='';
+    else document.getElementById('adminResetMessage').value='';
+  }catch(e){
+    msg.style.color='#dc2626';
+    msg.innerText='❌ Failed: '+String(e.message||e);
+  }finally{
+    btn.disabled=false;
+    btn.style.opacity='1';
+  }
 }
 
-function toast(m){let t=document.createElement('div');t.className='toast';t.innerText=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
-function demoLogin(id,pass){document.getElementById('loginId').value=id;document.getElementById('loginPass').value=pass;document.getElementById('loginBtn').click();}
+function toast(m){
+  let t=document.createElement('div');
+  t.className='toast';
+  t.innerText=m;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+function demoLogin(id,pass){
+  document.getElementById('loginId').value=id;
+  document.getElementById('loginPass').value=pass;
+  document.getElementById('loginBtn').click();
+}
+
 document.getElementById('loginBtn').addEventListener('click',async()=>{
- const id=document.getElementById('loginId').value.trim();const pass=document.getElementById('loginPass').value.trim();
- const err=document.getElementById('err');if(!id||!pass){err.style.display='block';err.innerText='Enter username and password';return;}err.style.display='none';
- const btn=document.getElementById('loginBtn');btn.innerText='Logging in...';btn.disabled=true;
- try{
-  const result=await loginReal(id,pass);
-  if(result.success){
-   const user=result.user;
-   const flId=user.fl_id||id.toUpperCase();
-   const name=user.full_name||'User';
-   const session={flId:flId,fl_id:flId,name:name,full_name:name,mobile:user.mobile||'',email:user.email||'',sponsor_id:user.sponsor_id||'',side:user.side||''};
-   localStorage.setItem('flm_session',JSON.stringify(session));
-   toast('Welcome '+name+'!');
-   setTimeout(()=>{location.href='./index.html';},800);
-  }else{
-   err.style.display='block';err.innerText=result.message;
-   btn.innerText='Login';btn.disabled=false;
+  const id=document.getElementById('loginId').value.trim();
+  const pass=document.getElementById('loginPass').value.trim();
+  const err=document.getElementById('err');
+
+  if(!id||!pass){
+    err.style.display='block';
+    err.innerText='Enter username and password';
+    return;
   }
- }catch(e){
-  err.style.display='block';err.innerText=e.message;
-  btn.innerText='Login';btn.disabled=false;
- }
+  err.style.display='none';
+
+  const btn=document.getElementById('loginBtn');
+  btn.innerText='Logging in...';
+  btn.disabled=true;
+
+  try{
+    const result=await loginReal(id,pass);
+
+    if(result.success){
+      const user=result.user;
+      const flId=user.fl_id||id.toUpperCase();
+      const name=user.full_name||'User';
+      const session={
+        flId:flId,
+        fl_id:flId,
+        name:name,
+        full_name:name,
+        mobile:user.mobile||'',
+        email:user.email||'',
+        sponsor_id:user.sponsor_id||'',
+        side:user.side||''
+      };
+
+      // Safe storage: dashboard login will still work normally when localStorage is available.
+      safeStorageSet('flm_session',JSON.stringify(session));
+
+      toast('Welcome '+name+'!');
+      setTimeout(()=>{location.href='./user.html';},800);
+    }else{
+      err.style.display='block';
+      err.innerText=result.message;
+      btn.innerText='Login';
+      btn.disabled=false;
+    }
+  }catch(e){
+    err.style.display='block';
+    err.innerText=e.message;
+    btn.innerText='Login';
+    btn.disabled=false;
+  }
 });
-function sendOtp(){const email=document.getElementById('forgotEmail').value.trim();const msg=document.getElementById('forgotMsg');if(!email){msg.innerHTML='<span style=color:#dc2626>Enter email</span>';return;}const otp=Math.floor(100000+Math.random()*900000);localStorage.setItem('flm_otp_'+email,otp);msg.innerHTML='OTP: <b>'+otp+'</b>';document.getElementById('otpBox').style.display='block';}
 </script>
 </body></html>
