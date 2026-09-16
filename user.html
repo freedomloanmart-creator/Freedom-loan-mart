@@ -1018,7 +1018,22 @@ async function loadLoanPanel(){
     var liveTop=await flmFetchTeamStats(flId);
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
     // Keep the optional DB progress refresh non-fatal. The live users-tree count is authoritative for UI.
-    try{var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});if(rr.error)console.log('loan progress refresh:',rr.error.message);}catch(e){console.log('loan progress refresh:',e.message);}
+    // AUTO-RELEASE FOR ALL USERS - critical fix: ensure pending loans become released
+    try{
+      var rr=await supabaseClient.rpc('flm_refresh_loan_progress',{p_fl_id:flId});
+      if(rr.error) console.log('loan progress refresh:',rr.error.message);
+    }catch(e){console.log('loan progress refresh:',e.message);}
+    // If eligible, force release if pending - this makes it automatic for all users
+    try{
+      var relR=await supabaseClient.rpc('flm_release_loan_if_eligible',{p_fl_id:flId});
+      if(relR.error) console.log('auto release:',relR.error.message);
+      else console.log('auto release result:',relR.data);
+    }catch(e){console.log('auto release error:',e.message);}
+    try{
+      var syncR=await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});
+      if(syncR.error) console.log('sync wallet:',syncR.error.message);
+    }catch(e){console.log('sync wallet error:',e.message);}
+
     var e={};
     var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
     if(plansR.error)throw plansR.error;
