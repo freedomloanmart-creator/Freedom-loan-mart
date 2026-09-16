@@ -1,7 +1,7 @@
+<!-- FLM_ADMIN_7IDS_EMAIL_FIXED_20260914 -->
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Freedom Loan Mart - Admin Premium - Full 76KB+ Restored</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Freedom Loans Mart - Platform Admin Dashboard - 7 ID Email Fix</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
@@ -329,294 +329,38 @@ async function loadSec(id){
 }
 window.addEventListener('load',()=>{checkAdminSession();});
 </script>
-<script>
-
-async function loadStoresAdmin(){
-  const el=document.getElementById('storesList');
-  if(!el) return;
-  el.innerHTML='<div style="padding:12px;color:#64748b">Loading stores...</div>';
-  const client=await ensureSupabaseClient();
-  if(!client){
-    el.innerHTML='<div style="padding:12px;color:#991b1b;background:#fef2f2;border-radius:10px">Supabase connection failed. Please refresh the page.</div>';
-    return;
-  }
-  try{
-    const r=await client.from('stores').select('*').order('name');
-    if(r.error) throw r.error;
-    const rows=r.data||[];
-    if(!rows.length){el.innerHTML='<div style="padding:12px;color:#64748b">No stores found.</div>';return;}
-    el.innerHTML=rows.map(function(s){
-      const id=String(s.id||'').replace(/'/g,"\\'");
-      return '<div style="padding:12px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:8px;background:#fff">'+
-        '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">'+
-        '<div style="font-weight:800">🏪 '+(s.name||'FLM Store')+' <span style="font-size:11px;color:#059669">• '+(s.status||'active')+'</span></div>'+
-        '<button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-weight:800">✏️ Edit Store</button>'+
-        '</div>'+
-        '<div style="font-size:11px;color:#64748b;margin-top:5px">Code: '+(s.store_code||'-')+' | Phone: '+(s.phone||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
-        '<div style="font-size:11px;color:#64748b;margin-top:3px">'+(s.address||'-')+'</div>'+
-        '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">✏️ Edit Store</button>'+((s.latitude!=null&&s.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.latitude+','+s.longitude)+'" style="background:#0f766e;color:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:800">🗺️ View Map</a>':'')+'</div></div>';
-    }).join('');
-  }catch(e){
-    console.error('Store load failed:',e);
-    el.innerHTML='<div style="padding:12px;color:#991b1b;background:#fef2f2;border-radius:10px">Store load failed: '+(e.message||e)+'</div>';
-  }
-}
-
-async function editStore(id){
-  const client=await ensureSupabaseClient();
-  if(!client){alert('Supabase connection failed. Please refresh the page.');return;}
-  try{
-    const r=await client.from('stores').select('*').eq('id',id).single();
-    if(r.error) throw r.error;
-    const s=r.data||{};
-    const map={id:'Id',name:'Name',store_code:'Code',phone:'Phone',address:'Address',town:'Town',pincode:'Pincode',latitude:'Lat',longitude:'Lng',status:'Status'};
-    Object.keys(map).forEach(function(k){const e=document.getElementById('editStore'+map[k]);if(e)e.value=s[k]==null?'':s[k];});
-    document.getElementById('storeEditor').style.display='block';
-  }catch(e){alert('Store load failed: '+(e.message||e));}
-}
-function closeStoreEditor(){document.getElementById('storeEditor').style.display='none';}
-
-async function saveStoreEdits(){
-  const id=document.getElementById('editStoreId')?.value;
-  if(!id){alert('Store ID missing.');return;}
-  const client=await ensureSupabaseClient();
-  if(!client){alert('Supabase connection failed. Please refresh the page.');return;}
-  const latValue=document.getElementById('editStoreLat').value.trim();
-  const lngValue=document.getElementById('editStoreLng').value.trim();
-  const latitude=latValue===''?null:parseFloat(latValue);
-  const longitude=lngValue===''?null:parseFloat(lngValue);
-  if(latitude!==null&&!Number.isFinite(latitude)){alert('Invalid Latitude.');return;}
-  if(longitude!==null&&!Number.isFinite(longitude)){alert('Invalid Longitude.');return;}
-  const o={
-    name:document.getElementById('editStoreName').value.trim(),
-    store_code:document.getElementById('editStoreCode').value.trim().toUpperCase(),
-    phone:document.getElementById('editStorePhone').value.trim(),
-    address:document.getElementById('editStoreAddress').value.trim(),
-    town:document.getElementById('editStoreTown').value.trim(),
-    pincode:document.getElementById('editStorePincode').value.trim(),
-    latitude:latitude,longitude:longitude,
-    status:document.getElementById('editStoreStatus').value
-  };
-  if(!o.name||!o.store_code||!o.pincode){alert('Store Name, Code and Pincode are required.');return;}
-  try{
-    const r=await client.from('stores').update(o).eq('id',id);
-    if(r.error) throw r.error;
-    alert('✅ Store updated successfully.');
-    closeStoreEditor();
-    await loadStoresAdmin();
-  }catch(e){alert('❌ Store update failed: '+(e.message||e));}
-}
-
-let adminWithdrawalRows=[];
-let adminUserMap={};
-function safeText(v){return String(v==null?'':v);} 
-function copyAdminText(v){try{navigator.clipboard.writeText(String(v||''));alert('Copied');}catch(e){alert(String(v||''));}}
-function payoutHtml(x){
-  const u=adminUserMap[safeText(x.fl_id||x.user_fl_id).toUpperCase()]||{};
-  const method=safeText(x.method).toLowerCase();
-  if(method==='bank'){
-    const holder=escapeHtml(u.bank_account_holder||'Not saved');
-    const bank=escapeHtml(u.bank_name||'Not saved');
-    const acc=escapeHtml(u.bank_account_number||'Not saved');
-    const ifsc=escapeHtml(u.bank_ifsc||'Not saved');
-    return '<div style="margin-top:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px;font-size:10px"><b style="color:#1e40af">🏦 BANK PAYOUT DETAILS</b><div style="margin-top:5px">Holder: <b>'+holder+'</b></div><div>Bank: <b>'+bank+'</b></div><div>Account: <b>'+acc+'</b></div><div>IFSC: <b>'+ifsc+'</b></div></div>';
-  }
-  if(method==='usdt'){
-    const addr=escapeHtml(u.usdt_bep20||'Not saved');
-    return '<div style="margin-top:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:9px;font-size:10px"><b style="color:#047857">🪙 USDT BEP-20 PAYOUT DETAILS</b><div style="margin-top:5px;word-break:break-all">Address: <b>'+addr+'</b></div></div>';
-  }
-  return '';
-}
-function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
-function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
-function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
-function wdIsStore(x){const m=safeText(x.method||'').trim().toLowerCase(),t=safeText(x.wallet_type||x.type||'').toLowerCase(),y=safeText(x.transaction_type||'').toLowerCase();return m==='store'||y==='roi_coupon'||t.includes('store')||t.includes('roi');}
-function renderAdminWithdrawCard(x,compact){
-  const st=wdStatusLabel(x.status),c=st==='APPROVED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
-  const a=Number(x.amount||0),net=x.net_amount!=null?Number(x.net_amount):a;
-  const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown'),store=escapeHtml(x.store_name||x.store_code||''),id=safeText(x.id);
-  let b='';
-  if(!compact&&safeText(x.status||'processing').trim().toLowerCase()==='processing'){
-    if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
-    else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
-  }
-  const payout=payoutHtml(x);
-  const actionNote=(safeText(x.status||'processing').trim().toLowerCase()==='processing' && !wdIsStore(x))?'<div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px;font-size:10px;color:#92400e">Send <b>₹'+net.toLocaleString('en-IN')+'</b> to the payout details above only after verifying the member and payment status. Then click Approve.</div>':'';
-  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net to member: <b>₹'+net.toLocaleString('en-IN')+'</b>'+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+payout+actionNote+b+'</div>';
-}
-function renderAdminWithdrawals(){
-  const l=document.getElementById('adminWithdrawList'),s=document.getElementById('adminStoreList'),h=document.getElementById('adminWithdrawHistory');
-  if(!l||!s||!h)return;
-  try{
-    const q=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
-    const st=(document.getElementById('wdStatus')?.value||'all').trim().toLowerCase();
-    const rows=adminWithdrawalRows.filter(x=>{const tx=safeText(x.transaction_type||'').trim().toLowerCase();if(tx!=='withdrawal' && tx!=='roi_coupon')return false;const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();const z=safeText(x.status||'processing').trim().toLowerCase();return(!q||hay.includes(q))&&(st==='all'||st===z);});
-    const d=rows.filter(x=>!wdIsStore(x)),r=rows.filter(x=>wdIsStore(x));
-    l.innerHTML=d.length?d.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No matching/loan direct withdrawal requests.</div>';
-    s.innerHTML=r.length?r.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No ROI/store redemption records.</div>';
-    h.innerHTML=rows.length?rows.map(x=>renderAdminWithdrawCard(x,true)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No finance records found.</div>';
-  }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Render error: '+escapeHtml(e.message)+'</div>';}
-}
-async function loadAdminWithdrawals(){
-  const l=document.getElementById('adminWithdrawList');if(!l||!supabaseClient)return;
-  l.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading finance records...</div>';
-  try{
-    const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(500);
-    if(r.error)throw r.error;
-    adminWithdrawalRows=r.data||[];
-    // Load only payout fields needed by the admin so every withdrawal card shows where the net amount must be sent.
-    adminUserMap={};
-    const flIds=[...new Set(adminWithdrawalRows.map(x=>safeText(x.fl_id||x.user_fl_id).trim().toUpperCase()).filter(Boolean))];
-    if(flIds.length){
-      const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds);
-      if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[safeText(u.fl_id).toUpperCase()]=u;});
-    }
-    const n=x=>safeText(x.status).trim().toLowerCase();
-    const financeRows=adminWithdrawalRows.filter(x=>{const tx=safeText(x.transaction_type||'').trim().toLowerCase();return tx==='withdrawal'||tx==='roi_coupon';});
-    document.getElementById('wdPendingCount').innerText=financeRows.filter(x=>n(x)==='processing').length;
-    document.getElementById('wdApprovedCount').innerText=financeRows.filter(x=>['approved','completed'].includes(n(x))).length;
-    document.getElementById('wdRejectedCount').innerText=financeRows.filter(x=>n(x)==='rejected').length;
-    document.getElementById('wdTotalCount').innerText=financeRows.length;
-    renderAdminWithdrawals();
-  }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load wallet transactions: '+escapeHtml(e.message)+'</div>';}
-}
-async function adminApproveWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;if(!confirm('Approve this withdrawal?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:null});if(r.error)throw r.error;alert('✅ Withdrawal approved. Wallet was already deducted at request time.');await loadAdminWithdrawals();}catch(e){alert('Approval error: '+e.message);}}
-async function adminSettleStore(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const code=safeText(x.store_code).trim();if(!code){alert('Store code is missing.');return;}if(!confirm('Mark this store transaction as settled?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:code});if(r.error)throw r.error;alert('✅ Store settlement completed.');await loadAdminWithdrawals();}catch(e){alert('Store settlement error: '+e.message);}}
-async function adminRejectWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const reason=prompt('Reason for rejection:','Please check payout details.');if(reason===null)return;try{const r=await supabaseClient.rpc('flm_reject_withdrawal',{p_transaction_id:Number(id),p_rejection_reason:reason.trim(),p_rejected_by:getAdminId()});if(r.error)throw r.error;alert('Request rejected and reserved wallet amount returned.');await loadAdminWithdrawals();}catch(e){alert('Reject error: '+e.message);}}
-
-async function getStoreCoords(){
-  const a=document.getElementById('storeLat'),b=document.getElementById('storeLng');
-  if(!navigator.geolocation){alert('Enter coordinates manually');return;}
-  navigator.geolocation.getCurrentPosition(function(p){a.value=p.coords.latitude.toFixed(7);b.value=p.coords.longitude.toFixed(7);},function(){alert('Location permission denied');});
-}
-
-async function createStore(){
-  const client=await ensureSupabaseClient();
-  if(!client){alert('Supabase connection failed. Please refresh the page.');return;}
-  const o={
-    name:document.getElementById('storeName').value.trim(),
-    store_code:document.getElementById('storeCode').value.trim().toUpperCase(),
-    phone:document.getElementById('storePhone').value.trim(),
-    address:document.getElementById('storeAddress').value.trim(),
-    town:document.getElementById('storeTown').value.trim(),
-    pincode:document.getElementById('storePincode').value.trim(),
-    latitude:parseFloat(document.getElementById('storeLat').value),
-    longitude:parseFloat(document.getElementById('storeLng').value),
-    status:'active'
-  };
-  if(!o.name||!o.store_code||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){
-    alert('Store Name, Code, Pincode and valid coordinates are required');return;
-  }
-  try{
-    const r=await client.from('stores').insert(o);
-    if(r.error) throw r.error;
-    alert('✅ Store created successfully.');
-    await loadStoresAdmin();
-    ['storeName','storeCode','storePhone','storeAddress','storeTown','storePincode','storeLat','storeLng'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  }catch(e){alert('❌ Create failed: '+(e.message||e));}
-}
-
-</script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,Segoe UI}
-body{background:#f5f7fb;color:#0f172a;display:flex;min-height:100vh}
-.sidebar{width:285px;background:#0f172a;color:#fff;position:fixed;left:0;top:0;bottom:0;overflow-y:auto;z-index:100;transition:.3s;box-shadow:4px 0 24px rgba(0,0,0,.15)}
-.sidebar-header{padding:20px;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:12px}
-.logo{width:42px;height:42px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px}
-.menu-section{padding:18px 16px 6px;font-size:10px;letter-spacing:1.2px;color:#64748b;font-weight:800;text-transform:uppercase}
-.menu-item{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:4px 12px;border-radius:12px;cursor:pointer;color:#cbd5e1;font-size:13.5px;transition:.2s;border:1px solid transparent}
-.menu-item:hover{background:#1e293b;color:#fff;border-color:#334155}
-.menu-item.active{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;font-weight:700;box-shadow:0 6px 16px rgba(37,99,235,.35);border-color:#60a5fa}
-.main{margin-left:285px;flex:1;min-height:100vh;display:flex;flex-direction:column}
-.topbar{background:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.06);position:sticky;top:0;z-index:50;border-bottom:1px solid #f1f5f9}
-.topbar h1{font-size:17px;font-weight:800;color:#0f172a}
-.btn-logout{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:8px 16px;border-radius:10px;font-weight:700;cursor:pointer;font-size:12px}
-.content{padding:20px;flex:1}
-.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid #f1f5f9;margin-bottom:14px}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
-.stat-card{background:#fff;border-radius:16px;padding:16px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.05);position:relative}
-.stat-card .label{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
-.stat-card .value{font-size:24px;font-weight:900;margin-top:6px}
-.hamburger{display:none;font-size:22px;cursor:pointer}
-@media(max-width:900px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.hamburger{display:block}}
-.input{width:100%;padding:11px 12px;border:1px solid #e2e8f0;border-radius:10px;margin-top:8px;font-size:13px;background:#fff}
-.btn-primary{background:#1e40af;color:#fff;border:0;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer}
-table{width:100%;border-collapse:collapse;font-size:12px} th{padding:10px;text-align:left;background:#f8fafc;color:#475569;font-weight:700} td{padding:10px;border-bottom:1px solid #f1f5f9}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI}
+body{background:#eef2f7;color:#0f172a}
+.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.dark-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:0 0 16px 16px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+.input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px}
+.menu{position:fixed;left:-100%;top:0;width:85vw;max-width:360px;height:100dvh;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);color:#fff;z-index:9999;transition:left 0.3s ease;padding:16px;overflow-y:auto;box-shadow:4px 0 20px rgba(0,0,0,0.3)}
+.menu.open{left:0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;z-index:9998;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+#adminLogin{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:#eef2f7}
+#adminMain{width:100%;max-width:100%;padding:12px;box-sizing:border-box}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 </style>
 
-<script>
-// Premium navigation - overrides old showSec but keeps loadSec
-function adminShow(id){
-  document.querySelectorAll('[id^=sec-]').forEach(function(e){ e.style.display='none'; });
-  var t=document.getElementById('sec-'+id);
-  if(t) t.style.display='block';
-  document.querySelectorAll('.menu-item').forEach(function(m){ m.classList.remove('active'); });
-  var activeEl = document.querySelector('.menu-item[data-sec="'+id+'"]');
-  if(activeEl) activeEl.classList.add('active');
-  var titleEl=document.getElementById('pageTitle');
-  if(titleEl) titleEl.innerText = id.replace(/([A-Z])/g,' $1').replace(/\b\w/g,function(l){return l.toUpperCase();});
-  document.getElementById('sidebar').classList.remove('open');
-  if(typeof loadSec==='function') loadSec(id);
-}
-function showSec(id,fromRestore){ adminShow(id); }
-function toggleMenu(){ document.getElementById('sidebar').classList.toggle('open'); }
+<style>
+*{font-family:Inter,system-ui,Segoe UI,Roboto}
+body{background:#f5f7fb !important}
+#sidebar{width:285px;background:#0f172a !important;color:#fff;position:fixed;left:0;top:0;bottom:0;overflow-y:auto;z-index:100;box-shadow:4px 0 24px rgba(0,0,0,.15)}
+#sidebar .logo{background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
+.menu-item{display:flex;align-items:center;gap:10px;padding:11px 14px;margin:4px 10px;border-radius:10px;cursor:pointer;color:#cbd5e1;font-size:13.5px;transition:.2s}
+.menu-item:hover{background:#1e293b;color:#fff}
+.menu-item.active{background:#1e40af !important;color:#fff !important;font-weight:700}
+.main{margin-left:285px !important}
+@media(max-width:900px){#sidebar{transform:translateX(-100%)} #sidebar.open{transform:translateX(0)} .main{margin-left:0 !important}}
+.card{background:#fff !important;border-radius:16px !important;box-shadow:0 1px 3px rgba(0,0,0,.06) !important;border:1px solid #f1f5f9 !important}
+.stat-card{background:#fff;border-radius:14px;padding:16px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+</style>
 
-// Enhance dashboard stats on load
-async function refreshPremiumDashboard(){
-  try{
-    var d=await loadDashboardReal();
-    if(!d) return;
-    var set=function(id,v){ var e=document.getElementById(id); if(e) e.innerText=v; };
-    set('dashMembers', d.usersCount||0);
-    set('dashPins', d.pinsCount||0);
-    set('dashStores', d.storesCount||0);
-    var totalPairs=0; if(d.binarySummary){ d.binarySummary.forEach(function(b){ totalPairs+=Number(b.total_pairs||0); }); }
-    set('dashPairs', totalPairs);
-  }catch(e){}
-}
-setTimeout(refreshPremiumDashboard, 1500);
-</script>
 </head>
 <body>
-<div class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <div class="logo">F</div>
-    <div><div style="font-weight:900;font-size:15px">Freedom Loan Mart</div><div style="font-size:10px;color:#94a3b8;letter-spacing:.5px">ADMIN CONSOLE • FULL LOGIC</div></div>
-  </div>
-  <div class="menu-section">Overview</div>
-  <div class="menu-item active" data-sec="dashboard" onclick="adminShow('dashboard')"><span>📊</span> Dashboard</div>
-  <div class="menu-section">Members & Finance</div>
-  <div class="menu-item" data-sec="users" onclick="adminShow('users')"><span>👥</span> Users</div>
-  <div class="menu-item" data-sec="registrationPayments" onclick="adminShow('registrationPayments')"><span>💳</span> Registration Payments</div>
-  <div class="menu-item" data-sec="pins" onclick="adminShow('pins')"><span>🎟️</span> Pins & Deposits</div>
-  <div class="menu-item" data-sec="rewardsAdmin" onclick="adminShow('rewardsAdmin')"><span>🏆</span> Rewards Approval</div>
-  <div class="menu-item" data-sec="wallets" onclick="adminShow('wallets')"><span>💰</span> Wallets</div>
-  <div class="menu-item" data-sec="withdraw" onclick="adminShow('withdraw')"><span>💸</span> Withdrawals</div>
-  <div class="menu-item" data-sec="binary" onclick="adminShow('binary')"><span>🌳</span> Binary Summary</div>
-  <div class="menu-item" data-sec="roi" onclick="adminShow('roi')"><span>🔄</span> ROI</div>
-  <div class="menu-section">Store Network</div>
-  <div class="menu-item" data-sec="stores" onclick="adminShow('stores')"><span>🏪</span> Stores</div>
-  <div class="menu-item" data-sec="createStore" onclick="adminShow('createStore')"><span>➕</span> Create Store</div>
-  <div class="menu-item" data-sec="storePoints" onclick="adminShow('storePoints')"><span>⭐</span> Store Points</div>
-  <div class="menu-section">System</div>
-  <div class="menu-item" data-sec="subAdmin" onclick="adminShow('subAdmin')"><span>👤</span> Sub Admin</div>
-</div>
-
-<div class="main">
-  <div class="topbar">
-    <div style="display:flex;align-items:center;gap:12px"><span class="hamburger" onclick="toggleMenu()">☰</span><h1 id="pageTitle">Dashboard</h1><span style="font-size:10px;background:#eef2ff;color:#1e40af;padding:4px 8px;border-radius:999px;font-weight:800">FULL 76KB+ LOGIC RESTORED</span></div>
-    <button class="btn-logout" onclick="location.href='./login.html'">Logout</button>
-  </div>
-  <div class="content">
-    <div id="sec-dashboard">
-      <div class="stat-grid">
-        <div class="stat-card"><div class="label">Total Members</div><div class="value" id="dashMembers">-</div></div>
-        <div class="stat-card"><div class="label">Total Pins</div><div class="value" id="dashPins">-</div></div>
-        <div class="stat-card"><div class="label">Total Stores</div><div class="value" id="dashStores">-</div></div>
-        <div class="stat-card"><div class="label">Total Pairs</div><div class="value" id="dashPairs">-</div></div>
-      </div>
-    </div>
-
 <div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2></div><input id="adminEmail" placeholder="Admin ID - super@freedomloans.in" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password - super123" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
 <div id="adminMain" style="display:none">
 <div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b>FLM Admin - Platform Dashboard - All Sections - Pins Logic Implemented</b></div><button onclick="adminLogout()" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer">Logout</button></div>
@@ -852,66 +596,23 @@ async function createStore(){
 
 </script>
 
-    <div id="sec-rewardsAdmin" style="display:none">
-      <div class="card" style="border:2px solid #7c3aed">
-        <h3 style="color:#5b21b6">🏆 Rewards Approval</h3>
-        <p style="font-size:11px;color:#6d28d9;margin-top:4px">Users claim after 40:40, 80, 160... pairs. Approve to mark as approved.</p>
-        <div style="margin-top:12px;display:flex;gap:8px"><select id="rewardStatusFilter" class="input" style="width:130px"><option value="all">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><button class="btn-primary" onclick="loadRewardsAdmin()">Refresh</button></div>
-        <div id="rewardsAdminList" style="margin-top:14px">Loading...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
+<div id="sec-rewardsAdmin" style="display:none"><div class="card" style="border:2px solid #7c3aed"><h3>🏆 Rewards Approval</h3><div style="margin-top:10px;display:flex;gap:8px"><select id="rewardStatusFilter" class="input" style="width:130px"><option value="all">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><button class="btn-primary" onclick="loadRewardsAdmin()">Refresh</button></div><div id="rewardsAdminList" style="margin-top:12px">Loading...</div></div></div>
 <script>
-// Rewards Admin Functions - FULL LOGIC
 async function loadRewardsAdmin(){
   var list=document.getElementById('rewardsAdminList'); if(!list) return;
-  list.innerHTML='<div style="padding:20px;text-align:center;color:#64748b">Loading reward claims...</div>';
+  list.innerHTML='Loading...';
   try{
-    var client=await ensureSupabaseClient(); if(!client) throw new Error('Supabase not ready');
-    var status=document.getElementById('rewardStatusFilter')?.value||'all';
+    var client=await ensureSupabaseClient(); var status=document.getElementById('rewardStatusFilter')?.value||'all';
     var q=client.from('reward_requests').select('*').order('created_at',{ascending:false}).limit(200);
     if(status!=='all') q=q.eq('status',status);
     var res=await q; if(res.error) throw res.error;
-    var rows=res.data||[];
-    if(!rows.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No reward claims found. Table: reward_requests is ready.</div>'; return; }
-    var html=''; rows.forEach(function(r){
-      var st=String(r.status||'pending').toLowerCase();
-      var color= st==='approved'?'#059669': st==='pending'?'#d97706':'#dc2626';
-      html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;gap:10px;align-items:center">'
-        +'<div><b>'+escapeHtml(r.fl_id||'')+'</b> - '+escapeHtml(r.reward_name||'')+'<br><span style="font-size:11px;color:#64748b">'+(r.required_pairs||'')+' pairs required | Current: '+(r.current_pairs||0)+' | '+escapeHtml(r.created_at||'')+'</span><br><span style="font-size:11px;font-weight:800;color:'+color+'">Status: '+escapeHtml(st.toUpperCase())+'</span></div>'
-        +'<div style="display:flex;flex-direction:column;gap:6px">'
-        +(st==='pending'? '<button onclick="approveReward('+r.id+')" style="padding:8px 12px;background:#059669;color:#fff;border:0;border-radius:8px;font-weight:700;cursor:pointer">Approve</button><button onclick="rejectReward('+r.id+')" style="padding:8px 12px;background:#fee2e2;color:#991b1b;border:0;border-radius:8px;font-weight:700;cursor:pointer">Reject</button>' : '<span style="font-size:10px;color:#64748b">By '+escapeHtml(r.approved_by||'')+'</span>')
-        +'</div></div>';
-    });
-    list.innerHTML=html;
-  }catch(e){ list.innerHTML='<div style="padding:14px;background:#fef2f2;color:#991b1b;border-radius:10px">Load error: '+escapeHtml(e.message)+'<br><br>Run SQL:<br>ALTER TABLE reward_requests DISABLE ROW LEVEL SECURITY;<br>GRANT ALL ON TABLE reward_requests TO anon, authenticated;</div>'; }
+    var rows=res.data||[]; if(!rows.length){ list.innerHTML='No claims'; return; }
+    var html=''; rows.forEach(function(r){ var st=(r.status||'pending'); var col=st==='approved'?'#059669': st==='pending'?'#d97706':'#dc2626'; html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between"><div><b>'+ (r.fl_id||'') +'</b> - '+ (r.reward_name||'') +'<br><span style="font-size:11px;color:#64748b">'+ (r.required_pairs||'') +' pairs | Current:'+ (r.current_pairs||0) +'</span><br><span style="color:'+col+';font-weight:800;font-size:11px">'+ st.toUpperCase() +'</span></div><div>'+ (st==='pending'? '<button onclick="approveReward('+r.id+')" style="padding:8px 12px;background:#059669;color:#fff;border:0;border-radius:8px;font-weight:700">Approve</button> <button onclick="rejectReward('+r.id+')" style="padding:8px 12px;background:#fee2e2;color:#991b1b;border:0;border-radius:8px">Reject</button>' : '') +'</div></div>'; }); list.innerHTML=html;
+  }catch(e){ list.innerHTML='Error: '+e.message+'<br>Run: ALTER TABLE reward_requests DISABLE ROW LEVEL SECURITY;'; }
 }
-async function approveReward(id){
-  if(!confirm('Approve this reward?')) return;
-  try{
-    var client=await ensureSupabaseClient();
-    var res=await client.from('reward_requests').update({status:'approved', approved_at:new Date().toISOString(), approved_by:'admin'}).eq('id',id);
-    if(res.error) throw res.error;
-    alert('Approved'); loadRewardsAdmin();
-  }catch(e){ alert('Approve error: '+e.message); }
-}
-async function rejectReward(id){
-  if(!confirm('Reject this reward?')) return;
-  try{
-    var client=await ensureSupabaseClient();
-    var res=await client.from('reward_requests').update({status:'rejected', approved_by:'admin'}).eq('id',id);
-    if(res.error) throw res.error;
-    alert('Rejected'); loadRewardsAdmin();
-  }catch(e){ alert('Reject error: '+e.message); }
-}
-function getAdminId(){ return 'admin'; }
-var _origLoadSec = typeof loadSec!=='undefined' ? loadSec : null;
-loadSec = function(id){
-  if(_origLoadSec) _origLoadSec(id);
-  if(id==='rewardsAdmin') loadRewardsAdmin();
-  if(id==='dashboard') refreshPremiumDashboard();
-};
+async function approveReward(id){ if(!confirm('Approve?')) return; var c=await ensureSupabaseClient(); var r=await c.from('reward_requests').update({status:'approved',approved_at:new Date().toISOString(),approved_by:'admin'}).eq('id',id); if(r.error) alert(r.error.message); else{ alert('Approved'); loadRewardsAdmin(); } }
+async function rejectReward(id){ if(!confirm('Reject?')) return; var c=await ensureSupabaseClient(); var r=await c.from('reward_requests').update({status:'rejected'}).eq('id',id); if(r.error) alert(r.error.message); else{ alert('Rejected'); loadRewardsAdmin(); } }
+var _origLS=typeof loadSec!=='undefined'?loadSec:null; loadSec=function(id){ if(_origLS) _origLS(id); if(id==='rewardsAdmin') loadRewardsAdmin(); };
 </script>
+
 </body></html>
