@@ -1309,11 +1309,11 @@ async function loadRewards(){
       +'</div></div>';
   });
   grid.innerHTML=html;
-  if(msg){ msg.innerHTML='Current Total Binary Pairs: <b>'+currentPairs+'</b><br>Example: 1 pair ayithe 1/40, 1/80, 1/160... anni chotla same count perugutundi. 40/40 ayyaka Claim button vastundi.'; }
+  if(msg){ msg.innerHTML='Current Total Binary Pairs: <b>'+currentPairs+'</b><br>Example: 1 pair completed shows as 1/40, 1/80, 1/160 across all rewards. When 40/40 is reached, Claim button appears.'; }
 }
 async function claimReward(pairs, name){
   var flId=getFlId();
-  if(!confirm('Claim reward: '+name+' ('+pairs+' pairs)? Admin approval ki velthundi.')) return;
+  if(!confirm('Claim reward: '+name+' ('+pairs+' pairs)? It will be sent to admin for approval.')) return;
   try{
     var curPairs=0;
     try{ var st=await flmFetchTeamStats(flId); curPairs=Number(st.pairs||0);}catch(e){}
