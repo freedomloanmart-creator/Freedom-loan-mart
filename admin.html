@@ -366,7 +366,7 @@ body{background:#eef2f7;color:#0f172a}
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('binary')">🌳 Binary Summary - Real</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('roi')">🔄 ROI - Real - Full</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('withdraw')">⬆️ Withdrawals - Full</div>
-<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#ede9fe;color:#5b21b6;font-weight:800" onclick="showSec('support')">💬 Help Center Requests</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#1d4ed8;color:#fff" onclick="showSec('supportAdmin')">💬 Help Center — Support Tickets</div>
 </div>
 <div style="margin-top:12px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px;font-size:11px"><b style="color:#10b981">✅ Before Pins Session Files + Pins Logic Implemented</b><br><span style="color:#94a3b8">Before pins session: 40KB+ with 11 sections<br>Now: Same 11 sections + Pins logic (Deposit Check, Status by UTR, Copy Button, Screenshot Preview, Double Approve Prevent) - Full - 40KB+ as requested</span></div>
 </div>
@@ -582,26 +582,15 @@ async function createStore(){
 
 </script>
 
-
-<div id="sec-support" style="display:none">
-<div class="card" style="background:linear-gradient(135deg,#312e81,#2563eb);color:#fff;border-radius:18px;padding:18px">
-<div style="font-size:20px;font-weight:900">💬 Help Center Requests</div>
-<div style="font-size:11px;opacity:.9;margin-top:5px">Review member problems, view optional screenshots and send replies.</div>
-<button type="button" onclick="flmAdminLoadSupportRequests()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:11px;font-weight:900">🔄 Refresh Requests</button>
+<div id="sec-supportAdmin" style="display:none">
+  <div class="card" style="background:linear-gradient(135deg,#0f172a,#1e40af);color:#fff;border-radius:18px;padding:18px">
+    <div style="font-size:20px;font-weight:900">💬 Help Center — Support Tickets</div>
+    <div style="font-size:11px;opacity:.9;margin-top:5px">User replies stay in the same ticket. Reply until the issue is completed, then close the ticket.</div>
+  </div>
+  <div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="flmSupportAdminSearch" class="input" placeholder="Search FL ID / name / subject" oninput="flmAdminRenderSupportRequests()" style="flex:1;min-width:220px"><select id="flmSupportAdminFilter" class="input" onchange="flmAdminRenderSupportRequests()" style="max-width:180px"><option value="all">All Status</option><option value="pending">Pending / User Replied</option><option value="replied">Admin Replied</option><option value="closed">Closed</option></select><button type="button" onclick="flmAdminLoadSupportRequests()" style="background:#2563eb;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:900">🔄 Refresh</button></div></div>
+  <div class="grid2"><div class="dark-card"><div style="font-size:11px;color:#64748b">Pending / User Replied</div><div id="flmSupportPendingCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Admin Replied</div><div id="flmSupportRepliedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Closed</div><div id="flmSupportClosedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Total Tickets</div><div id="flmSupportTotalCount" style="font-size:24px;font-weight:900">0</div></div></div>
+  <div id="flmSupportAdminList" class="card">Click Refresh Requests.</div>
 </div>
-<div class="card"><div class="grid2">
-<div class="dark-card"><div style="font-size:11px;color:#64748b">Pending</div><div id="flmSupportPendingCount" style="font-size:24px;font-weight:900">0</div></div>
-<div class="dark-card"><div style="font-size:11px;color:#64748b">Replied</div><div id="flmSupportRepliedCount" style="font-size:24px;font-weight:900">0</div></div>
-<div class="dark-card"><div style="font-size:11px;color:#64748b">Closed</div><div id="flmSupportClosedCount" style="font-size:24px;font-weight:900">0</div></div>
-<div class="dark-card"><div style="font-size:11px;color:#64748b">Total</div><div id="flmSupportTotalCount" style="font-size:24px;font-weight:900">0</div></div>
-</div></div>
-<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap">
-<input id="flmSupportAdminSearch" class="input" placeholder="Search FL ID / name / subject" oninput="flmAdminRenderSupportRequests()" style="flex:1;min-width:220px">
-<select id="flmSupportAdminFilter" class="input" onchange="flmAdminRenderSupportRequests()" style="max-width:180px"><option value="all">All Status</option><option value="pending">Pending</option><option value="replied">Replied</option><option value="closed">Closed</option></select>
-</div></div>
-<div id="flmSupportAdminList" class="card">Click Refresh Requests.</div>
-</div>
-
 <div id="sec-rewardsAdmin" style="display:none">
   <div class="card" style="border:3px solid #7c3aed;background:#f5f3ff">
     <div style="font-weight:900;color:#5b21b6;font-size:18px">🏆 Rewards Approval - Admin</div>
@@ -696,59 +685,38 @@ function showSec(id,fromRestore){
 
 
 <script>
-/* FLM HELP CENTER ADMIN ADD-ON — added on top of original 5admin.html only. */
-var flmAdminSupportRows=[];
-function flmAdminSupportEscape(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-async function flmAdminLoadSupportRequests(){
-  const el=document.getElementById('flmSupportAdminList'); if(!el)return;
-  el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading support requests...</div>';
-  try{
-    const client=await ensureSupabaseClient(); if(!client)throw new Error('Supabase connection failed.');
-    const r=await client.from('support_requests').select('*').order('created_at',{ascending:false}).limit(500);
-    if(r.error)throw r.error;
-    flmAdminSupportRows=r.data||[]; flmAdminUpdateSupportCounts(); flmAdminRenderSupportRequests();
-  }catch(e){
-    el.innerHTML='<div style="padding:14px;background:#fef2f2;color:#991b1b;border-radius:10px;font-size:12px">Could not load support requests: '+flmAdminSupportEscape(e.message||e)+'<br><span style="font-size:10px">Check that the support_requests SQL has already been run.</span></div>';
-  }
-}
-function flmAdminUpdateSupportCounts(){
-  const rows=flmAdminSupportRows,n=s=>rows.filter(x=>String(x.status||'pending').toLowerCase()===s).length,set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=String(v);};
-  set('flmSupportPendingCount',n('pending'));set('flmSupportRepliedCount',n('replied'));set('flmSupportClosedCount',n('closed'));set('flmSupportTotalCount',rows.length);
-}
-function flmAdminRenderSupportRequests(){
-  const el=document.getElementById('flmSupportAdminList');if(!el)return;
-  const q=(document.getElementById('flmSupportAdminSearch')?.value||'').trim().toLowerCase();
-  const filter=(document.getElementById('flmSupportAdminFilter')?.value||'all').toLowerCase();
-  const rows=flmAdminSupportRows.filter(r=>{const st=String(r.status||'pending').toLowerCase();const text=[r.fl_id,r.user_name,r.subject,r.message].map(x=>String(x||'').toLowerCase()).join(' ');return(filter==='all'||st===filter)&&(!q||text.includes(q));});
-  if(!rows.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No matching support requests.</div>';return;}
-  el.innerHTML=rows.map(r=>{
-    const st=String(r.status||'pending').toLowerCase(),badge=st==='replied'?['#dcfce7','#166534','REPLIED']:st==='closed'?['#e2e8f0','#475569','CLOSED']:['#fef3c7','#92400e','PENDING'];
-    const shot=r.screenshot_data&&String(r.screenshot_data).startsWith('data:image')?String(r.screenshot_data):'';
-    const id=flmAdminSupportEscape(r.id);
-    return '<div style="background:#fff;border:2px solid #e2e8f0;border-radius:14px;padding:15px;margin-bottom:12px">'
-      +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:15px">'+flmAdminSupportEscape(r.user_name||'Member')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">FL ID: <b>'+flmAdminSupportEscape(r.fl_id||'—')+'</b> · '+(r.created_at?new Date(r.created_at).toLocaleString():'')+'</div></div><span style="background:'+badge[0]+';color:'+badge[1]+';padding:5px 9px;border-radius:999px;font-size:10px;font-weight:900">'+badge[2]+'</span></div>'
-      +'<div style="margin-top:10px;font-weight:900;color:#1e3a8a">'+flmAdminSupportEscape(r.subject||'Support Request')+'</div>'
-      +'<div style="margin-top:8px;background:#f8fafc;border-radius:10px;padding:11px;font-size:12px;white-space:pre-wrap;line-height:1.6">'+flmAdminSupportEscape(r.message||'')+'</div>'
-      +(shot?'<div style="margin-top:10px"><div style="font-size:10px;font-weight:800;color:#64748b;margin-bottom:6px">📸 Member Screenshot — tap to open full size</div><img src="'+shot+'" style="width:100%;max-height:360px;object-fit:contain;background:#f8fafc;border:2px solid #93c5fd;border-radius:10px;cursor:pointer" onclick="window.open(this.src,\'_blank\')"></div>':'<div style="margin-top:8px;font-size:10px;color:#94a3b8">📎 No screenshot attached (optional).</div>')
-      +'<div style="margin-top:12px"><textarea id="flmSupportReply_'+id+'" class="input" placeholder="Write reply to this member..." style="min-height:90px;resize:vertical">'+flmAdminSupportEscape(r.admin_reply||'')+'</textarea></div>'
-      +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="flmAdminReplySupport(\''+id+'\')" style="flex:1;min-width:150px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:900">📨 '+(r.admin_reply?'Update Reply':'Send Reply')+'</button>'
-      +(st!=='closed'?'<button type="button" onclick="flmAdminCloseSupport(\''+id+'\')" style="background:#fff;color:#475569;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font-weight:800">✓ Close</button>':'<button type="button" onclick="flmAdminReopenSupport(\''+id+'\')" style="background:#fff;color:#2563eb;border:1px solid #bfdbfe;border-radius:10px;padding:11px;font-weight:800">↩ Reopen</button>')+'</div></div>';
-  }).join('');
-}
-async function flmAdminReplySupport(id){
-  const ta=document.getElementById('flmSupportReply_'+id),reply=(ta?.value||'').trim();if(!reply){alert('Please enter a reply.');return;}
-  try{const c=await ensureSupabaseClient(),r=await c.from('support_requests').update({admin_reply:reply,status:'replied',replied_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;alert('✅ Reply sent to member.');await flmAdminLoadSupportRequests();}catch(e){alert('❌ Reply failed: '+(e.message||e));}
-}
-async function flmAdminCloseSupport(id){if(!confirm('Close this support request?'))return;try{const c=await ensureSupabaseClient(),r=await c.from('support_requests').update({status:'closed'}).eq('id',id);if(r.error)throw r.error;await flmAdminLoadSupportRequests();}catch(e){alert('❌ Could not close request: '+(e.message||e));}}
-async function flmAdminReopenSupport(id){try{const c=await ensureSupabaseClient(),r=await c.from('support_requests').update({status:'pending'}).eq('id',id);if(r.error)throw r.error;await flmAdminLoadSupportRequests();}catch(e){alert('❌ Could not reopen request: '+(e.message||e));}}
-
-/* Wrap the original loader; all existing section logic remains in place. */
+/* FLM SUPPORT THREAD ADMIN MODULE — isolated add-on; existing business logic untouched. */
 (function(){
-  const originalLoadSec=window.loadSec;
-  window.loadSec=async function(id){
-    if(typeof originalLoadSec==='function') await originalLoadSec(id);
-    if(id==='support') await flmAdminLoadSupportRequests();
+  function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  function supa(){return ensureSupabaseClient();}
+  function badge(st){st=String(st||'pending').toLowerCase();return st==='replied'?['#dcfce7','#166534','REPLIED']:st==='closed'?['#e2e8f0','#475569','CLOSED']:['#fef3c7','#92400e','PENDING / USER REPLIED'];}
+  function bubble(m){const who=String(m.sender_type||'user').toLowerCase()==='admin'?'admin':'user',shot=m.screenshot_data&&String(m.screenshot_data).startsWith('data:image')?String(m.screenshot_data):'';return '<div style="display:flex;justify-content:'+(who==='admin'?'flex-end':'flex-start')+';margin-top:8px"><div style="max-width:92%;background:'+(who==='admin'?'#eff6ff':'#f8fafc')+';border:1px solid '+(who==='admin'?'#bfdbfe':'#e2e8f0')+';border-radius:13px;padding:10px"><div style="font-size:10px;font-weight:900;color:'+(who==='admin'?'#1d4ed8':'#475569')+'">'+(who==='admin'?'👨‍💼 ADMIN':'👤 MEMBER')+'</div><div style="font-size:12px;line-height:1.55;white-space:pre-wrap;margin-top:4px">'+esc(m.message||'')+'</div>'+(shot?'<div style="margin-top:7px"><img src="'+shot+'" style="max-width:100%;max-height:280px;object-fit:contain;border:1px solid #cbd5e1;border-radius:9px;cursor:pointer" onclick="window.open(this.src,\'_blank\')"></div>':'')+(m.created_at?'<div style="font-size:9px;color:#94a3b8;margin-top:5px">'+new Date(m.created_at).toLocaleString()+'</div>':'')+'</div></div>';}
+  function legacy(r){const x=[];if(r.message)x.push({sender_type:'user',message:r.message,screenshot_data:r.screenshot_data,created_at:r.created_at});if(r.admin_reply)x.push({sender_type:'admin',message:r.admin_reply,created_at:r.replied_at});return x;}
+  window.flmAdminLoadSupportRequests=async function(){
+    const el=document.getElementById('flmSupportAdminList');if(!el)return;el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading support tickets...</div>';
+    try{const c=await supa();if(!c)throw new Error('Supabase connection failed.');const r=await c.from('support_requests').select('*').order('created_at',{ascending:false}).limit(500);if(r.error)throw r.error;window.flmAdminSupportRows=r.data||[];flmAdminUpdateSupportCounts();
+      let thread=[];const ids=window.flmAdminSupportRows.map(x=>x.id);if(ids.length){try{const mr=await c.from('support_messages').select('*').in('ticket_id',ids).order('created_at',{ascending:true});if(mr.error)throw mr.error;thread=mr.data||[];}catch(e){console.log('support_messages admin load',e.message);}}
+      window.flmAdminSupportThread=thread;flmAdminRenderSupportRequests();
+    }catch(e){el.innerHTML='<div style="padding:14px;background:#fef2f2;color:#991b1b;border-radius:10px;font-size:12px">Could not load support tickets: '+esc(e.message||e)+'<br><span style="font-size:10px">Run the additional support_messages SQL once.</span></div>';}
   };
+  window.flmAdminUpdateSupportCounts=function(){const rows=window.flmAdminSupportRows||[],n=s=>rows.filter(x=>String(x.status||'pending').toLowerCase()===s).length,set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=String(v);};set('flmSupportPendingCount',n('pending'));set('flmSupportRepliedCount',n('replied'));set('flmSupportClosedCount',n('closed'));set('flmSupportTotalCount',rows.length);};
+  window.flmAdminRenderSupportRequests=function(){
+    const el=document.getElementById('flmSupportAdminList');if(!el)return;const rows=window.flmAdminSupportRows||[],thread=window.flmAdminSupportThread||[],q=(document.getElementById('flmSupportAdminSearch')?.value||'').trim().toLowerCase(),filter=(document.getElementById('flmSupportAdminFilter')?.value||'all').toLowerCase();
+    const filtered=rows.filter(r=>{const st=String(r.status||'pending').toLowerCase(),text=[r.fl_id,r.user_name,r.subject,r.message].map(x=>String(x||'').toLowerCase()).join(' ');return(filter==='all'||st===filter)&&(!q||text.includes(q));});
+    if(!filtered.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No matching support tickets.</div>';return;}
+    el.innerHTML=filtered.map(r=>{const st=String(r.status||'pending').toLowerCase(),b=badge(st),msgs=thread.filter(m=>String(m.ticket_id)===String(r.id)),finalMsgs=msgs.length?msgs:legacy(r),closed=st==='closed';
+      return '<div style="background:#fff;border:2px solid '+(closed?'#cbd5e1':'#dbeafe')+';border-radius:16px;padding:15px;margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:15px">'+esc(r.user_name||'Member')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">FL ID: <b>'+esc(r.fl_id||'—')+'</b> · Ticket #'+esc(String(r.id).slice(0,8))+' · '+(r.created_at?new Date(r.created_at).toLocaleString():'')+'</div></div><span style="background:'+b[0]+';color:'+b[1]+';padding:5px 9px;border-radius:999px;font-size:10px;font-weight:900">'+b[2]+'</span></div>'
+      +'<div style="margin-top:10px;font-weight:900;color:#1e3a8a">'+esc(r.subject||'Support Request')+'</div>'
+      +'<div style="margin-top:9px;border-top:1px solid #f1f5f9;padding-top:3px">'+finalMsgs.map(bubble).join('')+'</div>'
+      +(closed?'<div style="margin-top:11px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:10px;text-align:center;font-size:11px;font-weight:900;color:#475569">🔒 TICKET CLOSED — Issue marked as completed.</div>':'<div style="margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px"><div style="font-size:11px;font-weight:900;color:#334155">✍️ Admin Reply</div><textarea id="flmAdminReply_'+esc(r.id)+'" class="input" placeholder="Write reply to member..." style="margin-top:7px;min-height:85px;resize:vertical"></textarea><input id="flmAdminShot_'+esc(r.id)+'" type="file" accept="image/*" style="width:100%;margin-top:7px;padding:8px;border:1px dashed #94a3b8;border-radius:9px;font-size:11px;background:#fff"><div style="display:flex;gap:8px;margin-top:8px"><button type="button" onclick="flmAdminSendThreadReply(\''+esc(r.id)+'\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:900">📨 Send Reply</button><button type="button" onclick="flmAdminCloseThread(\''+esc(r.id)+'\')" style="background:#fff;color:#475569;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font-weight:900">✓ Close Ticket</button></div></div>')
+      +'</div>';}).join('');
+  };
+  window.flmAdminSendThreadReply=async function(id){const box=document.getElementById('flmAdminReply_'+id),fileEl=document.getElementById('flmAdminShot_'+id),reply=(box?.value||'').trim(),file=fileEl?.files?.[0];if(!reply){alert('Please enter a reply.');return;}if(file&&(!file.type||!file.type.startsWith('image/'))){alert('Please select an image screenshot.');return;}if(file&&file.size>2*1024*1024){alert('Screenshot must be 2 MB or smaller.');return;}try{const c=await supa(),shot=file?await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=reject;r.readAsDataURL(file);}):null,ins=await c.from('support_messages').insert({ticket_id:id,sender_type:'admin',sender_fl_id:getAdminId(),message:reply,screenshot_data:shot});if(ins.error)throw ins.error;const up=await c.from('support_requests').update({admin_reply:reply,status:'replied',replied_at:new Date().toISOString()}).eq('id',id);if(up.error)throw up.error;alert('✅ Reply sent to member.');await flmAdminLoadSupportRequests();}catch(e){alert('❌ Reply failed: '+(e.message||e)+'\n\nRun the additional support_messages SQL once if not already done.');}};
+  window.flmAdminCloseThread=async function(id){if(!confirm('Close this support ticket? User will see that the admin ticket is closed.'))return;try{const c=await supa(),r=await c.from('support_requests').update({status:'closed'}).eq('id',id);if(r.error)throw r.error;await flmAdminLoadSupportRequests();}catch(e){alert('❌ Could not close ticket: '+(e.message||e));}};
+  window.flmAdminReopenThread=async function(id){try{const c=await supa(),r=await c.from('support_requests').update({status:'pending'}).eq('id',id);if(r.error)throw r.error;await flmAdminLoadSupportRequests();}catch(e){alert('❌ Could not reopen ticket: '+(e.message||e));}};
+  // Existing loadSec/showSec logic is preserved; this only adds supportAdmin loading.
+  const oldLoadSec=window.loadSec;window.loadSec=async function(id){if(typeof oldLoadSec==='function')await oldLoadSec(id);if(id==='supportAdmin')await flmAdminLoadSupportRequests();};
 })();
 </script>
 

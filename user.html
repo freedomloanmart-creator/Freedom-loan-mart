@@ -23,7 +23,7 @@ function showSec(id,fromPop){
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='loans') loadLoanPanel(); if(id==='support') flmLoadMySupportRequests();
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='loans') loadLoanPanel();
 }
 function initFlmNavigation(){
  if(!requireLogin()) return;
@@ -194,25 +194,25 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 </div>
 <div id="sec-support" style="display:none">
-<div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px">
-  <div style="font-size:21px;font-weight:900">💬 Help Center</div>
-  <div style="font-size:12px;opacity:.9;margin-top:5px">Tell us your problem. You can attach a screenshot if it helps.</div>
-</div>
-<div class="card" style="border:1px solid #dbeafe">
-  <div style="font-size:16px;font-weight:900;color:#1e3a8a">📝 Submit a Support Request</div>
-  <div style="font-size:11px;color:#64748b;margin-top:5px">Screenshot is optional. Please explain the issue clearly.</div>
-  <input id="flmSupportSubject" class="input" placeholder="Problem subject (e.g. ROI not credited)" style="margin-top:12px">
-  <textarea id="flmSupportMessage" class="input" placeholder="Explain your problem here..." style="margin-top:8px;min-height:120px;resize:vertical"></textarea>
-  <label style="display:block;margin-top:10px;font-size:12px;font-weight:800;color:#334155">📸 Screenshot (Optional)</label>
-  <input id="flmSupportScreenshot" type="file" accept="image/*" style="width:100%;margin-top:6px;padding:10px;border:1px dashed #94a3b8;border-radius:10px;background:#f8fafc;font-size:12px">
-  <div id="flmSupportPreview" style="display:none;margin-top:10px"></div>
-  <button id="flmSupportSubmitBtn" type="button" onclick="flmSubmitSupportRequest()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900">📨 Submit Request</button>
-  <div id="flmSupportMsg" style="font-size:12px;text-align:center;margin-top:9px"></div>
-</div>
-<div class="card" style="border:1px solid #e2e8f0">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-size:16px;font-weight:900">📋 My Support Requests</div><button type="button" onclick="flmLoadMySupportRequests()" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:9px;padding:8px 10px;font-weight:800">🔄 Refresh</button></div>
-  <div id="flmMySupportList" style="margin-top:12px">Loading...</div>
-</div>
+  <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px">
+    <div style="font-size:21px;font-weight:900">💬 Help Center</div>
+    <div style="font-size:12px;opacity:.9;margin-top:5px">Tell us your problem. Screenshot is optional. Admin replies will appear in the same ticket.</div>
+  </div>
+  <div class="card" style="border:1px solid #dbeafe">
+    <div style="font-size:16px;font-weight:900;color:#1e3a8a">📝 Submit a Support Request</div>
+    <div style="font-size:11px;color:#64748b;margin-top:5px">Explain your problem clearly. Screenshot is optional.</div>
+    <input id="flmSupportSubject" class="input" placeholder="Problem subject (e.g. ROI not credited)" style="margin-top:12px">
+    <textarea id="flmSupportMessage" class="input" placeholder="Explain your problem here..." style="margin-top:8px;min-height:120px;resize:vertical"></textarea>
+    <label style="display:block;margin-top:10px;font-size:12px;font-weight:800;color:#334155">📸 Screenshot (Optional)</label>
+    <input id="flmSupportScreenshot" type="file" accept="image/*" style="width:100%;margin-top:6px;padding:10px;border:1px dashed #94a3b8;border-radius:10px;background:#f8fafc;font-size:12px">
+    <div id="flmSupportPreview" style="display:none;margin-top:10px"></div>
+    <button id="flmSupportSubmitBtn" type="button" onclick="flmSubmitSupportRequest()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:900">📨 Submit Request</button>
+    <div id="flmSupportMsg" style="font-size:12px;text-align:center;margin-top:9px"></div>
+  </div>
+  <div class="card" style="border:1px solid #e2e8f0">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-size:16px;font-weight:900">📋 My Support Requests</div><button type="button" onclick="flmLoadMySupportRequests()" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:9px;padding:8px 10px;font-weight:800">🔄 Refresh</button></div>
+    <div id="flmMySupportList" style="margin-top:12px">Loading...</div>
+  </div>
 </div>
 </div>
 
@@ -1347,13 +1347,77 @@ async function claimReward(pairs, name){
 
 
 <script>
-/* FLM SUPPORT USER MODULE - isolated add-on; existing business logic untouched */
-var flmSupportPreviewUrl='';
-function flmSupportEscape(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function flmSupportReadImage(file){return new Promise(function(resolve,reject){if(!file){resolve('');return;}if(!file.type||!file.type.startsWith('image/')){reject(new Error('Please select an image file.'));return;}var reader=new FileReader();reader.onload=function(){var img=new Image();img.onload=function(){var max=1200,scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale)),canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);resolve(canvas.toDataURL('image/jpeg',0.72));};img.onerror=function(){reject(new Error('Could not read screenshot.'));};img.src=String(reader.result||'');};reader.onerror=function(){reject(new Error('Could not read screenshot.'));};reader.readAsDataURL(file);});}
-function flmSupportPreviewFile(){var file=document.getElementById('flmSupportScreenshot')?.files?.[0],box=document.getElementById('flmSupportPreview');if(!box)return;if(flmSupportPreviewUrl){URL.revokeObjectURL(flmSupportPreviewUrl);flmSupportPreviewUrl='';}if(!file){box.style.display='none';box.innerHTML='';return;}if(!file.type.startsWith('image/')){box.style.display='block';box.innerHTML='<div style="padding:9px;background:#fef2f2;color:#991b1b;border-radius:9px;font-size:11px">Please select an image screenshot.</div>';return;}flmSupportPreviewUrl=URL.createObjectURL(file);box.style.display='block';box.innerHTML='<div style="font-size:10px;color:#64748b;margin-bottom:5px">Screenshot preview:</div><img src="'+flmSupportEscape(flmSupportPreviewUrl)+'" style="width:100%;max-height:240px;object-fit:contain;border:1px solid #bfdbfe;border-radius:10px;background:#f8fafc">';}
-async function flmSubmitSupportRequest(){var subjectEl=document.getElementById('flmSupportSubject'),messageEl=document.getElementById('flmSupportMessage'),fileEl=document.getElementById('flmSupportScreenshot'),msg=document.getElementById('flmSupportMsg'),btn=document.getElementById('flmSupportSubmitBtn');var subject=(subjectEl?.value||'').trim(),message=(messageEl?.value||'').trim(),file=fileEl?.files?.[0];if(!getFlId()){if(msg){msg.style.color='#dc2626';msg.innerText='Please login again.';}return;}if(!subject){if(msg){msg.style.color='#dc2626';msg.innerText='Please enter a problem subject.';}return;}if(!message){if(msg){msg.style.color='#dc2626';msg.innerText='Please explain your problem.';}return;}if(message.length<5){if(msg){msg.style.color='#dc2626';msg.innerText='Please give a little more detail.';}return;}try{if(btn)btn.disabled=true;if(msg){msg.style.color='#2563eb';msg.innerText='Submitting your request...';}var screenshot='';if(file)screenshot=await flmSupportReadImage(file);var flId=getFlId(),userName=getName()||flId;var c=supabaseClient;if(!c)throw new Error('Database not available.');var r=await c.from('support_requests').insert({fl_id:flId,user_name:userName,subject:subject,message:message,screenshot_data:screenshot||null,status:'pending'}).select().single();if(r.error)throw r.error;if(msg){msg.style.color='#059669';msg.innerText='✅ Request submitted. Admin will review and reply here.';}if(subjectEl)subjectEl.value='';if(messageEl)messageEl.value='';if(fileEl)fileEl.value='';flmSupportPreviewFile();await flmLoadMySupportRequests();}catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='❌ Submission failed: '+(e.message||e);}}finally{if(btn)btn.disabled=false;}}
-async function flmLoadMySupportRequests(){var el=document.getElementById('flmMySupportList');if(!el)return;if(!getFlId()){el.innerHTML='<div style="padding:12px;color:#991b1b">Please login again.</div>';return;}el.innerHTML='<div style="padding:16px;text-align:center;color:#64748b">Loading your support requests...</div>';try{var c=supabaseClient;if(!c)throw new Error('Database not available.');var r=await c.from('support_requests').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No support requests yet.</div>';return;}el.innerHTML=rows.map(function(x){var st=String(x.status||'pending').toLowerCase(),badge=st==='replied'?['#dcfce7','#166534','REPLIED']:st==='closed'?['#e2e8f0','#475569','CLOSED']:['#fef3c7','#92400e','PENDING'],shot=x.screenshot_data&&String(x.screenshot_data).startsWith('data:image')?String(x.screenshot_data):'',reply=x.admin_reply?'<div style="margin-top:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:12px;white-space:pre-wrap"><b style="color:#1d4ed8">📨 Admin Reply</b><div style="margin-top:5px;color:#1e293b">'+flmSupportEscape(x.admin_reply)+'</div>'+(x.replied_at?'<div style="font-size:10px;color:#64748b;margin-top:5px">'+new Date(x.replied_at).toLocaleString()+'</div>':'')+'</div>':'';return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:13px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b style="font-size:14px;color:#1e3a8a">'+flmSupportEscape(x.subject||'Support Request')+'</b><div style="font-size:10px;color:#64748b;margin-top:3px">'+(x.created_at?new Date(x.created_at).toLocaleString():'')+'</div></div><span style="background:'+badge[0]+';color:'+badge[1]+';padding:4px 8px;border-radius:999px;font-size:9px;font-weight:900">'+badge[2]+'</span></div><div style="margin-top:8px;background:#f8fafc;border-radius:10px;padding:10px;font-size:12px;white-space:pre-wrap;line-height:1.55">'+flmSupportEscape(x.message||'')+'</div>'+(shot?'<div style="margin-top:9px"><div style="font-size:10px;color:#64748b;font-weight:800;margin-bottom:5px">📸 Attached Screenshot</div><img src="'+shot+'" style="width:100%;max-height:260px;object-fit:contain;border:1px solid #bfdbfe;border-radius:10px;cursor:pointer" onclick="window.open(this.src,&quot;_blank&quot;)"></div>':'')+reply+'</div>';}).join('');}catch(e){el.innerHTML='<div style="padding:12px;background:#fef2f2;color:#991b1b;border-radius:10px;font-size:11px">Could not load support requests: '+flmSupportEscape(e.message||e)+'</div>';}}
-(function(){var f=document.getElementById('flmSupportScreenshot');if(f)f.addEventListener('change',flmSupportPreviewFile);})();
+/* FLM SUPPORT THREAD MODULE — isolated add-on; existing business logic untouched. */
+(function(){
+  function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  function msg(text,type){const e=document.getElementById('flmSupportMsg');if(!e)return;const s=type==='error'?['#dc2626','#fef2f2']:type==='ok'?['#059669','#ecfdf5']:['#2563eb','#eff6ff'];e.style.color=s[0];e.style.background=s[1];e.style.padding='8px';e.style.borderRadius='9px';e.innerText=text;}
+  function dataUrl(file){return new Promise((resolve,reject)=>{if(!file)return resolve('');const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=reject;r.readAsDataURL(file);});}
+  function supa(){return supabaseClient||supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}
+  function statusBadge(st){st=String(st||'pending').toLowerCase();return st==='replied'?['#dcfce7','#166534','REPLIED']:st==='closed'?['#e2e8f0','#475569','CLOSED']:['#fef3c7','#92400e','PENDING'];}
+  function bubble(m){
+    const who=String(m.sender_type||'user').toLowerCase()==='admin'?'admin':'user';
+    const shot=m.screenshot_data&&String(m.screenshot_data).startsWith('data:image')?String(m.screenshot_data):'';
+    return '<div style="display:flex;justify-content:'+(who==='admin'?'flex-start':'flex-end')+';margin-top:9px"><div style="max-width:92%;background:'+(who==='admin'?'#eff6ff':'#f8fafc')+';border:1px solid '+(who==='admin'?'#bfdbfe':'#e2e8f0')+';border-radius:14px;padding:10px 11px"><div style="font-size:10px;font-weight:900;color:'+(who==='admin'?'#1d4ed8':'#475569')+'">'+(who==='admin'?'👨‍💼 ADMIN':'👤 YOU')+'</div><div style="font-size:12px;line-height:1.55;white-space:pre-wrap;margin-top:4px;color:#0f172a">'+esc(m.message||'')+'</div>'+(shot?'<div style="margin-top:8px"><img src="'+shot+'" style="max-width:100%;max-height:260px;object-fit:contain;border:1px solid #cbd5e1;border-radius:10px;cursor:pointer" onclick="window.open(this.src,\'_blank\')"></div>':'')+(m.created_at?'<div style="font-size:9px;color:#94a3b8;margin-top:5px">'+new Date(m.created_at).toLocaleString()+'</div>':'')+'</div></div>';
+  }
+  function legacyMessages(r){
+    const arr=[];
+    if(r.message)arr.push({sender_type:'user',message:r.message,screenshot_data:r.screenshot_data,created_at:r.created_at});
+    if(r.admin_reply)arr.push({sender_type:'admin',message:r.admin_reply,screenshot_data:null,created_at:r.replied_at});
+    return arr;
+  }
+  window.flmSubmitSupportRequest=async function(){
+    const subject=(document.getElementById('flmSupportSubject')?.value||'').trim(), message=(document.getElementById('flmSupportMessage')?.value||'').trim(), file=document.getElementById('flmSupportScreenshot')?.files?.[0], btn=document.getElementById('flmSupportSubmitBtn'), flId=getFlId(), name=getName();
+    if(!flId){location.href='./login.html';return;}
+    if(!subject){msg('Please enter the problem subject.','error');return;}
+    if(message.length<5){msg('Please explain the problem clearly.','error');return;}
+    if(file&&(!file.type||!file.type.startsWith('image/'))){msg('Please select an image screenshot.','error');return;}
+    if(file&&file.size>2*1024*1024){msg('Screenshot must be 2 MB or smaller.','error');return;}
+    if(btn)btn.disabled=true;msg('Submitting your request...','info');
+    try{
+      const c=supa(), shot=file?await dataUrl(file):null;
+      const ins=await c.from('support_requests').insert({fl_id:String(flId).toUpperCase(),user_name:name||String(flId).toUpperCase(),subject,message,screenshot_data:shot,status:'pending'}).select('*').single();
+      if(ins.error)throw ins.error;
+      // Add the first message to the thread table when available. Failure here does not undo the ticket.
+      try{await c.from('support_messages').insert({ticket_id:ins.data.id,sender_type:'user',sender_fl_id:String(flId).toUpperCase(),message,screenshot_data:shot});}catch(e){console.log('support_messages initial insert',e.message);}
+      ['flmSupportSubject','flmSupportMessage','flmSupportScreenshot'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+      const p=document.getElementById('flmSupportPreview');if(p){p.style.display='none';p.innerHTML='';}
+      msg('✅ Request submitted. Admin will review and reply in this ticket.','ok');await flmLoadMySupportRequests();
+    }catch(e){msg('❌ Could not submit request: '+(e.message||e),'error');}finally{if(btn)btn.disabled=false;}
+  };
+  window.flmUserReplySupport=async function(id){
+    const box=document.getElementById('flmUserReply_'+id), fileEl=document.getElementById('flmUserShot_'+id), reply=(box?.value||'').trim(), file=fileEl?.files?.[0], flId=getFlId();
+    if(!reply){alert('Please enter your reply.');return;}
+    if(file&&(!file.type||!file.type.startsWith('image/'))){alert('Please select an image screenshot.');return;}
+    if(file&&file.size>2*1024*1024){alert('Screenshot must be 2 MB or smaller.');return;}
+    try{
+      const c=supa(), shot=file?await dataUrl(file):null;
+      const ins=await c.from('support_messages').insert({ticket_id:id,sender_type:'user',sender_fl_id:String(flId||'').toUpperCase(),message:reply,screenshot_data:shot});
+      if(ins.error)throw ins.error;
+      const up=await c.from('support_requests').update({status:'pending'}).eq('id',id);if(up.error)throw up.error;
+      alert('✅ Reply sent to admin.');await flmLoadMySupportRequests();
+    }catch(e){alert('❌ Reply failed: '+(e.message||e)+'\n\nIf this is the first time using threaded replies, run the additional support_messages SQL once.');}
+  };
+  window.flmLoadMySupportRequests=async function(){
+    const el=document.getElementById('flmMySupportList');if(!el)return;const flId=getFlId();if(!flId){el.innerHTML='<div style="color:#dc2626">Please login again.</div>';return;}
+    el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">Loading your support requests...</div>';
+    try{
+      const c=supa(),res=await c.from('support_requests').select('*').eq('fl_id',String(flId).toUpperCase()).order('created_at',{ascending:false}).limit(50);if(res.error)throw res.error;const rows=res.data||[];
+      if(!rows.length){el.innerHTML='<div style="padding:18px;text-align:center;color:#64748b;border:2px dashed #e2e8f0;border-radius:12px">No support requests yet.</div>';return;}
+      const ids=rows.map(r=>r.id);let thread=[];try{const mr=await c.from('support_messages').select('*').in('ticket_id',ids).order('created_at',{ascending:true});if(mr.error)throw mr.error;thread=mr.data||[];}catch(e){console.log('support_messages load',e.message);}
+      el.innerHTML=rows.map(r=>{
+        const st=String(r.status||'pending').toLowerCase(),b=statusBadge(st), msgs=thread.filter(m=>String(m.ticket_id)===String(r.id));
+        const finalMsgs=msgs.length?msgs:legacyMessages(r);
+        const closed=st==='closed';
+        return '<div style="border:1px solid '+(closed?'#cbd5e1':'#e2e8f0')+';border-radius:16px;padding:13px;margin-bottom:12px;background:#fff">'
+          +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b style="font-size:14px;color:#0f172a">'+esc(r.subject||'Support Request')+'</b><div style="font-size:10px;color:#94a3b8;margin-top:4px">Ticket #'+esc(String(r.id).slice(0,8))+' · '+(r.created_at?new Date(r.created_at).toLocaleString():'')+'</div></div><span style="background:'+b[0]+';color:'+b[1]+';padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900">'+b[2]+'</span></div>'
+          +'<div style="margin-top:10px;border-top:1px solid #f1f5f9;padding-top:4px">'+finalMsgs.map(bubble).join('')+'</div>'
+          +(closed?'<div style="margin-top:11px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:10px;text-align:center;font-size:11px;font-weight:900;color:#475569">🔒 ADMIN TICKET CLOSED · This issue is marked as completed.</div>':'<div style="margin-top:11px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px"><div style="font-size:11px;font-weight:900;color:#334155">↩ Reply to this ticket</div><textarea id="flmUserReply_'+esc(r.id)+'" class="input" placeholder="Write your reply..." style="margin-top:7px;min-height:80px;resize:vertical"></textarea><input id="flmUserShot_'+esc(r.id)+'" type="file" accept="image/*" style="width:100%;margin-top:7px;padding:8px;border:1px dashed #94a3b8;border-radius:9px;font-size:11px;background:#fff"><button type="button" onclick="flmUserReplySupport(\''+esc(r.id)+'\')" style="width:100%;margin-top:8px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:900">📨 Send Reply</button></div>')
+          +'</div>';
+      }).join('');
+    }catch(e){el.innerHTML='<div style="padding:12px;background:#fef2f2;color:#991b1b;border-radius:10px;font-size:12px">Could not load support requests: '+esc(e.message||e)+'</div>';}
+  };
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if(typeof flmLoadMySupportRequests==='function')flmLoadMySupportRequests();},900);});
+})();
 </script>
+
 </body></html>
