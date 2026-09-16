@@ -1037,8 +1037,11 @@ async function loadLoanPanel(){
     var loanReleaseTxs=(loanReleaseTxR.data||[]).filter(function(tx){
       var wt=String(tx.wallet_type||'').toLowerCase().trim();
       var tt=String(tx.transaction_type||'').toLowerCase().trim();
+      var title=String(tx.title||'').toLowerCase().trim();
       var st=String(tx.status||'').toLowerCase().trim();
-      return wt==='loan' && tt==='loan_release' && (st==='completed'||st==='approved');
+      var isCompleted = (st==='completed'||st==='approved');
+      var isLoanTx = wt==='loan' && (tt.indexOf('loan')>=0 || title.indexOf('loan')>=0 || title.indexOf('increment')>=0);
+      return isLoanTx && isCompleted;
     });
     var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
     if(roiR.error)throw roiR.error;
