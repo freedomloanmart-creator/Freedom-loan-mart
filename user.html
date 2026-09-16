@@ -1155,112 +1155,6 @@ async function loadLoanPanel(){
     var rois=roiR.data||[];
     var currentLoan=loans.length?loans[loans.length-1]:null;
     var currentRoi=rois.length?rois[0]:null;
-
-    // ROI PROGRESS NORMALIZATION:
-    // The ROI engine can credit the first ₹40 on the cycle start date while
-    // the legacy loan_roi_cycles row still contains days_completed = 0.
-    // For display, a cycle day counts from its actual start date. This keeps
-    // the UI in sync for existing and new members without changing wallet credit logic.
-    if(currentRoi){
-      try{
-        var cycleStartRaw=firstVal(currentRoi,['start_date','started_at','created_at'],null);
-        var cycleStartDate=cycleStartRaw?new Date(cycleStartRaw):null;
-        if(cycleStartDate && !isNaN(cycleStartDate.getTime())){
-          var cycleTotalDays=loanNum(firstVal(currentRoi,['total_days','days','duration_days'],50))||50;
-          var cycleNow=new Date();
-          var elapsedCalendarDays=Math.floor((Date.UTC(cycleNow.getFullYear(),cycleNow.getMonth(),cycleNow.getDate())-Date.UTC(cycleStartDate.getFullYear(),cycleStartDate.getMonth(),cycleStartDate.getDate()))/86400000)+1;
-          elapsedCalendarDays=Math.max(1,elapsedCalendarDays);
-          var storedDone=loanNum(firstVal(currentRoi,['days_completed','completed_days','days_done'],0));
-          // Never reduce a database value. If the cycle has started, at least
-          // the start day is Day 1 for the ROI schedule.
-          currentRoi.days_completed=Math.min(cycleTotalDays,Math.max(storedDone,elapsedCalendarDays));
-          currentRoi.total_days=cycleTotalDays;
-        }
-      }catch(progressNormErr){
-        console.log('ROI progress normalization:',progressNormErr.message);
-      }
-    }
-
-    // ROI DISPLAY FALLBACK:
-    // Some older members already receive daily ROI credits but do not have a
-    // loan_roi_cycles row. In that case build the display cycle from the actual
-    // completed ROI transaction history instead of showing "No ROI cycle found".
-    if(!currentRoi){
-      try{
-        var roiTxR=await supabaseClient.from('wallet_transactions')
-          .select('id,title,wallet_type,transaction_type,amount,status,created_at,remarks')
-          .eq('fl_id',flId)
-          .in('status',['completed','approved'])
-          .order('created_at',{ascending:true});
-
-        var roiTxs=(roiTxR.data||[]).filter(function(tx){
-          var wt=String(tx.wallet_type||'').toLowerCase().trim();
-          var tt=String(tx.transaction_type||'').toLowerCase().trim();
-          var title=String(tx.title||'').toLowerCase().trim();
-          return wt==='roi'
-            || tt==='roi'
-            || tt==='roi_credit'
-            || tt==='daily_roi'
-            || tt==='roi_coupon'
-            || title.indexOf('daily roi')>=0
-            || title.indexOf('roi credit')>=0
-            || title==='roi';
-        });
-
-        if(roiTxs.length){
-          var firstRoiTx=roiTxs[0];
-          var lastRoiTx=roiTxs[roiTxs.length-1];
-          var uniqueDates={};
-          roiTxs.forEach(function(tx){
-            var d=new Date(tx.created_at);
-            if(!isNaN(d.getTime())){
-              var ds=d.toISOString().slice(0,10);
-              uniqueDates[ds]=true;
-            }
-          });
-          var completedDays=Object.keys(uniqueDates).length;
-          var startDate=new Date(firstRoiTx.created_at);
-          var endDate=new Date(startDate.getTime()+49*24*60*60*1000);
-          var creditedTotal=roiTxs.reduce(function(sum,tx){
-            return sum+Math.max(0,Number(tx.amount||0));
-          },0);
-
-          currentRoi={
-            daily_amount:40,
-            total_days:50,
-            days_completed:Math.min(50,completedDays),
-            total_credited:creditedTotal,
-            start_date:startDate.toISOString(),
-            end_date:endDate.toISOString(),
-            last_credited_date:lastRoiTx.created_at,
-            status:completedDays>=50?'completed':'active',
-            __display_fallback:true
-          };
-        }else if(currentLoan){
-          // If the member has a released loan but the ROI cycle row is missing
-          // and no ROI transaction exists yet, still show the expected 50-day cycle.
-          var loanStart=firstVal(currentLoan,['released_at','paid_at','created_at'],null);
-          if(loanStart){
-            var ls=new Date(loanStart);
-            if(!isNaN(ls.getTime())){
-              currentRoi={
-                daily_amount:40,
-                total_days:50,
-                days_completed:0,
-                total_credited:0,
-                start_date:ls.toISOString(),
-                end_date:new Date(ls.getTime()+49*24*60*60*1000).toISOString(),
-                last_credited_date:null,
-                status:'active',
-                __display_fallback:true
-              };
-            }
-          }
-        }
-      }catch(roiFallbackErr){
-        console.log('ROI display fallback:',roiFallbackErr.message);
-      }
-    }
     // Use exactly the same live tree calculation as the Binary Tree popup.
     // This prevents the old cached 5:3 / 2:0 values from disagreeing with the visible tree.
     var liveStats=liveTop;
@@ -1481,11 +1375,52 @@ async function loadLoanPanel(){
     var note=document.getElementById('selfRenewNote');var rb=document.getElementById('loanRenewBtn');
     var roiStatus=String(firstVal(currentRoi,['status'],'' )).toLowerCase();
     var end=firstVal(currentRoi,['end_date','ends_at'],null);var done=loanNum(firstVal(currentRoi,['days_completed','days_paid','completed_days'],0));var totalDays=loanNum(firstVal(currentRoi,['total_days','days'],50))||50;
+    var roiCreditedTotal=loanNum(firstVal(currentRoi,['total_credited','total_amount_credited','credited_amount'],0));
+    var roiLastCredit=firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],null);
+
+    // IMPORTANT: Some existing users already received daily ROI credits while the
+    // cycle row still has days_completed=0 / credited_amount=0. Count actual
+    // completed ROI credit transactions so the UI shows 1/50 immediately after
+    // the first ₹40 credit. One calendar date counts as one ROI day.
+    try{
+      var roiTxR=await supabaseClient.from('wallet_transactions')
+        .select('wallet_type,transaction_type,amount,status,title,created_at')
+        .eq('fl_id',flId)
+        .eq('wallet_type','roi')
+        .in('status',['completed','approved'])
+        .order('created_at',{ascending:true});
+      if(!roiTxR.error){
+        var cycleStartRaw=firstVal(currentRoi,['start_date','started_at','created_at'],null);
+        var cycleStartMs=cycleStartRaw?new Date(cycleStartRaw).getTime():0;
+        var roiDates={}; var txTotal=0; var lastTx=null;
+        (roiTxR.data||[]).forEach(function(tx){
+          var tt=String(tx.transaction_type||'').toLowerCase().trim();
+          var title=String(tx.title||'').toLowerCase().trim();
+          var amt=loanNum(tx.amount);
+          var tm=new Date(tx.created_at).getTime();
+          // Credits only; never count withdrawals/coupons as ROI days.
+          var isWithdrawal=tt==='withdrawal' || title.indexOf('withdraw')>=0 || tt==='roi_coupon';
+          var isCredit=amt>0 && !isWithdrawal && (tt.indexOf('roi')>=0 || title.indexOf('roi')>=0 || tt==='credit');
+          if(isCredit && (!cycleStartMs || tm>=cycleStartMs)){
+            var d=new Date(tx.created_at);
+            var key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+            roiDates[key]=true;
+            txTotal+=amt;
+            if(!lastTx || tm>new Date(lastTx.created_at).getTime()) lastTx=tx;
+          }
+        });
+        var actualDays=Object.keys(roiDates).length;
+        if(actualDays>done) done=Math.min(totalDays,actualDays);
+        if(txTotal>roiCreditedTotal) roiCreditedTotal=txTotal;
+        if(lastTx) roiLastCredit=lastTx.created_at;
+      }
+    }catch(e){ console.log('ROI progress transaction fallback:',e.message||e); }
+
     var completed=roiStatus==='completed'||done>=totalDays||(end&&new Date(end).getTime()<=Date.now());
     if(note)note.innerText=currentRoi&&!completed?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until 50 days complete.':'✅ No active ROI lock. If the database marks renewal as eligible, you can use any valid unused PIN.';
     if(rb)rb.disabled=currentRoi&&!completed;
     var rbbox=document.getElementById('loanRoiCycleBox');
-    if(rbbox){if(currentRoi){var daily=loanNum(firstVal(currentRoi,['daily_amount','amount_per_day','daily_roi'],40));var credited=loanNum(firstVal(currentRoi,['total_credited','total_amount_credited','credited_amount'],0));var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanEsc(firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
+    if(rbbox){if(currentRoi){var daily=loanNum(firstVal(currentRoi,['daily_amount','amount_per_day','daily_roi'],40));var credited=roiCreditedTotal;var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanEsc(roiLastCredit || '—')+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
     // Show the released loan history separately from the NEXT eligible loan.
     // This makes it clear that the ₹1,000 Loan 1 release is already completed while
     // the next Loan 2 remains locked until 4:4.
@@ -1882,26 +1817,6 @@ async function claimReward(pairs, name){
     setTimeout(bootLoanPanel,100);
   }
   window.addEventListener('load',function(){setTimeout(bootLoanPanel,150);});
-  window.addEventListener('pageshow',function(){setTimeout(bootLoanPanel,150);});
-})();
-</script>
-<script>
-/* FLM FINAL LOAN/ROI BOOT FIX
-   Re-open Loan Plans after all scripts are loaded. This prevents the Loan panel
-   from remaining on its HTML defaults ("Loading...", "No ROI cycle found")
-   when the saved section is loans.
-*/
-(function(){
-  function bootLoanPanel(){
-    try{
-      var fl=(typeof getFlId==='function')?getFlId():null;
-      var sec=localStorage.getItem('flm_last_section')||'dashboard';
-      if(fl && sec==='loans' && typeof loadLoanPanel==='function'){
-        setTimeout(function(){ loadLoanPanel(); },150);
-      }
-    }catch(e){console.log('loan boot:',e.message);}
-  }
-  window.addEventListener('load',bootLoanPanel);
   window.addEventListener('pageshow',function(){setTimeout(bootLoanPanel,150);});
 })();
 </script>
