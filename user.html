@@ -1058,16 +1058,30 @@ async function loadLoanPanel(){
     var releasedLoans2=loans.filter(function(x){
       var st=String(x.status||'').toLowerCase().trim();
       var rs=String(x.release_status||'').toLowerCase().trim();
-      return ['approved','active','completed','disbursed','released'].indexOf(st)>=0
-        || ['released','completed','disbursed'].indexOf(rs)>=0
+      return ['approved','active','completed','disbursed','released','withdrawn'].indexOf(st)>=0
+        || ['released','completed','disbursed','withdrawn'].indexOf(rs)>=0
         || !!x.released_at || !!x.paid_at;
     });
     // If the member_loans row is stale/pending but a completed loan_release transaction
     // exists, treat that level as released for DISPLAY only. No wallet credit is created here.
+    // Map wallet loan_release transactions to correct plan_level using amount
     loanReleaseTxs.forEach(function(tx){
-      if(releasedLoans2.some(function(x){return loanNum(x.plan_level)===1;})) return;
+      var amt = loanNum(tx.amount);
+      var lvl = 1;
+      if(amt>=16000) lvl=5;
+      else if(amt>=8000) lvl=4;
+      else if(amt>=4000) lvl=3;
+      else if(amt>=2000) lvl=2;
+      else lvl=1;
+      // Infer from remarks like "Loan 3" if present
+      try{
+        var rm = String(tx.remarks||tx.title||'');
+        var m = rm.match(/Loan\s*(\d+)/i);
+        if(m) lvl = parseInt(m[1],10);
+      }catch(e){}
+      if(releasedLoans2.some(function(x){return loanNum(x.plan_level)===lvl;})) return;
       releasedLoans2.push({
-        plan_level:1,
+        plan_level:lvl,
         gross_loan_amount:loanNum(tx.amount),
         incremental_amount:loanNum(tx.net_amount!=null?tx.net_amount:tx.amount),
         status:'released',
@@ -1080,8 +1094,25 @@ async function loadLoanPanel(){
     var latestLevel2=releasedLoans2.reduce(function(mx,x){
       return Math.max(mx,loanNum(firstVal(x,['plan_level'],0)));
     },0);
+    // Find next plan after latest released level - first check if next level is eligible, otherwise find the immediate next
     var nextPlan2=null;
-    for(var np=0;np<plans.length;np++){var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no);if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;}}
+    var immediateNext=null;
+    for(var np=0;np<plans.length;np++){
+      var lv=loanNum(plans[np].level_no);
+      if(lv===latestLevel2+1){ immediateNext=plans[np]; break; }
+    }
+    // If immediate next is eligible (pairs met), use it
+    if(immediateNext && totalPairs >= loanNum(immediateNext.required_pairs)){
+      nextPlan2=immediateNext;
+    }else{
+      // Otherwise find any eligible plan after latestLevel
+      for(var np=0;np<plans.length;np++){
+        var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no);
+        if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;}
+      }
+      // If none eligible yet, show immediate next as upcoming requirement
+      if(!nextPlan2) nextPlan2=immediateNext;
+    }
     if(!nextPlan2 && !latestLevel2 && plans.length)nextPlan2=plans[0];
     var displayLevel=nextPlan2?loanNum(nextPlan2.level_no):latestLevel2;
     var displayGross=nextPlan2?loanNum(nextPlan2.loan_amount):0;
@@ -1176,13 +1207,18 @@ async function loadLoanPanel(){
           }
         }
       }
+      // Find next plan after withdrawn level
+      var nextPlanAfterWithdraw = null;
       if(isWithdrawnAll){
-        // Calculate next level requirement
-        var nextReqPairs = 12;
-        if(withdrawnLevel===1) nextReqPairs = 4;
-        else if(withdrawnLevel===2) nextReqPairs = 12;
-        else if(withdrawnLevel===3) nextReqPairs = 40;
-        else if(withdrawnLevel>=4) nextReqPairs = 40;
+        for(var np2=0;np2<plans.length;np2++){
+          if(loanNum(plans[np2].level_no)===withdrawnLevel+1){ nextPlanAfterWithdraw=plans[np2]; break; }
+        }
+      }
+      var nextEligibleAfterWithdraw = nextPlanAfterWithdraw && totalPairs >= loanNum(nextPlanAfterWithdraw.required_pairs);
+      
+      if(isWithdrawnAll && !nextEligibleAfterWithdraw){
+        // Still waiting for next level
+        var nextReqPairs = nextPlanAfterWithdraw?loanNum(nextPlanAfterWithdraw.required_pairs):12;
         var needMore = Math.max(0, nextReqPairs - totalPairs);
         ws.innerHTML='<div style="background:#e8f5e9;border:2px solid #4caf50;border-radius:10px;padding:12px;text-align:center;">'
           +'<div style="font-size:22px;">✅</div>'
@@ -1191,10 +1227,32 @@ async function loadLoanPanel(){
           +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Wait for next withdrawal loan - Need '+nextReqPairs+':'+nextReqPairs+' binary pairs</b><br>'
           +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs) | Need '+needMore+' more pairs</span>'
           +'</div>';
-        // Also update the top available loan card to 0 and hide wallet button text
         var avEl=document.getElementById('loanAvailableAmount');if(avEl) avEl.innerText='Rs. 0.00';
         var btn=document.querySelector('#sec-loans button[onclick="showSec(\'wallets\')"]');
-        if(btn){btn.innerText='✅ Withdrawal Completed'; btn.style.background='#4caf50'; btn.disabled=true;}
+        if(btn){btn.innerText='✅ Withdrawal Completed - Next Level '+ (withdrawnLevel+1); btn.style.background='#4caf50'; btn.disabled=true;}
+      }else if(isWithdrawnAll && nextEligibleAfterWithdraw){
+        // Next level already eligible - show eligible, not completed
+        var nextGross = loanNum(nextPlanAfterWithdraw.loan_amount);
+        var nextPrev = loanNum(nextPlanAfterWithdraw.previous_loan_amount);
+        var nextInc = nextPlanAfterWithdraw.incremental_amount!=null?loanNum(nextPlanAfterWithdraw.incremental_amount):Math.max(0,nextGross-nextPrev);
+        ws.innerHTML='<div style="background:#e0f2fe;border:2px solid #0284c7;border-radius:10px;padding:12px;text-align:center;">'
+          +'<div style="font-size:22px;">🎉</div>'
+          +'<b style="color:#0c4a6e;font-size:14px;">Level '+loanEsc(nextPlanAfterWithdraw.level_no)+' Eligible Now!</b><br>'
+          +'<span style="font-size:12px;color:#374151;">'+loanNum(nextPlanAfterWithdraw.required_pairs)+':'+loanNum(nextPlanAfterWithdraw.required_pairs)+' pairs completed - Rs. '+nextInc+' loan ready</span><br>'
+          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Previous loan Rs. '+nextPrev+' deducted - Rs. '+nextInc+' available</b><br>'
+          +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs)</span>'
+          +'</div>';
+        // Update global available for this case
+        availableIncrement = nextInc;
+        eligible = true;
+        lvl = loanNum(nextPlanAfterWithdraw.level_no);
+        grossPlan = nextGross;
+        prevPlan = nextPrev;
+        incPlan = nextInc;
+        var ea2=document.getElementById('loanEligibleAmount');if(ea2)ea2.innerText=loanMoney(nextInc);
+        var pa2=document.getElementById('loanPreviousAmount');if(pa2)pa2.innerText=loanMoney(nextPrev);
+        // fall through to eligible rendering below
+        ws.innerHTML += '<div style="margin-top:8px"><b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.</div>';
       }else if(eligible){
         ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.';
       }else if(latestLevel2>0 && availableIncrement>0){
