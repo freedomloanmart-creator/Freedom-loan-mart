@@ -1155,40 +1155,6 @@ async function loadLoanPanel(){
     var rois=roiR.data||[];
     var currentLoan=loans.length?loans[loans.length-1]:null;
     var currentRoi=rois.length?rois[0]:null;
-
-    // ROI DISPLAY FALLBACK: if ROI was credited but the cycle row is missing,
-    // derive a read-only 50-day cycle from completed Daily ROI transactions.
-    // This prevents a false "No ROI cycle found" message while keeping the
-    // existing database cycle as the primary source whenever it exists.
-    if(!currentRoi){
-      try{
-        var roiTxR=await supabaseClient.from('wallet_transactions')
-          .select('amount,wallet_type,transaction_type,status,created_at,title')
-          .eq('fl_id',flId)
-          .order('created_at',{ascending:true})
-          .limit(500);
-        if(!roiTxR.error){
-          var roiTxs=(roiTxR.data||[]).filter(function(x){
-            var wt=String(x.wallet_type||'').toLowerCase().trim();
-            var tt=String(x.transaction_type||'').toLowerCase().trim();
-            var st=String(x.status||'').toLowerCase().trim();
-            var title=String(x.title||'').toLowerCase();
-            return (st==='completed'||st==='approved') && wt==='roi' &&
-              (tt==='roi_credit'||title.indexOf('daily roi')>=0);
-          });
-          if(roiTxs.length){
-            var firstTx=roiTxs[0],lastTx=roiTxs[roiTxs.length-1];
-            var startD=new Date(firstTx.created_at);
-            var totalD=50;
-            var doneD=Math.min(totalD,roiTxs.length);
-            var endD=new Date(startD);
-            endD.setDate(endD.getDate()+totalD-1);
-            var creditedD=roiTxs.slice(-totalD).reduce(function(a,x){return a+Number(x.amount||0);},0);
-            currentRoi={daily_amount:Number(firstTx.amount||40)||40,days_completed:doneD,total_days:totalD,total_credited:creditedD,start_date:startD.toISOString(),end_date:endD.toISOString(),last_credited_date:lastTx.created_at,status:doneD>=totalD?'completed':'active',__displayFallback:true};
-          }
-        }
-      }catch(e){console.log('ROI display fallback:',e.message);}
-    }
     // Use exactly the same live tree calculation as the Binary Tree popup.
     // This prevents the old cached 5:3 / 2:0 values from disagreeing with the visible tree.
     var liveStats=liveTop;
@@ -1783,4 +1749,34 @@ async function claimReward(pairs, name){
 })();
 </script>
 
+
+<script>
+/* FLM LOAN PANEL BOOT FIX 2026-09-17
+   Ensures the Loan Plans section always initializes even if another dashboard
+   initializer finishes late or the browser restores the loans section from storage. */
+(function(){
+  function bootLoanPanel(){
+    try{
+      var flId=(typeof getFlId==='function')?getFlId():null;
+      var box=document.getElementById('loanStatusBox');
+      if(!flId || !box || typeof loadLoanPanel!=='function') return;
+      var saved=localStorage.getItem('flm_last_section')||'';
+      var loansSec=document.getElementById('sec-loans');
+      var visible=loansSec && getComputedStyle(loansSec).display!=='none';
+      if(saved==='loans' || visible){
+        loadLoanPanel();
+      }
+    }catch(e){
+      console.log('Loan panel boot:',e.message||e);
+    }
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(bootLoanPanel,100);});
+  }else{
+    setTimeout(bootLoanPanel,100);
+  }
+  window.addEventListener('load',function(){setTimeout(bootLoanPanel,150);});
+  window.addEventListener('pageshow',function(){setTimeout(bootLoanPanel,150);});
+})();
+</script>
 </body></html>
