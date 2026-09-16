@@ -1421,70 +1421,84 @@ async function claimReward(pairs, name){
 </script>
 
 
-<!-- FLM SUPPORT PERSISTENT REPLY WATCH: reads support data from Supabase after refresh/login and while page is open. Existing business logic untouched. -->
+<!-- FLM SUPPORT PERSISTENT NOTIFICATION ADD-ON: isolated; existing business logic untouched -->
+<style>
+#flmSupportToast{position:fixed;right:14px;bottom:18px;z-index:12000;display:none;max-width:340px;background:#fff;border:1px solid #bfdbfe;border-radius:14px;box-shadow:0 12px 30px rgba(15,23,42,.18);padding:12px 14px}
+#flmSupportToast .st-title{font-weight:900;color:#1e3a8a;font-size:13px}
+#flmSupportToast .st-text{font-size:11px;color:#475569;margin-top:4px}
+#flmSupportToast .st-btn{margin-top:9px;width:100%;border:0;border-radius:9px;padding:9px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}
+.flm-support-unread{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:auto;background:#dc2626;color:#fff;border-radius:999px;font-size:9px;font-weight:900}
+</style>
+<div id="flmSupportToast">
+  <div class="st-title">🔔 Admin replied to your support request</div>
+  <div class="st-text">Your reply is saved in the ticket and will remain available after refresh.</div>
+  <button class="st-btn" type="button" onclick="flmOpenSupportFromNotice()">Open Help Center</button>
+</div>
 <script>
 (function(){
-  var flmSupportWatchTimer=null;
-  var flmSupportLastSig='';
-  var flmSupportWatchBusy=false;
-  function supportClient(){try{return (typeof supa==='function')?supa():supabaseClient;}catch(e){return null;}}
-  function supportFlId(){try{return String(getFlId()||'').toUpperCase();}catch(e){return '';}}
-  function supportToast(text){
-    var old=document.getElementById('flmSupportReplyToast');
-    if(old) old.remove();
-    var d=document.createElement('div');d.id='flmSupportReplyToast';
-    d.style='position:fixed;right:14px;bottom:18px;z-index:12000;max-width:340px;background:#0f172a;color:#fff;padding:13px 15px;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);font-size:12px;font-weight:800;cursor:pointer';
-    d.innerHTML='🔔 '+text+'<div style="font-size:10px;font-weight:500;opacity:.8;margin-top:4px">Open Help Center to view the complete reply.</div>';
-    d.onclick=function(){d.remove();try{showSec('support');}catch(e){}};
-    document.body.appendChild(d);setTimeout(function(){if(d)d.remove();},9000);
-  }
-  function addHelpBadge(){
+  var STORAGE_KEY='flm_support_seen_admin_reply_v1';
+  var pollTimer=null;
+  function flmSeenMap(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{};}catch(e){return {};}}
+  function flmSaveSeenMap(m){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(m));}catch(e){}}
+  function flmSupportMenuBadge(show){
     try{
-      var menu=document.getElementById('menu'); if(!menu)return;
-      var item=menu.querySelector('[onclick*="showSec(\'support\'"]');
-      if(!item) item=menu.querySelector('[onclick*="showSec(\"support\""]');
+      var item=document.querySelector('.menu-item[onclick*="showSec(\'support\')"]');
       if(!item)return;
-      if(!item.querySelector('.flm-support-badge')){
-        var b=document.createElement('span');b.className='flm-support-badge';b.style='display:none;margin-left:6px;background:#dc2626;color:#fff;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:900';b.textContent='NEW';item.appendChild(b);
-      }
-      return item.querySelector('.flm-support-badge');
-    }catch(e){return null;}
+      var old=item.querySelector('.flm-support-unread'); if(old)old.remove();
+      if(show){var b=document.createElement('span');b.className='flm-support-unread';b.textContent='NEW';item.appendChild(b);}
+    }catch(e){}
   }
-  async function checkSupportReplies(silent){
-    if(flmSupportWatchBusy)return;var flId=supportFlId();if(!flId)return;
-    var c=supportClient();if(!c)return;flmSupportWatchBusy=true;
-    try{
-      var r=await c.from('support_requests').select('id,status,admin_reply,replied_at,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(50);
-      if(r.error)throw r.error;var rows=r.data||[];
-      var replied=rows.filter(function(x){return String(x.status||'').toLowerCase()==='replied' && String(x.admin_reply||'').trim();});
-      var sig=replied.map(function(x){return String(x.id)+'|'+String(x.replied_at||x.admin_reply);}).join('||');
-      var previous='';try{previous=localStorage.getItem('flm_support_last_seen_sig_'+flId)||'';}catch(e){}
-      var badge=addHelpBadge();
-      if(replied.length && previous!==sig){
-        if(badge)badge.style.display='inline-block';
-        if(!silent && previous) supportToast('Admin replied to your support request.');
-      }else if(badge && !replied.length){badge.style.display='none';}
-      flmSupportLastSig=sig;
-    }catch(e){console.log('support reply watch:',e.message||e);}finally{flmSupportWatchBusy=false;}
-  }
-  window.flmMarkSupportSeen=function(){
-    var flId=supportFlId();if(!flId)return;
-    try{localStorage.setItem('flm_support_last_seen_sig_'+flId,flmSupportLastSig||'');}catch(e){}
-    var b=addHelpBadge();if(b)b.style.display='none';
+  function flmToast(show){var t=document.getElementById('flmSupportToast');if(t)t.style.display=show?'block':'none';}
+  window.flmOpenSupportFromNotice=function(){
+    flmToast(false);flmSupportMenuBadge(false);
+    try{if(typeof showSec==='function')showSec('support');}catch(e){}
+    setTimeout(function(){if(typeof flmLoadMySupportRequests==='function')flmLoadMySupportRequests();},100);
   };
-  document.addEventListener('DOMContentLoaded',function(){
-    setTimeout(function(){checkSupportReplies(true);},1400);
-    flmSupportWatchTimer=setInterval(function(){checkSupportReplies(false);},20000);
-    document.addEventListener('visibilitychange',function(){if(!document.hidden)checkSupportReplies(true);});
-  });
-  var oldShow=window.showSec;
-  if(typeof oldShow==='function'){
-    window.showSec=function(id,fromPop){
-      var out=oldShow.apply(this,arguments);
-      if(id==='support'){setTimeout(function(){if(typeof flmLoadMySupportRequests==='function')flmLoadMySupportRequests();flmMarkSupportSeen();},200);}
-      return out;
+  async function flmCheckSupportReplies(){
+    try{
+      var flId=typeof getFlId==='function'?getFlId():null;
+      if(!flId||!supabaseClient)return;
+      var c=supabaseClient;
+      var r=await c.from('support_requests').select('id,status,created_at').eq('fl_id',String(flId).toUpperCase()).order('created_at',{ascending:false}).limit(50);
+      if(r.error)throw r.error;
+      var rows=r.data||[]; if(!rows.length){flmToast(false);flmSupportMenuBadge(false);return;}
+      var ids=rows.map(function(x){return x.id;});
+      var mr=await c.from('support_messages').select('ticket_id,sender_type,created_at,message').in('ticket_id',ids).eq('sender_type','admin').order('created_at',{ascending:false}).limit(100);
+      if(mr.error)throw mr.error;
+      var msgs=mr.data||[], seen=flmSeenMap(), newest=null;
+      msgs.forEach(function(m){
+        var ts=new Date(m.created_at).getTime();
+        if(!Number.isFinite(ts))return;
+        var last=Number(seen[String(m.ticket_id)]||0);
+        if(ts>last && (!newest || ts>new Date(newest.created_at).getTime())) newest=m;
+      });
+      if(newest){flmToast(true);flmSupportMenuBadge(true);}
+    }catch(e){console.log('support notification check:',e.message||e);}
+  }
+  window.flmMarkSupportSeen=async function(){
+    try{
+      var flId=typeof getFlId==='function'?getFlId():null;if(!flId||!supabaseClient)return;
+      var r=await supabaseClient.from('support_requests').select('id').eq('fl_id',String(flId).toUpperCase()).limit(50);if(r.error)throw r.error;
+      var ids=(r.data||[]).map(function(x){return x.id;});if(!ids.length)return;
+      var mr=await supabaseClient.from('support_messages').select('ticket_id,created_at').in('ticket_id',ids).eq('sender_type','admin').order('created_at',{ascending:false}).limit(100);if(mr.error)throw mr.error;
+      var map=flmSeenMap();(mr.data||[]).forEach(function(m){var ts=new Date(m.created_at).getTime();if(Number.isFinite(ts))map[String(m.ticket_id)]=Math.max(Number(map[String(m.ticket_id)]||0),ts);});
+      flmSaveSeenMap(map);flmToast(false);flmSupportMenuBadge(false);
+    }catch(e){console.log('support seen:',e.message||e);}
+  };
+  var originalLoad=window.flmLoadMySupportRequests;
+  if(typeof originalLoad==='function'){
+    window.flmLoadMySupportRequests=async function(){
+      var result=await originalLoad.apply(this,arguments);
+      await window.flmMarkSupportSeen();
+      return result;
     };
   }
+  function start(){
+    setTimeout(flmCheckSupportReplies,1500);
+    pollTimer=setInterval(flmCheckSupportReplies,30000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+  window.addEventListener('focus',flmCheckSupportReplies);
 })();
 </script>
 
