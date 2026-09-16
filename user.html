@@ -1420,4 +1420,72 @@ async function claimReward(pairs, name){
 })();
 </script>
 
+
+<!-- FLM SUPPORT PERSISTENT REPLY WATCH: reads support data from Supabase after refresh/login and while page is open. Existing business logic untouched. -->
+<script>
+(function(){
+  var flmSupportWatchTimer=null;
+  var flmSupportLastSig='';
+  var flmSupportWatchBusy=false;
+  function supportClient(){try{return (typeof supa==='function')?supa():supabaseClient;}catch(e){return null;}}
+  function supportFlId(){try{return String(getFlId()||'').toUpperCase();}catch(e){return '';}}
+  function supportToast(text){
+    var old=document.getElementById('flmSupportReplyToast');
+    if(old) old.remove();
+    var d=document.createElement('div');d.id='flmSupportReplyToast';
+    d.style='position:fixed;right:14px;bottom:18px;z-index:12000;max-width:340px;background:#0f172a;color:#fff;padding:13px 15px;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);font-size:12px;font-weight:800;cursor:pointer';
+    d.innerHTML='🔔 '+text+'<div style="font-size:10px;font-weight:500;opacity:.8;margin-top:4px">Open Help Center to view the complete reply.</div>';
+    d.onclick=function(){d.remove();try{showSec('support');}catch(e){}};
+    document.body.appendChild(d);setTimeout(function(){if(d)d.remove();},9000);
+  }
+  function addHelpBadge(){
+    try{
+      var menu=document.getElementById('menu'); if(!menu)return;
+      var item=menu.querySelector('[onclick*="showSec(\'support\'"]');
+      if(!item) item=menu.querySelector('[onclick*="showSec(\"support\""]');
+      if(!item)return;
+      if(!item.querySelector('.flm-support-badge')){
+        var b=document.createElement('span');b.className='flm-support-badge';b.style='display:none;margin-left:6px;background:#dc2626;color:#fff;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:900';b.textContent='NEW';item.appendChild(b);
+      }
+      return item.querySelector('.flm-support-badge');
+    }catch(e){return null;}
+  }
+  async function checkSupportReplies(silent){
+    if(flmSupportWatchBusy)return;var flId=supportFlId();if(!flId)return;
+    var c=supportClient();if(!c)return;flmSupportWatchBusy=true;
+    try{
+      var r=await c.from('support_requests').select('id,status,admin_reply,replied_at,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(50);
+      if(r.error)throw r.error;var rows=r.data||[];
+      var replied=rows.filter(function(x){return String(x.status||'').toLowerCase()==='replied' && String(x.admin_reply||'').trim();});
+      var sig=replied.map(function(x){return String(x.id)+'|'+String(x.replied_at||x.admin_reply);}).join('||');
+      var previous='';try{previous=localStorage.getItem('flm_support_last_seen_sig_'+flId)||'';}catch(e){}
+      var badge=addHelpBadge();
+      if(replied.length && previous!==sig){
+        if(badge)badge.style.display='inline-block';
+        if(!silent && previous) supportToast('Admin replied to your support request.');
+      }else if(badge && !replied.length){badge.style.display='none';}
+      flmSupportLastSig=sig;
+    }catch(e){console.log('support reply watch:',e.message||e);}finally{flmSupportWatchBusy=false;}
+  }
+  window.flmMarkSupportSeen=function(){
+    var flId=supportFlId();if(!flId)return;
+    try{localStorage.setItem('flm_support_last_seen_sig_'+flId,flmSupportLastSig||'');}catch(e){}
+    var b=addHelpBadge();if(b)b.style.display='none';
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){checkSupportReplies(true);},1400);
+    flmSupportWatchTimer=setInterval(function(){checkSupportReplies(false);},20000);
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)checkSupportReplies(true);});
+  });
+  var oldShow=window.showSec;
+  if(typeof oldShow==='function'){
+    window.showSec=function(id,fromPop){
+      var out=oldShow.apply(this,arguments);
+      if(id==='support'){setTimeout(function(){if(typeof flmLoadMySupportRequests==='function')flmLoadMySupportRequests();flmMarkSupportSeen();},200);}
+      return out;
+    };
+  }
+})();
+</script>
+
 </body></html>
