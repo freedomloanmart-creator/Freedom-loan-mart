@@ -1,156 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Login</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
-
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sIjoiYW5vbiIsImlhdCI6MTc4ODY0MTgwOCwiZXhwIjoyMTA0MjE3ODA4fQ.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient=null;
-try{
-  if(typeof supabase!=='undefined'){
-    supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+function initSupabase(){
+  try{
+    if(typeof supabase==='undefined' || !supabase.createClient) throw new Error('Supabase library not loaded');
+    supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+    return supabaseClient;
+  }catch(e){
+    console.error('Supabase init error:',e);
+    supabaseClient=null;
+    return null;
   }
-}catch(e){
-  console.error('Supabase init failed:',e);
 }
+initSupabase();
 
 function safeStorageSet(key,value){
   try{
-    if(window.localStorage){
-      window.localStorage.setItem(key,value);
-      return true;
-    }
-  }catch(e){ console.warn('localStorage set failed:',e); }
+    if(window.localStorage){window.localStorage.setItem(key,value);return true;}
+  }catch(e){console.warn('localStorage set failed:',e);}
   return false;
 }
-
 function safeStorageGet(key){
   try{
-    if(window.localStorage) return window.localStorage.getItem(key);
-  }catch(e){ console.warn('localStorage get failed:',e); }
+    if(window.localStorage)return window.localStorage.getItem(key);
+  }catch(e){console.warn('localStorage get failed:',e);}
   return null;
 }
 
-function normalizeLoginValue(value){
-  return String(value||'').trim();
-}
-
 async function loginReal(flIdOrMobile,password){
-  if(!supabaseClient){
-    return {success:false,message:'Database connection failed. Please refresh and try again.'};
-  }
-
-  const raw=normalizeLoginValue(flIdOrMobile);
-  const upper=raw.toUpperCase();
-
+  const client=supabaseClient||initSupabase();
+  if(!client) return {success:false,message:'Database connection failed. Please try again.'};
+  const id=String(flIdOrMobile||'').trim();
+  const pass=String(password||'');
   try{
-    let user=null;
-    let lookupError=null;
+    // First try FL ID (case-insensitive by normalising the entered value).
+    let r=await client.from('users').select('*').eq('fl_id',id.toUpperCase()).limit(1);
+    if(r.error) throw r.error;
+    let user=(r.data&&r.data.length)?r.data[0]:null;
 
-    /* First: exact FL ID lookup, case-insensitive. */
-    if(/^FL[A-Z0-9]+$/i.test(raw)){
-      const r=await supabaseClient
-        .from('users')
-        .select('*')
-        .ilike('fl_id',upper)
-        .limit(1);
-
-      if(r.error) lookupError=r.error;
-      if(r.data && r.data.length>0) user=r.data[0];
-    }
-
-    /* Second: mobile lookup. */
+    // If FL ID was not found, allow registered mobile number.
     if(!user){
-      const mobile=raw.replace(/\s+/g,'');
-      const r=await supabaseClient
-        .from('users')
-        .select('*')
-        .eq('mobile',mobile)
-        .limit(1);
-
-      if(r.error && !lookupError) lookupError=r.error;
-      if(r.data && r.data.length>0) user=r.data[0];
+      r=await client.from('users').select('*').eq('mobile',id).limit(1);
+      if(r.error) throw r.error;
+      user=(r.data&&r.data.length)?r.data[0]:null;
     }
 
-    /* Do not hide a Supabase/RLS/schema error as "No account found". */
-    if(!user && lookupError){
-      console.error('Login database lookup error:',lookupError);
-      return {
-        success:false,
-        message:'Database error: '+(lookupError.message||'Unable to read user account.')
-      };
-    }
+    if(!user) return {success:false,message:'No account found'};
+    if(String(user.password??'')!==pass) return {success:false,message:'Wrong password'};
 
-    if(!user){
-      return {success:false,message:'No account found for FL ID / mobile: '+raw};
-    }
-
-    const storedPassword=String(user.password==null?'':user.password);
-    if(storedPassword!==String(password)){
-      return {success:false,message:'Wrong password'};
-    }
-
-    /*
-      Keep the same session keys expected by user.html.
-      Extra fields are intentionally included so the dashboard can use
-      the current user's data without changing the existing user.html.
-    */
-    const sessionUser={
-      flId:user.fl_id||upper,
-      fl_id:user.fl_id||upper,
-      name:user.full_name||'User',
-      full_name:user.full_name||'User',
-      mobile:user.mobile||'',
-      email:user.email||'',
-      sponsorId:user.sponsor_id||'',
-      sponsor_id:user.sponsor_id||'',
-      direct_sponsor_id:user.direct_sponsor_id||'',
-      side:user.side||'',
-      plan_level:user.plan_level??null,
-      plan_name:user.plan_name||'',
-      wallet:null,
-      binary:null
-    };
-
-    /* Wallet/binary are optional. Their absence must never block login. */
-    try{
-      const w=await supabaseClient
-        .from('wallets')
-        .select('*')
-        .eq('fl_id',sessionUser.flId)
-        .limit(1);
-      if(!w.error && w.data && w.data.length) sessionUser.wallet=w.data[0];
-    }catch(e){ console.warn('Wallet load skipped:',e); }
-
-    try{
-      const b=await supabaseClient
-        .from('binary_summary')
-        .select('*')
-        .eq('fl_id',sessionUser.flId)
-        .limit(1);
-      if(!b.error && b.data && b.data.length) sessionUser.binary=b.data[0];
-    }catch(e){ console.warn('Binary load skipped:',e); }
-
-    const saved=safeStorageSet('flm_session',JSON.stringify(sessionUser));
-    if(!saved){
-      return {success:false,message:'Browser storage is blocked. Please allow site storage and try again.'};
-    }
-
-    return {success:true,user:sessionUser};
+    return {success:true,user:user};
   }catch(err){
-    console.error('Login exception:',err);
-    return {success:false,message:'Login failed: '+(err.message||err)};
+    const raw=String(err?.message||err||'Database error');
+    if(/invalid api key/i.test(raw)){
+      return {success:false,message:'Database error: Invalid API key. Update the Supabase Publishable/anon key in login.html.'};
+    }
+    return {success:false,message:'Database error: '+raw};
   }
 }
 </script>
-
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,Segoe UI}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}
 body{background:#eef2f7;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
 .card{background:#fff;border-radius:20px;padding:24px;max-width:380px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08)}
 .input{width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;margin-bottom:12px;outline:none}
@@ -161,10 +75,8 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:999px;font-size:12px;z-index:9999}
 </style>
 </head>
-
 <body>
 <div class="card" id="loginWrap">
-
 <div style="text-align:center;margin-bottom:24px">
   <div style="width:64px;height:64px;background:#2563eb;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div>
   <div style="margin-top:12px;font-weight:800;font-size:18px">FREEDOM LOANS MART</div>
@@ -172,9 +84,8 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
 </div>
 
 <div id="err" style="display:none;background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;font-size:12px;margin-bottom:12px"></div>
-
-<input id="loginId" placeholder="Enter FL ID or Mobile" class="input" autocomplete="username">
-<input id="loginPass" type="password" placeholder="Enter password" class="input" autocomplete="current-password">
+<input id="loginId" placeholder="Enter username" class="input">
+<input id="loginPass" type="password" placeholder="Enter password" class="input">
 <button id="loginBtn" class="btn btn-primary">Login</button>
 
 <div style="display:flex;gap:8px;margin-top:12px">
@@ -182,9 +93,7 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
   <button onclick="toggleForgot()" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Forgot?</button>
 </div>
 
-<div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">
-  No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register</a>
-</div>
+<div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register</a></div>
 
 <div id="forgotBox" style="display:none;margin-top:16px;border-top:1px solid #f1f5f9;padding-top:16px">
   <div style="font-weight:700;font-size:14px;margin-bottom:8px">Forgot Password?</div>
@@ -197,7 +106,7 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
   <div id="mailOpt" style="display:none">
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px;color:#1e3a8a;margin-bottom:8px">
       <b>Mail OTP</b><br>
-      Enter your FL ID and send a request to Admin. After the mail service is configured, this same flow can be connected to email OTP without exposing an OTP on the page.
+      Enter your FL ID and send a request to Admin. After mail service is configured, this same flow can be connected to email OTP without exposing an OTP on the page.
     </div>
     <input id="forgotMailFlId" placeholder="Enter FL ID" type="text" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px;text-transform:uppercase">
     <textarea id="forgotMailMessage" placeholder="Example: I forgot my password. Please help me reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-bottom:8px;resize:vertical"></textarea>
@@ -215,14 +124,12 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
 
   <div id="forgotMsg" style="margin-top:8px;font-size:11px;min-height:18px"></div>
 </div>
-
 </div>
 
 <script>
 function toggleForgot(){
   const box=document.getElementById('forgotBox');
   box.style.display=box.style.display==='none'?'block':'none';
-
   if(box.style.display==='block'){
     const id=(document.getElementById('loginId').value||'').trim().toUpperCase();
     if(id){
@@ -235,7 +142,6 @@ function toggleForgot(){
 function selectForgotOpt(opt){
   document.getElementById('mailOpt').style.display=opt==='mail'?'block':'none';
   document.getElementById('adminOpt').style.display=opt==='admin'?'block':'none';
-
   document.getElementById('optMailBtn').style.background=opt==='mail'?'#2563eb':'#fff';
   document.getElementById('optMailBtn').style.color=opt==='mail'?'#fff':'#0f172a';
   document.getElementById('optAdminBtn').style.background=opt==='admin'?'#2563eb':'#fff';
@@ -252,7 +158,7 @@ async function sendForgotSupport(type){
 
   const flId=(type==='mail'
     ? document.getElementById('forgotMailFlId').value
-    : (document.getElementById('loginId').value||'')
+    : ((document.getElementById('loginId').value||'')||'')
   ).trim().toUpperCase();
 
   const message=(type==='mail'
@@ -265,13 +171,11 @@ async function sendForgotSupport(type){
     msg.innerText='Please enter your correct FL ID.';
     return;
   }
-
   if(!message){
     msg.style.color='#dc2626';
     msg.innerText='Please explain your problem.';
     return;
   }
-
   if(!supabaseClient){
     msg.style.color='#dc2626';
     msg.innerText='Database not available.';
@@ -285,35 +189,23 @@ async function sendForgotSupport(type){
 
   try{
     let userName=flId;
-
     try{
-      const q=await supabaseClient
-        .from('users')
-        .select('full_name')
-        .ilike('fl_id',flId)
-        .limit(1);
-
-      if(!q.error && q.data && q.data[0] && q.data[0].full_name){
-        userName=q.data[0].full_name;
-      }
+      const q=await client.from('users').select('full_name').eq('fl_id',flId).limit(1);
+      if(!q.error && q.data && q.data[0] && q.data[0].full_name) userName=q.data[0].full_name;
     }catch(e){}
 
     const subject=type==='mail'
       ? 'Forgot Password / Mail OTP Help'
       : 'Forgot Password / Admin Reset';
 
-    const r=await supabaseClient
-      .from('support_requests')
-      .insert({
-        fl_id:flId,
-        user_name:userName,
-        subject:subject,
-        message:message,
-        screenshot_data:null,
-        status:'pending'
-      })
-      .select()
-      .single();
+    const r=await client.from('support_requests').insert({
+      fl_id:flId,
+      user_name:userName,
+      subject:subject,
+      message:message,
+      screenshot_data:null,
+      status:'pending'
+    }).select().single();
 
     if(r.error) throw r.error;
 
@@ -345,19 +237,36 @@ function demoLogin(id,pass){
   document.getElementById('loginBtn').click();
 }
 
+// If a valid local FLM session already exists, open the dashboard directly.
+// This does not create or bypass a new login session.
+(function(){
+  try{
+    const s=JSON.parse(localStorage.getItem('flm_session')||'null');
+    if(s && (s.flId||s.fl_id)){
+      const id=(s.flId||s.fl_id);
+      const name=s.name||s.full_name||'';
+      const q=new URLSearchParams(location.search);
+      if(q.get('stay')!=='login'){
+        // Keep the normal login page available via ?stay=login.
+        // Do not redirect automatically here; registration and support flows can return here.
+      }
+    }
+  }catch(e){}
+})();
+
 document.getElementById('loginBtn').addEventListener('click',async()=>{
   const id=document.getElementById('loginId').value.trim();
   const pass=document.getElementById('loginPass').value.trim();
   const err=document.getElementById('err');
-  const btn=document.getElementById('loginBtn');
 
   if(!id||!pass){
     err.style.display='block';
-    err.innerText='Enter FL ID/mobile and password';
+    err.innerText='Enter username and password';
     return;
   }
-
   err.style.display='none';
+
+  const btn=document.getElementById('loginBtn');
   btn.innerText='Logging in...';
   btn.disabled=true;
 
@@ -366,10 +275,8 @@ document.getElementById('loginBtn').addEventListener('click',async()=>{
 
     if(result.success){
       const user=result.user;
-      const flId=user.fl_id||user.flId||id.toUpperCase();
-      const name=user.full_name||user.name||'User';
-
-      /* Re-save in the exact session format user.html accepts. */
+      const flId=user.fl_id||id.toUpperCase();
+      const name=user.full_name||'User';
       const session={
         flId:flId,
         fl_id:flId,
@@ -377,61 +284,27 @@ document.getElementById('loginBtn').addEventListener('click',async()=>{
         full_name:name,
         mobile:user.mobile||'',
         email:user.email||'',
-        sponsorId:user.sponsor_id||user.sponsorId||'',
-        sponsor_id:user.sponsor_id||user.sponsorId||'',
-        direct_sponsor_id:user.direct_sponsor_id||'',
-        side:user.side||'',
-        plan_level:user.plan_level??null,
-        plan_name:user.plan_name||'',
-        wallet:user.wallet||null,
-        binary:user.binary||null
+        sponsor_id:user.sponsor_id||'',
+        side:user.side||''
       };
 
-      if(!safeStorageSet('flm_session',JSON.stringify(session))){
-        throw new Error('Browser storage is blocked. Please allow site storage.');
-      }
-
-      safeStorageSet('flm_last_section','dashboard');
+      // Safe storage: dashboard login will still work normally when localStorage is available.
+      safeStorageSet('flm_session',JSON.stringify(session));
 
       toast('Welcome '+name+'!');
-
-      /* Direct dashboard after successful login. */
-      setTimeout(()=>{
-        window.location.replace('./user.html');
-      },500);
-
+      setTimeout(()=>{location.href='./user.html';},800);
     }else{
       err.style.display='block';
-      err.innerText=result.message||'Login failed';
+      err.innerText=result.message;
       btn.innerText='Login';
       btn.disabled=false;
     }
   }catch(e){
-    console.error(e);
     err.style.display='block';
-    err.innerText=e.message||'Login failed';
+    err.innerText=e.message;
     btn.innerText='Login';
     btn.disabled=false;
   }
 });
-
-/* If a valid session already exists, don't make the member login again. */
-(function(){
-  try{
-    const raw=safeStorageGet('flm_session');
-    if(raw){
-      const s=JSON.parse(raw);
-      const fl=s && (s.flId||s.fl_id);
-      if(fl){
-        /* Only redirect when explicitly requested by a saved session. */
-        const params=new URLSearchParams(location.search);
-        if(params.get('forceLogin')!=='1'){
-          // Keep the login page available normally; no automatic redirect.
-        }
-      }
-    }
-  }catch(e){}
-})();
 </script>
-</body>
-</html>
+</body></html>
