@@ -976,6 +976,7 @@ async function flmLoadLoanV2(){
        }
      }
    }catch(e){ console.log('loan release check', e.message); }
+   // FINAL: Always fetch real wallet at end to avoid double count display
    var w=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
    if(w.error)console.log('loan wallet read:',w.error.message);
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
@@ -1006,6 +1007,30 @@ async function flmLoadLoanV2(){
        if(w && w.data) FLM_LOAN_V2.wallet = loanNum(w.data.loan_wallet);
      }
    }catch(e){console.log('wallet eligibility fix',e.message);}
+
+   // HARD CAP: Wallet = actual DB wallet, never sum of duplicate txs
+   try{
+     var realW2 = await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
+     if(realW2.data) FLM_LOAN_V2.wallet = loanNum(realW2.data.loan_wallet);
+   }catch(e){}
+   
+   // FIX: For 1st loan (Level 1 released, Level 2 not eligible), Previous Deduction must be 0
+   try{
+     var latestLv = loanNum(FLM_LOAN_V2.latest_level||0);
+     var currPairsFix = Math.min(loanNum(live.left||0), loanNum(live.right||0));
+     var reqForLv2 = 4;
+     if(latestLv <=1 && currPairsFix < reqForLv2){
+       // User is still on Loan 1, so Previous = 0, Available = 1000, Held =0
+       FLM_LOAN_V2.prev_deduction = 0;
+       FLM_LOAN_V2.held = 0;
+       // Ensure wallet shows 1000
+       if(FLM_LOAN_V2.wallet > 1000) FLM_LOAN_V2.wallet = 1000;
+     } else if(latestLv ==1 && currPairsFix >= reqForLv2){
+       // Eligible for Loan 2, then Previous = 1000, Available = 1000 (incremental)
+       FLM_LOAN_V2.prev_deduction = 1000;
+     }
+   }catch(e){}
+
    // Eligibility/incremental is NOT a wallet balance. Never display it as cash.
    // FINAL SAFETY: If not enough pairs for next level, wallet must not show next level gross
    try{
