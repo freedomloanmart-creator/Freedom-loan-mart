@@ -1303,21 +1303,82 @@ async function loadLoanPanel(){
     if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">'+loanMoney(amt)+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
     var hist=document.getElementById('myLoanHistory');
     if(hist){
-      if(!loans.length && !releasedLoans2.length) hist.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">No member loan records yet.</div>';
+      // Merge member_loans + wallet release tx as source of truth for history
+      var mergedLoans = {};
+      // First add member_loans
+      loans.forEach(function(l){
+        var lvl = loanNum(l.plan_level||l.level_no||0);
+        if(!lvl) return;
+        mergedLoans[lvl]={
+          plan_level:lvl,
+          required_pairs:loanNum(l.required_pairs|| (plans.find(function(p){return loanNum(p.level_no)===lvl;})||{}).required_pairs || 0),
+          amount:loanNum(firstVal(l,['incremental_amount','gross_loan_amount','loan_amount'],0)),
+          status:String(l.status||'').toLowerCase(),
+          release_status:String(l.release_status||'').toLowerCase(),
+          hold_amount:loanNum(l.hold_amount),
+          renewal_completed:loanNum(l.renewal_completed_count||l.renewal_completed||0),
+          renewal_required:loanNum(l.renewal_required_count||l.renewal_required||0),
+          released_at:l.released_at||l.created_at||null
+        };
+      });
+      // Then add/overwrite with releasedLoans2 (includes wallet tx) - wallet tx is more accurate for released status
+      releasedLoans2.forEach(function(rl){
+        var lvl = loanNum(rl.plan_level||0);
+        if(!lvl) return;
+        var existing = mergedLoans[lvl]||{};
+        var planForLvl = plans.find(function(p){return loanNum(p.level_no)===lvl;})||{};
+        var amt = loanNum(firstVal(rl,['incremental_amount','gross_loan_amount'],0)) || existing.amount || 0;
+        var st = String(rl.status||existing.status||'released').toLowerCase();
+        // If existing says withdrawn, keep withdrawn as final
+        if(existing.status==='withdrawn' || existing.release_status==='withdrawn') st='withdrawn';
+        mergedLoans[lvl]={
+          plan_level:lvl,
+          required_pairs: existing.required_pairs || loanNum(planForLvl.required_pairs||0),
+          amount: amt,
+          status: st,
+          release_status: existing.release_status||String(rl.release_status||st),
+          hold_amount: existing.hold_amount||0,
+          renewal_completed: existing.renewal_completed||0,
+          renewal_required: existing.renewal_required||0,
+          released_at: rl.released_at||existing.released_at||null
+        };
+      });
+      // Also include loanReleaseTxs directly if not in merged (e.g. Loan 3 from wallet)
+      loanReleaseTxs.forEach(function(tx){
+        var amt = loanNum(tx.amount);
+        var lvl = 1;
+        if(amt>=16000) lvl=5; else if(amt>=8000) lvl=4; else if(amt>=4000) lvl=3; else if(amt>=2000) lvl=2; else lvl=1;
+        try{ var rm=String(tx.remarks||tx.title||''); var m=rm.match(/Loan\s*(\d+)/i); if(m) lvl=parseInt(m[1],10); }catch(e){}
+        if(!mergedLoans[lvl]){
+          var planForLvl2 = plans.find(function(p){return loanNum(p.level_no)===lvl;})||{};
+          mergedLoans[lvl]={
+            plan_level:lvl,
+            required_pairs:loanNum(planForLvl2.required_pairs||0),
+            amount:loanNum(tx.net_amount!=null?tx.net_amount:tx.amount),
+            status:'released',
+            release_status:'released',
+            hold_amount:0,
+            renewal_completed:0,
+            renewal_required:0,
+            released_at:tx.created_at
+          };
+        }
+      });
+
+      var sortedLevels = Object.keys(mergedLoans).map(function(k){return parseInt(k,10);}).sort(function(a,b){return b-a;}); // newest first
+      if(!sortedLevels.length) hist.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">No member loan records yet.</div>';
       else{
         var hh='';
-        loans.slice().reverse().forEach(function(l){
-          var amt=loanNum(firstVal(l,['incremental_amount','gross_loan_amount','loan_amount'],0));
-          var st=String(l.status||'').toLowerCase();
-          var rel=releasedLoans2.find(function(x){return loanNum(x.plan_level)===loanNum(l.plan_level);});
-          var shownStatus=rel?(rel.release_status||rel.status||'released'):(l.status||'—');
-          var hold=loanNum(l.hold_amount);
-          hh+='<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan '+loanEsc(l.plan_level||l.level_no||'—')+'</b><b>'+loanMoney(amt)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Required pairs: '+loanNum(l.required_pairs)+':'+loanNum(l.required_pairs)+' · Status: '+loanEsc(shownStatus)+(hold?' · Held: '+loanMoney(hold):'')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Renewal: '+loanNum(l.renewal_completed_count||l.renewal_completed)+' / '+loanNum(l.renewal_required_count||l.renewal_required)+'</div></div>';
+        sortedLevels.forEach(function(lvl){
+          var l = mergedLoans[lvl];
+          var amt = l.amount||0;
+          var st = l.status||'released';
+          // Display text: Released / Withdrawn / Approved
+          var displayStatus = st==='withdrawn'?'withdrawn':(st==='released'?'released':st);
+          var color = displayStatus==='withdrawn'?'#6b7280': (displayStatus==='released'?'#059669':'#1e40af');
+          var requiredText = l.required_pairs? (l.required_pairs+':'+l.required_pairs) : (lvl===1?'1:1': lvl===2?'4:4': lvl===3?'12:12': lvl===4?'40:40': lvl+'');
+          hh+='<div style="border-bottom:1px solid #e2e8f0;padding:12px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan '+loanEsc(lvl)+'</b><b>Rs. '+loanMoney(amt).replace(/Rs\.\s*/,'')+'</b></div><div style="font-size:11px;color:'+color+';margin-top:4px;font-weight:700">Required pairs: '+requiredText+' · Status: '+loanEsc(displayStatus)+(l.hold_amount?' · Held: '+loanMoney(l.hold_amount):'')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Renewal: '+loanNum(l.renewal_completed)+' / '+loanNum(l.renewal_required)+'</div></div>';
         });
-        if(!loans.some(function(l){return loanNum(l.plan_level)===1;}) && releasedLoans2.some(function(l){return loanNum(l.plan_level)===1;})){
-          var rl=releasedLoans2.find(function(l){return loanNum(l.plan_level)===1;});
-          hh+='<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan 1</b><b>'+loanMoney(firstVal(rl,['incremental_amount','gross_loan_amount'],0))+'</b></div><div style="font-size:10px;color:#059669;margin-top:4px;font-weight:800">Required pairs: 1:1 · Status: Released</div></div>';
-        }
         hist.innerHTML=hh;
       }
     }
