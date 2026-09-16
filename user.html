@@ -1552,47 +1552,31 @@ async function loadLoanPanel(){
     var end=firstVal(currentRoi,['end_date','ends_at'],null);
     var dbDone=loanNum(firstVal(currentRoi,['days_completed','days_paid','completed_days'],0));
     var totalDays=loanNum(firstVal(currentRoi,['total_days','days'],50))||50;
-    // --- FINAL FIX 2026-09-17: Calendar + Wallet sync for days ---
-    var startRaw=firstVal(currentRoi,['start_date','started_at','created_at'],null);
-    var startMs=startRaw?new Date(startRaw).getTime():0;
-    var calendarDays=0;
-    if(startMs && !isNaN(startMs)){
-      var nowMs=Date.now();
-      var diff=Math.floor((nowMs - startMs)/86400000); // full days passed
-      // Day 1 = start date itself. So if started today, 1/50. Yesterday -> 2/50, etc.
-      // But to match your expectation (16th start -> 17th = 1/50), we use inclusive + keep min 1 after 24h
-      calendarDays=Math.max(0,diff+1);
-      if(calendarDays>totalDays) calendarDays=totalDays;
-    }
-    // syncDays already calculated above in final sync, but re-read to be safe
+    // --- FINAL FIX 2026-09-17 CREDIT-BASED ---
+    // User requirement: Register -> 0/50, after 1st credit -> 1/50, 49 remaining
+    // So done = MAX(DB days, actual credited unique days from wallet_transactions)
+    // Calendar days NOT counted until credit happens.
     var walletDays=0;
     try{
       if(typeof roiSyncTxs!=='undefined' && roiSyncTxs && roiSyncTxs.length){
         var _ud={}; roiSyncTxs.forEach(function(tx){ var d=new Date(tx.created_at); if(isNaN(d.getTime()))return; var dd=new Date(d.getTime()+330*60000); var k=dd.getUTCFullYear()+'-'+String(dd.getUTCMonth()+1).padStart(2,'0')+'-'+String(dd.getUTCDate()).padStart(2,'0'); _ud[k]=true; }); walletDays=Object.keys(_ud).length;
       }
     }catch(e){}
-    var done=Math.max(dbDone, walletDays, calendarDays>0?calendarDays:0);
-    // If ROI credits actually exist but DB total_credited is 0, use wallet total (already set above, but ensure)
-    if(done>0 && dbDone===0){
-      // force status to active if needed
-    }
+    var done=Math.max(dbDone, walletDays);
+    if(done>totalDays) done=totalDays;
     var completed=roiStatus==='completed'||done>=totalDays||(end&&new Date(end).getTime()<=Date.now());
     if(note)note.innerText=currentRoi&&!completed?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until 50 days complete.':'✅ No active ROI lock. If the database marks renewal as eligible, you can use any valid unused PIN.';
     if(rb)rb.disabled=currentRoi&&!completed;
     var rbbox=document.getElementById('loanRoiCycleBox');
     if(rbbox){if(currentRoi){
       var daily=loanNum(firstVal(currentRoi,['daily_amount','amount_per_day','daily_roi'],40));
-      // Use the synced total if DB total is 0
       var dbCredited=loanNum(firstVal(currentRoi,['total_credited','total_amount_credited','credited_amount'],0));
       var walletTotalCredited=0;
       try{ if(typeof syncTotal!=='undefined' && syncTotal>0) walletTotalCredited=syncTotal; else if(typeof roiSyncTxs!=='undefined' && roiSyncTxs.length){ walletTotalCredited=roiSyncTxs.reduce(function(s,tx){return s+loanNum(tx.amount);},0); } }catch(e){}
-      var credited=Math.max(dbCredited, walletTotalCredited, daily* (walletDays||0>0?Math.max(dbDone,walletDays):0) * 0 + 0 );
-      // If still 0 but done>0, estimate from done*daily for display (until DB syncs)
+      var credited=Math.max(dbCredited, walletTotalCredited);
       if(credited===0 && done>0){ credited=daily*done; }
-      // Last credit fallback
       var lastRaw=firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],null);
       try{ if(!lastRaw && typeof syncLast!=='undefined' && syncLast && syncLast.created_at) lastRaw=syncLast.created_at; }catch(e){}
-      // Store for display below
       currentRoi.__last_display = lastRaw;
       var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
     // Show the released loan history separately from the NEXT eligible loan.
