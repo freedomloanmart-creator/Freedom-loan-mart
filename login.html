@@ -4,6 +4,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
+// Supabase client-side anon/publishable key supplied for this project.
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sIjoiYW5vbiIsImlhdCI6MTc4ODY0MTgwOCwiZXhwIjoyMTA0MjE3ODA4fQ.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient=null;
 function initSupabase(){
@@ -188,6 +189,8 @@ async function sendForgotSupport(type){
   msg.innerText='Sending request to Admin...';
 
   try{
+    const client=supabaseClient||initSupabase();
+    if(!client) throw new Error('Database connection failed. Please try again.');
     let userName=flId;
     try{
       const q=await client.from('users').select('full_name').eq('fl_id',flId).limit(1);
