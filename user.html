@@ -191,7 +191,110 @@ body{background:#eef2f7;color:#0f172a}
  <div id="myLoanHistory" style="margin-top:10px">Loading...</div>
 </div>
 </div>
-<div id="sec-rewards" style="display:none"><div class="card"><h3>🏆 Rewards</h3><div>Coming soon</div></div></div>
+
+<div id="sec-rewards" style="display:none">
+  <div class="topbar" style="margin:-12px -12px 12px -12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="color:#1e3a8a">Rewards</b></div><div style="background:#eef2ff;border-radius:999px;padding:6px 12px;font-size:11px;font-weight:700" id="rewardUserBadge">-</div></div>
+  <div id="rewardsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:0 0 20px 0"></div>
+  <div id="rewardsMsg" style="text-align:center;color:#64748b;font-size:12px;margin-top:10px"></div>
+</div>
+<script>
+const FLM_REWARDS = [
+  {name:'Alkaline Jar', pairs:40, img:'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=300', desc:'40 pairs'},
+  {name:'Goa tour', pairs:80, img:'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=300', desc:'80 pairs'},
+  {name:'Bangkok tour', pairs:160, img:'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=300', desc:'160 pairs'},
+  {name:'Malaysia Tour', pairs:320, img:'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=300', desc:'320 pairs'},
+  {name:'Dubai Tour', pairs:640, img:'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=300', desc:'640 pairs'},
+  {name:'Cruise trip to Sri Lanka', pairs:1280, img:'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=300', desc:'1,280 pairs'},
+  {name:'3 Lakhs for Car Fund or USDT', pairs:2600, img:'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=300', desc:'2,600 pairs'},
+  {name:'4 Lakh worth of Gold', pairs:5500, img:'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=300', desc:'5,500 pairs'},
+  {name:'Europe Trip for Couple', pairs:11000, img:'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=300', desc:'11,000 pairs'},
+  {name:'DTCP open Plot', pairs:23000, img:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300', desc:'23,000 pairs'},
+  {name:'20 Lakh worth Open Plot', pairs:46000, img:'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=300', desc:'46,000 pairs'},
+  {name:'2BHK Flat', pairs:100000, img:'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300', desc:'100,000 pairs'},
+  {name:'Leader dream car Jaguar /Benz worth of 1 Crore', pairs:200000, img:'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300', desc:'200,000 pairs'}
+];
+async function loadRewards(){
+  var grid=document.getElementById('rewardsGrid');
+  var badge=document.getElementById('rewardUserBadge');
+  var msg=document.getElementById('rewardsMsg');
+  if(!grid) return;
+  try{
+    var flId=getFlId();
+    if(badge) badge.innerText=(getName()||'')+' '+(flId||'');
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:#64748b">Loading rewards progress...</div>';
+    var currentPairs=0;
+    try{
+      if(typeof flmFetchTeamStats==='function'){
+        var stats=await flmFetchTeamStats(flId);
+        currentPairs=Number(stats.pairs||stats.total_pairs||0);
+      }
+    }catch(e){}
+    if(!currentPairs){
+      try{
+        var bs=await supabaseClient.from('binary_summary').select('total_pairs').eq('fl_id',flId).single();
+        if(bs.data) currentPairs=Number(bs.data.total_pairs||0);
+      }catch(e){}
+    }
+    var myReqs=[];
+    try{
+      var rr=await supabaseClient.from('reward_requests').select('*').eq('fl_id',flId).order('required_pairs',{ascending:true});
+      if(rr.data) myReqs=rr.data;
+    }catch(e){ console.log('reward_requests table may not exist',e.message); }
+
+    var html='';
+    FLM_REWARDS.forEach(function(rw,idx){
+      var req=myReqs.find(x=> Number(x.required_pairs)===rw.pairs );
+      var status=req?String(req.status||'pending'):'none';
+      var cur=Math.min(currentPairs, rw.pairs);
+      var pct=Math.floor((cur/rw.pairs)*100);
+      var left=Math.max(0, rw.pairs - currentPairs);
+      var eligible = currentPairs >= rw.pairs;
+      var btnText='LOCKED';
+      var btnColor='#334155';
+      var cardBorder='#e2e8f0';
+      if(status==='approved'){ btnText='APPROVED ✅'; btnColor='#059669'; cardBorder='#10b981'; }
+      else if(status==='pending'){ btnText='PENDING ⏳'; btnColor='#d97706'; cardBorder='#f59e0b'; }
+      else if(eligible){ btnText='ELIGIBLE - Claim Reward '+(idx+1); btnColor='#2563eb'; cardBorder='#3b82f6'; }
+
+      html+= '<div style="background:#fff;border-radius:12px;overflow:hidden;border:2px solid '+cardBorder+';position:relative;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
+        + '<div style="position:absolute;top:6px;right:6px;background:'+btnColor+';color:#fff;font-size:9px;font-weight:800;padding:4px 8px;border-radius:999px;z-index:2">'+btnText+'</div>'
+        + '<div style="height:110px;background:#f1f5f9;overflow:hidden"><img src="'+rw.img+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div>'
+        + '<div style="padding:8px">'
+        + '<div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:11px;line-height:1.2">'+rw.name+'</b><span style="font-size:9px;color:#64748b;white-space:nowrap">'+rw.pairs.toLocaleString()+' pairs</span></div>'
+        + '<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:#475569"><span>'+cur+' / '+rw.pairs+'</span><span>'+pct+'%</span></div>'
+        + '<div style="height:6px;background:#e2e8f0;border-radius:999px;margin-top:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(eligible?'#2563eb':'#94a3b8')+'"></div></div>'
+        + '<div style="font-size:10px;color:#64748b;margin-top:6px">'+(left>0? left+' pairs left' : '🎉 Eligible!')+'</div>'
+        + (eligible && status==='none' ? '<button onclick="claimReward('+rw.pairs+',\''+rw.name.replace(/'/g,"\'")+'\')" style="width:100%;margin-top:8px;background:#1e40af;color:#fff;border:0;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer">Claim Reward</button>' : '')
+        + (eligible && status==='none' ? '' : '')
+        + '</div></div>';
+    });
+    grid.innerHTML=html;
+    if(msg) msg.innerText='Current Total Binary Pairs: '+currentPairs+' | Alkaline Jar 0/40 → '+currentPairs+'/40, 0/80 → '+currentPairs+'/80 logic applied for all rewards.';
+  }catch(e){
+    grid.innerHTML='<div style="grid-column:1/-1;padding:14px;background:#fef2f2;color:#991b1b;border-radius:10px">Rewards load error: '+e.message+'<br><br>Run this SQL in Supabase:<br>CREATE TABLE IF NOT EXISTS reward_requests (id bigint generated always as identity primary key, fl_id text not null, reward_name text not null, required_pairs int not null, current_pairs int, status text default \'pending\', created_at timestamp default now(), approved_at timestamp, approved_by text);</div>';
+  }
+}
+async function claimReward(pairs, name){
+  var flId=getFlId();
+  if(!confirm('Claim reward: '+name+' ('+pairs+' pairs)? This will be sent to admin for approval.')) return;
+  try{
+    var curPairs=0;
+    try{ var st=await flmFetchTeamStats(flId); curPairs=Number(st.pairs||0);}catch(e){}
+    var ins=await supabaseClient.from('reward_requests').insert({fl_id:flId, reward_name:name, required_pairs:pairs, current_pairs:curPairs, status:'pending'});
+    if(ins.error) throw ins.error;
+    alert('✅ Reward claim sent to admin! Your eligible for reward - admin approval pending.');
+    loadRewards();
+  }catch(e){ alert('Claim failed: '+e.message+'
+Make sure reward_requests table exists.'); }
+}
+// hook into navigation
+var origShowSec=showSec;
+showSec=function(id,fromPop){
+  origShowSec(id,fromPop);
+  if(id==='rewards') loadRewards();
+};
+</script>
+</div>
 <div id="sec-support" style="display:none"><div class="card"><h3>💬 Help Center</h3><div>Support</div></div></div>
 </div>
 
