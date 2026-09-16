@@ -418,11 +418,41 @@ async function register(){
         document.querySelectorAll('#fullName,#mobile,#email,#password').forEach(e=>e.value='');
         return;
       }
-      msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>FL ID: '+result.flId+'</span>';
-      setTimeout(()=>location.href='./user.html',800);
+      // Registration success: show FL ID with a copy button before opening dashboard.
+      const safeFlId=String(result.flId||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+      msg.innerHTML='<div id=flmRegistrationSuccess style=\"margin-top:10px;padding:14px;border:1px solid #86efac;border-radius:14px;background:#f0fdf4;color:#166534;text-align:center\">'+
+        '<div style=\"font-size:15px;font-weight:900\">✅ Registration Successful</div>'+
+        '<div style=\"font-size:11px;margin-top:6px;color:#475569\">Your FL ID is:</div>'+
+        '<div style=\"display:flex;align-items:center;gap:8px;margin-top:8px\">'+
+          '<div id=flmGeneratedFlId style=\"flex:1;padding:12px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;font-size:18px;font-weight:900;letter-spacing:.6px;color:#1e3a8a\">'+safeFlId+'</div>'+
+          '<button type=\"button\" onclick=\"copyGeneratedFlId()\" style=\"padding:12px 13px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer\">📋 Copy</button>'+
+        '</div>'+
+        '<div id=flmCopyStatus style=\"font-size:11px;margin-top:7px;min-height:16px;color:#047857\"></div>'+
+        '<button type=\"button\" onclick=\"location.href=\'./user.html\'\" class=\"btn\" style=\"background:#0f172a;margin-top:8px\">Continue to Dashboard →</button>'+
+      '</div>';
+      // Keep the generated ID in the existing session/local storage and do not auto-redirect,
+      // so the member has time to copy the FL ID.
+      try{ localStorage.setItem('flm_last_registered_fl_id',String(result.flId||'')); }catch(e){}
     }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
   }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';}
 }
+
+function copyGeneratedFlId(){
+  const el=document.getElementById('flmGeneratedFlId');
+  const status=document.getElementById('flmCopyStatus');
+  const flId=(el?.textContent||'').trim();
+  if(!flId){if(status)status.textContent='❌ FL ID not available.';return;}
+  const done=()=>{if(status)status.textContent='✅ FL ID copied. Save it safely for login/support.';};
+  const fail=()=>{if(status)status.textContent='⚠️ Copy failed. Long-press the FL ID and copy it manually.';};
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(flId).then(done).catch(()=>{
+      try{ const ta=document.createElement('textarea'); ta.value=flId; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(e){fail();}
+    });
+  }else{
+    try{ const ta=document.createElement('textarea'); ta.value=flId; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(e){fail();}
+  }
+}
+
 function prepareRegistrationResubmit(){
   const box=document.getElementById('registrationResubmitBox');
   if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'center'});}
