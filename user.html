@@ -179,7 +179,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="loanDirectProgress" class="card" style="margin-top:10px;border:2px solid #f59e0b;background:#fffbeb;font-size:12px">Loading referral qualification...</div>
 <div class="grid2">
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Current Pair Progress</div><div id="loanPairProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 : 0</div></div>
- <div class="dark-card"><div style="font-size:11px;opacity:.75">Available Loan (After Previous)</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
+ <div class="dark-card"><div id="loanEligibleLabel" style="font-size:11px;opacity:.75">Available Loan (After Previous)</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Previous Loan Deduction</div><div id="loanPreviousAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Held Amount</div><div id="loanHeldAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Renewal Progress</div><div id="loanRenewalProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 / 0</div></div>
@@ -810,7 +810,7 @@ async function loadWalletData(){
   }catch(e){}
   var b=await supabaseClient.from('binary_summary').select('total_pairs,daily_pairs_today,daily_income_today').eq('fl_id',flId).single();var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
-  var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Withdrawable: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
+  var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released loan wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
   try{var t=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).in('status',['approved','completed']);var sum=(t.data||[]).reduce(function(a,x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase();var isWithdrawal=(tt==='withdrawal'&&['roi','matching','loan'].indexOf(wt)>=0)||(tt==='roi_coupon'&&wt==='roi');return isWithdrawal?a+Number(x.amount||0):a;},0);FLM_WALLET.totalWithdrawn=sum;var te=document.getElementById('totalWithdrawn');if(te)te.innerText=money(sum);}catch(e){}
  }catch(e){console.log('wallet load',e.message);}
 }
@@ -1271,7 +1271,7 @@ async function loadLoanPanel(){
       status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
     }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Loan (After Previous)':'Current Loan Wallet (Already Released)';
     // FIX: Save eligible loan for wallet display and force wallet UI update
     try{
       localStorage.setItem('flm_available_loan', String(availableIncrement));
