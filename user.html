@@ -1110,7 +1110,53 @@ async function loadLoanPanel(){
     var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
     var ws=document.getElementById('loanWithdrawSummary');if(ws){
-      if(eligible){
+      // === FLM UNIVERSAL WITHDRAWN CHECK FOR ALL USERS ===
+      var isWithdrawnAll = false;
+      var withdrawnLevel = 0;
+      var withdrawnAmt = 0;
+      // Check if latest loan is marked withdrawn
+      if(currentLoan){
+        var cs = String(currentLoan.status||'').toLowerCase();
+        var cr = String(currentLoan.release_status||'').toLowerCase();
+        if(cs==='withdrawn' || cr==='withdrawn'){
+          isWithdrawnAll = true;
+          withdrawnLevel = loanNum(currentLoan.plan_level);
+          withdrawnAmt = loanNum(firstVal(currentLoan,['incremental_amount','gross_loan_amount'],0));
+        }
+      }
+      // Also check latest released list for withdrawn status
+      if(!isWithdrawnAll && loans.length){
+        var lastLoan = loans.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).pop();
+        if(lastLoan){
+          var ls = String(lastLoan.status||'').toLowerCase();
+          var lr = String(lastLoan.release_status||'').toLowerCase();
+          if(ls==='withdrawn' || lr==='withdrawn'){
+            isWithdrawnAll = true;
+            withdrawnLevel = loanNum(lastLoan.plan_level);
+            withdrawnAmt = loanNum(firstVal(lastLoan,['incremental_amount','gross_loan_amount'],0));
+          }
+        }
+      }
+      if(isWithdrawnAll){
+        // Calculate next level requirement
+        var nextReqPairs = 12;
+        if(withdrawnLevel===1) nextReqPairs = 4;
+        else if(withdrawnLevel===2) nextReqPairs = 12;
+        else if(withdrawnLevel===3) nextReqPairs = 40;
+        else if(withdrawnLevel>=4) nextReqPairs = 40;
+        var needMore = Math.max(0, nextReqPairs - totalPairs);
+        ws.innerHTML='<div style="background:#e8f5e9;border:2px solid #4caf50;border-radius:10px;padding:12px;text-align:center;">'
+          +'<div style="font-size:22px;">✅</div>'
+          +'<b style="color:#2e7d32;font-size:14px;">Eligible Loan Withdrawal Completed</b><br>'
+          +'<span style="font-size:12px;color:#374151;">Level '+loanEsc(withdrawnLevel)+' - '+loanMoney(withdrawnAmt)+' withdrawn successfully.</span><br>'
+          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Wait for next withdrawal loan - Need '+nextReqPairs+':'+nextReqPairs+' binary pairs</b><br>'
+          +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs) | Need '+needMore+' more pairs</span>'
+          +'</div>';
+        // Also update the top available loan card to 0 and hide wallet button text
+        var avEl=document.getElementById('loanAvailableAmount');if(avEl) avEl.innerText='Rs. 0.00';
+        var btn=document.querySelector('#sec-loans button[onclick="showSec(\'wallets\')"]');
+        if(btn){btn.innerText='✅ Withdrawal Completed'; btn.style.background='#4caf50'; btn.disabled=true;}
+      }else if(eligible){
         ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.';
       }else if(latestLevel2>0 && availableIncrement>0){
         ws.innerHTML='<b style="color:#166534">Loan wallet available: '+loanMoney(availableIncrement)+'</b><br>Already released loan amount. Next loan is available after the required pair level is reached.';
