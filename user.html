@@ -1156,6 +1156,31 @@ async function loadLoanPanel(){
     var currentLoan=loans.length?loans[loans.length-1]:null;
     var currentRoi=rois.length?rois[0]:null;
 
+    // ROI PROGRESS NORMALIZATION:
+    // The ROI engine can credit the first ₹40 on the cycle start date while
+    // the legacy loan_roi_cycles row still contains days_completed = 0.
+    // For display, a cycle day counts from its actual start date. This keeps
+    // the UI in sync for existing and new members without changing wallet credit logic.
+    if(currentRoi){
+      try{
+        var cycleStartRaw=firstVal(currentRoi,['start_date','started_at','created_at'],null);
+        var cycleStartDate=cycleStartRaw?new Date(cycleStartRaw):null;
+        if(cycleStartDate && !isNaN(cycleStartDate.getTime())){
+          var cycleTotalDays=loanNum(firstVal(currentRoi,['total_days','days','duration_days'],50))||50;
+          var cycleNow=new Date();
+          var elapsedCalendarDays=Math.floor((Date.UTC(cycleNow.getFullYear(),cycleNow.getMonth(),cycleNow.getDate())-Date.UTC(cycleStartDate.getFullYear(),cycleStartDate.getMonth(),cycleStartDate.getDate()))/86400000)+1;
+          elapsedCalendarDays=Math.max(1,elapsedCalendarDays);
+          var storedDone=loanNum(firstVal(currentRoi,['days_completed','completed_days','days_done'],0));
+          // Never reduce a database value. If the cycle has started, at least
+          // the start day is Day 1 for the ROI schedule.
+          currentRoi.days_completed=Math.min(cycleTotalDays,Math.max(storedDone,elapsedCalendarDays));
+          currentRoi.total_days=cycleTotalDays;
+        }
+      }catch(progressNormErr){
+        console.log('ROI progress normalization:',progressNormErr.message);
+      }
+    }
+
     // ROI DISPLAY FALLBACK:
     // Some older members already receive daily ROI credits but do not have a
     // loan_roi_cycles row. In that case build the display cycle from the actual
