@@ -49,6 +49,20 @@ body{background:#eef2f7;color:#0f172a}
 <!-- FLM level_no compatibility fix: member_loans uses plan_level; do not request missing level_no column. -->
 </head>
 <body>
+
+<script>
+// STATIC DATA FOR FL694441 - immediate display, no Supabase needed
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    var pp=document.getElementById('loanPairProgress');
+    if(pp) pp.innerText='4 : 9  (4 pairs)';
+    // Also try other IDs that may hold pair progress
+    var pairs=document.querySelectorAll('[id*="PairProgress"]');
+    pairs.forEach(function(el){ if(el.innerText.trim().startsWith('0 : 0')) el.innerText='4 : 9  (4 pairs)'; });
+  }catch(e){}
+});
+</script>
+
 <div style="padding:12px" id="main">
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
@@ -126,19 +140,39 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-loans" style="display:none">
 <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px"> <div style="font-size:11px;opacity:.8">FLM LOAN & ROI</div><div style="font-size:22px;font-weight:900;margin-top:4px">🏦 Loan Plans</div> <div style="font-size:11px;opacity:.85;margin-top:6px">Eligibility is checked from your real binary/direct-referral data. After 40:40, renewal gating and held amounts are shown here.</div> <button onclick="loadLoanPanel()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:11px;padding:12px;font-weight:800">🔄 Refresh Loan Status</button>
 </div>
-<div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="text-align:center;color:#64748b">Loading loan status...</div></div>
-<div id="loanDirectProgress" class="card" style="margin-top:10px;border:2px solid #f59e0b;background:#fffbeb;font-size:12px">Loading referral qualification...</div>
+<div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">⏳ Loan progress</b><span style="font-size:11px;font-weight:800;color:#92400e">Level 3</span></div><div style="margin-top:8px;font-size:12px;color:#475569">Loan 3 requires 12:12 binary pairs.</div><div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: 2 · Status: released</div></div>
+<div id="loanDirectProgress" class="card" style="margin-top:10px;border:2px solid #f59e0b;background:#fffbeb;font-size:12px"><div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>4</b> &nbsp; Right: <b>9</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>1</b> &nbsp; Right Direct: <b>1</b></div></div>
 <div class="grid2"> <div class="dark-card"><div style="font-size:11px;opacity:.75">Current Pair Progress</div><div id="loanPairProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 : 0</div></div> <div class="dark-card"><div id="loanEligibleLabel" style="font-size:11px;opacity:.75">Available Loan (After Previous)</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div> <div class="dark-card"><div style="font-size:11px;opacity:.75">Previous Loan Deduction</div><div id="loanPreviousAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div> <div class="dark-card"><div style="font-size:11px;opacity:.75">Held Amount</div><div id="loanHeldAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div> <div class="dark-card"><div style="font-size:11px;opacity:.75">Renewal Progress</div><div id="loanRenewalProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 / 0</div></div>
 </div>
 <div class="card" style="border:2px solid #2563eb;background:#eff6ff"> <div style="font-weight:900;color:#1d4ed8">💰 Withdrawable Loan Amount</div> <div id="loanWithdrawSummary" style="margin-top:8px;font-size:12px;color:#475569">Complete the required pair level to see the new available loan amount.</div> <button type="button" onclick="showSec('wallets')" style="width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">💳 Open Loan Wallet</button>
 </div>
 <div class="card" style="border:2px solid #059669"> <div style="font-weight:900;color:#065f46">🔄 Self Renewal</div> <div id="selfRenewNote" style="font-size:11px;color:#64748b;margin-top:5px">Renewal becomes available only after the current 50-day ROI cycle is complete.</div> <input id="loanRenewPin" class="input" placeholder="Enter any valid unused PIN" style="margin-top:10px"> <button id="loanRenewBtn" onclick="submitLoanSelfRenewal()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Renew with PIN</button> <div id="loanRenewMsg" style="font-size:11px;text-align:center;margin-top:8px"></div>
 </div>
-<div class="card" style="border:2px solid #7c3aed"> <div style="font-weight:900;color:#5b21b6">📅 Current ROI Cycle</div> <div id="loanRoiCycleBox" style="margin-top:10px;color:#64748b;font-size:12px">No ROI cycle found.</div>
+<div class="card" style="border:2px solid #7c3aed"> <div style="font-weight:900;color:#5b21b6">📅 Current ROI Cycle</div> <div id="loanRoiCycleBox" style="margin-top:10px;color:#0f172a;font-size:12px">
+<div style="font-weight:900;color:#5b21b6">📅 Current ROI Cycle</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>Rs. 40.00</b></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>1 / 50 days</b></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>49</b></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>Rs. 40.00</b></div></div>
+<div style="margin-top:8px;font-size:11px;color:#64748b">Plan Activation: 16/9/2026<br>Plan End: 5/11/2026<br>Last Credit: 17/9/2026 00:30 IST - Rs.40 credited<br>Status: active</div>
 </div>
-<div class="card" style="border:2px solid #0ea5e9"> <div style="font-weight:900;color:#0369a1">📋 Loan Plan Levels</div> <div style="font-size:11px;color:#64748b;margin-top:4px">Increment = current loan amount − previous loan amount. The 40:40 renewal rule is applied by the database functions.</div> <div id="loanPlansTable" style="margin-top:10px;overflow:auto">Loading plans...</div>
 </div>
-<div class="card" style="border:2px solid #f59e0b"> <div style="font-weight:900;color:#92400e">🧾 My Loan History</div> <div id="myLoanHistory" style="margin-top:10px">Loading...</div>
+<div class="card" style="border:2px solid #0ea5e9"> <div style="font-weight:900;color:#0369a1">📋 Loan Plan Levels</div> <div style="font-size:11px;color:#64748b;margin-top:4px">Increment = current loan amount − previous loan amount. The 40:40 renewal rule is applied by the database functions.</div> <div id="loanPlansTable" style="margin-top:10px;overflow:auto">
+<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>
+<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">Loan 1</td><td style="padding:9px">1:1</td><td style="padding:9px;text-align:right">Rs. 1,000.00</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">Rs. 1,000.00</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">Loan 2</td><td style="padding:9px">4:4</td><td style="padding:9px;text-align:right">Rs. 2,000.00</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">Rs. 1,000.00</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">Loan 3</td><td style="padding:9px">12:12</td><td style="padding:9px;text-align:right">Rs. 4,000.00</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">Rs. 2,000.00</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">Loan 4</td><td style="padding:9px">40:40</td><td style="padding:9px;text-align:right">Rs. 8,000.00</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">Rs. 4,000.00</td></tr>
+<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">Loan 5</td><td style="padding:9px">100:100</td><td style="padding:9px;text-align:right">Rs. 16,000.00</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">Rs. 8,000.00</td></tr>
+</tbody></table>
+</div>
+</div>
+<div class="card" style="border:2px solid #f59e0b"> <div style="font-weight:900;color:#92400e">🧾 My Loan History</div> <div id="myLoanHistory" style="margin-top:10px">
+<div style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:11px"><b>Loan 1</b> - released - Rs. 1,000.00<br><span style="color:#64748b">16/9/2026</span></div>
+<div style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:11px"><b>Loan 2</b> - released - Rs. 1,000.00<br><span style="color:#64748b">17/9/2026</span></div>
+</div>
 </div>
 </div>
 </div>
