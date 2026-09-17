@@ -72,6 +72,24 @@ async function confirmDeposit(flId,depositId,req,extra,total,amount,utr,source){
 }
 async function rejectDeposit(flId,depositId,source){if(!confirm('Reject deposit for '+flId+'?')) return;try{if(supabaseClient){if(depositId&&depositId.length>5){await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('id',depositId);await supabaseClient.from('payment_transactions').update({status:'rejected'}).eq('id',depositId);}if(flId){await supabaseClient.from('pin_purchase_requests').update({status:'rejected'}).eq('fl_id',flId.toUpperCase()).eq('status','pending');}}alert('Rejected for '+flId);loadDepositRequests();}catch(e){alert('Error: '+e.message);}}
 let currentPinsFilter='all';function filterPins(type){currentPinsFilter=type;loadSec('pins');}
+function openRegistrationScreenshot(requestId){
+  const row=(window.__registrationHistoryRows||[]).find(x=>String(x.id||'')===String(requestId||''));
+  const src=row&&row.screenshot_data&&String(row.screenshot_data).startsWith('data:image')?String(row.screenshot_data):'';
+  if(!src){alert('Payment screenshot is not available for this registration.');return;}
+  const modal=document.getElementById('registrationScreenshotModal');
+  const img=document.getElementById('registrationScreenshotImage');
+  const info=document.getElementById('registrationScreenshotInfo');
+  if(!modal||!img)return;
+  img.src=src;
+  if(info)info.textContent=(row.full_name||'Member')+' • '+(row.approved_fl_id||'')+' • '+(row.mobile||'');
+  modal.classList.add('show');
+}
+function closeRegistrationScreenshot(){
+  const modal=document.getElementById('registrationScreenshotModal');
+  const img=document.getElementById('registrationScreenshotImage');
+  if(modal)modal.classList.remove('show');
+  if(img)img.removeAttribute('src');
+}
 async function loadRegistrationRequests(){
   const el=document.getElementById('registrationRequestsList');
   if(!el)return;
@@ -104,11 +122,53 @@ async function loadRegistrationRequests(){
 
     const hist=document.getElementById('registrationHistoryList');
     if(hist){
-      const h=today.filter(x=>['approved','rejected'].includes(norm(x.status))).slice(0,50);
-      hist.innerHTML='<div style="font-weight:800;margin-bottom:7px">📋 Today — Approved / Rejected</div>'+(
-        h.length?h.map(x=>`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px;margin-bottom:6px;font-size:12px"><b>${escapeHtml(x.full_name||'Member')}</b> • ${escapeHtml(x.mobile||'')} • <b style="color:${norm(x.status)==='approved'?'#059669':'#dc2626'}">${escapeHtml(norm(x.status).toUpperCase())}</b>${x.approved_fl_id?' • FL ID: '+escapeHtml(x.approved_fl_id):''}<br><span style="color:#64748b">${x.created_at?new Date(x.created_at).toLocaleString():''}</span></div>`).join(''):
-        '<div style="color:#64748b;font-size:12px">No approved/rejected registrations today.</div>'
-      );
+      const processed=rows.filter(x=>['approved','rejected'].includes(norm(x.status)))
+        .sort((a,b)=>new Date(b.reviewed_at||b.created_at||0)-new Date(a.reviewed_at||a.created_at||0));
+
+      // Group processed registrations by IST date so the admin can review the complete history date-wise.
+      const dateKey=x=>{
+        const raw=x.reviewed_at||x.created_at;
+        if(!raw)return 'Unknown Date';
+        const z=new Date(new Date(raw).toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+        return String(z.getDate()).padStart(2,'0')+'-'+String(z.getMonth()+1).padStart(2,'0')+'-'+z.getFullYear();
+      };
+      const groups={};
+      processed.forEach(x=>{const k=dateKey(x);(groups[k]||(groups[k]=[])).push(x);});
+      const dates=Object.keys(groups).sort((a,b)=>{
+        const pa=a.split('-'),pb=b.split('-');
+        return new Date(+pb[2],+pb[1]-1,+pb[0])-new Date(+pa[2],+pa[1]-1,+pa[0]);
+      });
+
+      hist.innerHTML=`<div class="reg-history-card">
+        <div class="reg-history-head">
+          <div><div class="reg-history-title">📋 Registration History</div><div class="reg-history-sub">Approved & rejected payments • Date-wise • Latest first</div></div>
+          <div class="reg-history-count">${processed.length}</div>
+        </div>
+        <div class="reg-history-list">${dates.length?dates.map(date=>`
+          <div class="reg-history-date"><span>📅 ${escapeHtml(date)}</span><b>${groups[date].length}</b></div>
+          ${groups[date].map(x=>{
+            const st=norm(x.status);
+            const shot=(x.screenshot_data&&String(x.screenshot_data).startsWith('data:image'))?String(x.screenshot_data):'';
+            const rid=String(x.id||'').replace(/'/g,"\\'");
+            const reviewed=x.reviewed_at||x.created_at;
+            return `<div class="reg-history-row">
+              <div class="reg-history-main">
+                <div class="reg-history-avatar">${st==='approved'?'✓':'×'}</div>
+                <div class="reg-history-info">
+                  <div class="reg-history-name">${escapeHtml(x.full_name||'Member')}</div>
+                  <div class="reg-history-id">${escapeHtml(x.approved_fl_id||'Not created')} ${x.mobile?'• '+escapeHtml(x.mobile):''}</div>
+                  <div class="reg-history-meta">${escapeHtml(x.email||'—')} • ₹${Number(x.amount||2000).toLocaleString('en-IN')} • UTR/Hash: <span>${escapeHtml(x.utr_hash||'—')}</span></div>
+                  <div class="reg-history-time">${reviewed?new Date(reviewed).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'—'}</div>
+                </div>
+                <div class="reg-history-actions">
+                  <span class="reg-status ${st==='approved'?'approved':'rejected'}">${st.toUpperCase()}</span>
+                  ${shot?`<button type="button" class="reg-eye-btn" title="View payment screenshot" onclick="openRegistrationScreenshot('${rid}')">👁️</button>`:`<span class="reg-no-shot" title="No screenshot saved">—</span>`}
+                </div>
+              </div>
+            </div>`;
+          }).join('')}`).join(''):'<div class="reg-history-empty">No approved/rejected registration history found.</div>'}</div>
+      </div>`;
+      window.__registrationHistoryRows=processed;
     }
 
     if(!pending.length){
@@ -395,6 +455,13 @@ body{background:#eef2f7;color:#0f172a}
 .user-admin-row{background:#fff;border:1px solid #e2e8f0;border-radius:17px;padding:14px;margin-bottom:10px;box-shadow:0 2px 7px rgba(15,23,42,.04)}.user-admin-main{display:flex;align-items:center;gap:10px}.user-admin-avatar{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#1d4ed8,#059669);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px;flex:none}.user-admin-name{font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.user-admin-id{font-size:12px;color:#1d4ed8;font-weight:800;margin-top:2px}.user-edit-btn{border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:10px;padding:9px 12px;font-weight:800;cursor:pointer;margin-left:auto}.user-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.user-admin-grid>div{background:#f8fafc;border-radius:10px;padding:9px;min-width:0}.user-admin-grid span{display:block;font-size:10px;color:#64748b;font-weight:700;margin-bottom:3px}.user-admin-grid b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.user-loading,.user-empty{text-align:center;padding:28px;background:#fff;border:1px dashed #cbd5e1;border-radius:15px;color:#64748b}
 .user-edit-modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:10000;padding:18px;align-items:center;justify-content:center}.user-edit-modal.show{display:flex}.user-edit-card{width:min(560px,100%);max-height:92dvh;overflow:auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}.user-edit-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.user-edit-title{font-size:20px;font-weight:900}.user-edit-sub{font-size:11px;color:#64748b;margin-top:3px}.user-close{width:38px;height:38px;border:0;border-radius:12px;background:#fef2f2;color:#dc2626;font-size:25px;cursor:pointer}.user-edit-card label{display:block;font-size:12px;font-weight:800;color:#334155;margin:10px 0 6px}.user-id-box{display:flex;align-items:center;gap:7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;font-size:12px}.user-id-box span{color:#64748b}.user-id-box b{margin-left:auto;color:#1d4ed8}.user-two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}.password-edit-wrap{position:relative}.password-edit-wrap input{padding-right:48px}.password-edit-wrap button{position:absolute;right:5px;top:5px;height:38px;width:40px;border:0;background:#f1f5f9;border-radius:9px;cursor:pointer}.password-help{font-size:10px;color:#64748b;background:#f8fafc;border-radius:9px;padding:9px;margin-top:7px}.user-edit-actions{display:flex;gap:8px;margin-top:15px}.reset-password-btn,.save-user-btn{flex:1;border:0;border-radius:12px;padding:13px;font-weight:900;cursor:pointer}.reset-password-btn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}.save-user-btn{background:linear-gradient(135deg,#059669,#047857);color:#fff}.save-user-btn:disabled{opacity:.6;cursor:not-allowed}
 @media(max-width:520px){.users-admin-title{font-size:19px}.users-admin-header{padding:14px}.user-admin-grid{grid-template-columns:1fr}.user-two-col{grid-template-columns:1fr}.users-admin-toolbar{flex-direction:column}.user-refresh-btn{height:44px}.user-edit-actions{flex-direction:column}}
+
+.reg-history-card{background:#fff;border:2px solid #cbd5e1;border-radius:18px;padding:14px;margin-top:12px;box-shadow:0 2px 8px rgba(15,23,42,.05)}
+.reg-history-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.reg-history-title{font-size:17px;font-weight:900;color:#0f172a}.reg-history-sub{font-size:11px;color:#64748b;margin-top:3px}.reg-history-count{min-width:42px;height:42px;border-radius:13px;background:#eff6ff;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.reg-history-date{display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:8px 10px;margin:10px 0 7px;font-size:12px;font-weight:800;color:#334155}.reg-history-date b{background:#e2e8f0;border-radius:999px;padding:3px 8px;font-size:10px;color:#475569}
+.reg-history-row{background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:10px;margin-bottom:7px}.reg-history-main{display:flex;align-items:flex-start;gap:9px}.reg-history-avatar{width:34px;height:34px;border-radius:10px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none}.reg-history-info{min-width:0;flex:1}.reg-history-name{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.reg-history-id{font-size:11px;color:#1d4ed8;font-weight:800;margin-top:2px}.reg-history-meta{font-size:10px;color:#475569;line-height:1.55;margin-top:4px;word-break:break-word}.reg-history-meta span{font-family:monospace}.reg-history-time{font-size:10px;color:#94a3b8;margin-top:3px}.reg-history-actions{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex:none}.reg-status{font-size:9px;font-weight:900;padding:4px 7px;border-radius:999px}.reg-status.approved{background:#dcfce7;color:#166534}.reg-status.rejected{background:#fee2e2;color:#991b1b}.reg-eye-btn{width:38px;height:36px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:10px;font-size:17px;cursor:pointer}.reg-eye-btn:active{transform:scale(.96)}.reg-no-shot{width:38px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#f8fafc;color:#94a3b8}.reg-history-empty{text-align:center;color:#64748b;padding:22px;font-size:12px;border:1px dashed #cbd5e1;border-radius:12px}
+.registration-shot-modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:12000;padding:18px;align-items:center;justify-content:center}.registration-shot-modal.show{display:flex}.registration-shot-card{width:min(680px,100%);max-height:94dvh;overflow:auto;background:#fff;border-radius:20px;padding:14px;box-shadow:0 20px 70px rgba(0,0,0,.35)}.registration-shot-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.registration-shot-title{font-size:16px;font-weight:900}.registration-shot-info{font-size:10px;color:#64748b;margin-top:2px}.registration-shot-close{width:38px;height:38px;border:0;border-radius:11px;background:#fee2e2;color:#991b1b;font-size:21px;cursor:pointer}.registration-shot-image{display:block;width:100%;max-height:75dvh;object-fit:contain;background:#f8fafc;border:1px solid #e2e8f0;border-radius:13px}
+@media(max-width:480px){.reg-history-main{gap:7px}.reg-history-actions{gap:5px}.reg-history-meta{font-size:9.5px}.reg-history-title{font-size:16px}}
 </style>
 </head>
 <body>
@@ -455,6 +522,15 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-binary" style="display:none"><div class="card"><h3>🌳 Binary Summary - Real - Restored</h3><div>Binary summary - Before pins session had this - Real data</div></div></div>
 <div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI - Real - Restored from Before Pins Session</h3><div>ROI management - Daily Rs.40 - Before pins session files</div></div></div>
 <div id="sec-withdraw" style="display:none"><div class="card" style="background:linear-gradient(135deg,#172554,#4c1d95);color:#fff;border-radius:18px;padding:18px"><div style="font-size:19px;font-weight:900">💳 Withdrawals & Settlements</div><div style="font-size:11px;opacity:.85;margin-top:5px">Matching income, loan withdrawals and ROI/store redemptions are shown separately.</div><button onclick="loadAdminWithdrawals()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Finance Data</button></div><div class="grid2"><div class="dark-card"><div style="font-size:11px;color:#64748b">Processing</div><div id="wdPendingCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Approved</div><div id="wdApprovedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Rejected</div><div id="wdRejectedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Total Records</div><div id="wdTotalCount" style="font-size:24px;font-weight:900">0</div></div></div><div class="card" style="border:2px solid #2563eb"><b>🔎 Quick Filter</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input id="wdSearch" class="input" placeholder="Search FL ID / store / method" oninput="renderAdminWithdrawals()"><select id="wdStatus" class="input" onchange="renderAdminWithdrawals()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div><div class="card" style="border:2px solid #059669"><div style="font-weight:900;font-size:16px">💰 Matching / Loan Direct Withdrawals</div><div id="adminWithdrawList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card" style="border:2px solid #b45309"><div style="font-weight:900;font-size:16px">🏪 ROI Store Redemptions / Store Settlements</div><div id="adminStoreList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card"><div style="font-weight:900;font-size:16px">📋 Complete Finance History</div><div id="adminWithdrawHistory" style="margin-top:10px">Click Refresh Finance Data.</div></div></div>
+</div>
+<div id="registrationScreenshotModal" class="registration-shot-modal" onclick="if(event.target===this)closeRegistrationScreenshot()">
+  <div class="registration-shot-card">
+    <div class="registration-shot-head">
+      <div><div class="registration-shot-title">📸 Payment Screenshot</div><div id="registrationScreenshotInfo" class="registration-shot-info"></div></div>
+      <button type="button" class="registration-shot-close" onclick="closeRegistrationScreenshot()">✕</button>
+    </div>
+    <img id="registrationScreenshotImage" class="registration-shot-image" alt="Payment screenshot">
+  </div>
 </div>
 <div id="storeEditor" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;padding:18px;overflow:auto"><div class="card" style="max-width:520px;margin:30px auto;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center"><h3>✏️ Edit Store</h3><button type="button" onclick="closeStoreEditor()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:7px 10px">✕</button></div><input id="editStoreId" type="hidden"><input id="editStoreName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="editStoreCode" class="input" placeholder="Store Code" style="margin-top:8px"><input id="editStorePhone" class="input" placeholder="Phone" style="margin-top:8px"><textarea id="editStoreAddress" class="input" placeholder="Address" style="margin-top:8px;min-height:70px"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreTown" class="input" placeholder="Town / City"><input id="editStorePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreLat" class="input" placeholder="Latitude"><input id="editStoreLng" class="input" placeholder="Longitude"></div><select id="editStoreStatus" class="input" style="margin-top:8px"><option value="active">Active</option><option value="inactive">Inactive</option></select><button type="button" onclick="saveStoreEdits()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store Changes</button></div></div>
 
