@@ -172,7 +172,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-loans" style="display:none">
 <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px">
   <div style="font-size:11px;opacity:.8">FLM LOAN & ROI</div><div style="font-size:22px;font-weight:900;margin-top:4px">🏦 Loan Plans</div>
-  <div style="font-size:11px;opacity:.85;margin-top:6px">Eligibility is checked from your real binary/direct-referral data. After 40:40, renewal gating and held amounts are shown here.</div>
+  <div style="font-size:11px;opacity:.85;margin-top:6px">Eligibility is checked from your real binary/direct-referral data. After 36:36, renewal gating and held amounts are shown here.</div>
   <button onclick="loadLoanPanel()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:11px;padding:12px;font-weight:800">🔄 Refresh Loan Status</button>
 </div>
 <div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="text-align:center;color:#64748b">Loading loan status...</div></div>
@@ -202,7 +202,7 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <div class="card" style="border:2px solid #0ea5e9">
  <div style="font-weight:900;color:#0369a1">📋 Loan Plan Levels</div>
- <div style="font-size:11px;color:#64748b;margin-top:4px">Increment = current loan amount − previous loan amount. The 40:40 renewal rule is applied by the database functions.</div>
+ <div style="font-size:11px;color:#64748b;margin-top:4px">Increment = current loan amount − previous loan amount. The 36:36 renewal rule is applied by the database functions.</div>
  <div id="loanPlansTable" style="margin-top:10px;overflow:auto">Loading plans...</div>
 </div>
 <div class="card" style="border:2px solid #f59e0b">
@@ -1722,7 +1722,7 @@ async function loadLoanPanel(){
           // Display text: Released / Withdrawn / Approved
           var displayStatus = st==='withdrawn'?'withdrawn':(st==='released'?'released':st);
           var color = displayStatus==='withdrawn'?'#6b7280': (displayStatus==='released'?'#059669':'#1e40af');
-          var requiredText = l.required_pairs? (l.required_pairs+':'+l.required_pairs) : (lvl===1?'1:1': lvl===2?'4:4': lvl===3?'12:12': lvl===4?'40:40': lvl+'');
+          var requiredText = l.required_pairs? (l.required_pairs+':'+l.required_pairs) : (lvl===1?'1:1': lvl===2?'4:4': lvl===3?'12:12': lvl===4?'36:36': lvl+'');
           hh+='<div style="border-bottom:1px solid #e2e8f0;padding:12px 2px"><div style="display:flex;justify-content:space-between;gap:8px"><b>Loan '+loanEsc(lvl)+'</b><b>Rs. '+loanMoney(amt).replace(/Rs\.\s*/,'')+'</b></div><div style="font-size:11px;color:'+color+';margin-top:4px;font-weight:700">Required pairs: '+requiredText+' · Status: '+loanEsc(displayStatus)+(l.hold_amount?' · Held: '+loanMoney(l.hold_amount):'')+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Renewal: '+loanNum(l.renewal_completed)+' / '+loanNum(l.renewal_required)+'</div></div>';
         });
         hist.innerHTML=hh;
