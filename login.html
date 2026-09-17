@@ -5,7 +5,7 @@
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
 // Supabase client-side anon/publishable key supplied for this project.
-const SUPABASE_ANON_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient=null;
 function initSupabase(){
   try{
@@ -36,29 +36,36 @@ function safeStorageGet(key){
 async function loginReal(flIdOrMobile,password){
   const client=supabaseClient||initSupabase();
   if(!client) return {success:false,message:'Database connection failed. Please try again.'};
-  const id=String(flIdOrMobile||'').trim();
+  const rawId=String(flIdOrMobile||'').trim();
+  const id=rawId.replace(/\s+/g,'').toUpperCase();
   const pass=String(password||'');
   try{
-    // First try FL ID (case-insensitive by normalising the entered value).
-    let r=await client.from('users').select('*').eq('fl_id',id.toUpperCase()).limit(1);
+    // FL ID: exact match first, then case-insensitive fallback.
+    let r=await client.from('users').select('*').eq('fl_id',id).limit(1);
     if(r.error) throw r.error;
     let user=(r.data&&r.data.length)?r.data[0]:null;
 
-    // If FL ID was not found, allow registered mobile number.
     if(!user){
-      r=await client.from('users').select('*').eq('mobile',id).limit(1);
+      r=await client.from('users').select('*').ilike('fl_id',id).limit(1);
       if(r.error) throw r.error;
       user=(r.data&&r.data.length)?r.data[0]:null;
     }
 
-    if(!user) return {success:false,message:'No account found'};
+    // If FL ID was not found, allow registered mobile number.
+    if(!user){
+      r=await client.from('users').select('*').eq('mobile',rawId).limit(1);
+      if(r.error) throw r.error;
+      user=(r.data&&r.data.length)?r.data[0]:null;
+    }
+
+    if(!user) return {success:false,message:'No account found for '+rawId};
     if(String(user.password??'')!==pass) return {success:false,message:'Wrong password'};
 
     return {success:true,user:user};
   }catch(err){
     const raw=String(err?.message||err||'Database error');
     if(/invalid api key/i.test(raw)){
-      return {success:false,message:'Database error: Invalid API key. Update the Supabase Publishable/anon key in login.html.'};
+      return {success:false,message:'Database error: Invalid API key. The login page key does not match the project key.'};
     }
     return {success:false,message:'Database error: '+raw};
   }
