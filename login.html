@@ -4,21 +4,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-// Supabase client-side anon/publishable key supplied for this project.
-const SUPABASE_ANON_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sIjoiYW5vbiIsImlhdCI6MTc4ODY0MTgwOCwiZXhwIjoyMTA0MjE3ODA4fQ.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient=null;
-function initSupabase(){
-  try{
-    if(typeof supabase==='undefined' || !supabase.createClient) throw new Error('Supabase library not loaded');
-    supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-    return supabaseClient;
-  }catch(e){
-    console.error('Supabase init error:',e);
-    supabaseClient=null;
-    return null;
-  }
-}
-initSupabase();
+try{if(typeof supabase!=='undefined'){supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);}}catch(e){}
 
 function safeStorageSet(key,value){
   try{
@@ -34,34 +22,19 @@ function safeStorageGet(key){
 }
 
 async function loginReal(flIdOrMobile,password){
-  const client=supabaseClient||initSupabase();
-  if(!client) return {success:false,message:'Database connection failed. Please try again.'};
-  const id=String(flIdOrMobile||'').trim();
-  const pass=String(password||'');
+  if(!supabaseClient){return {success:false,message:'Not connected'};}
   try{
-    // First try FL ID (case-insensitive by normalising the entered value).
-    let r=await client.from('users').select('*').eq('fl_id',id.toUpperCase()).limit(1);
-    if(r.error) throw r.error;
-    let user=(r.data&&r.data.length)?r.data[0]:null;
-
-    // If FL ID was not found, allow registered mobile number.
+    let user=null;
+    const {data: byFlId} = await supabaseClient.from('users').select('*').eq('fl_id',flIdOrMobile.toUpperCase()).limit(1);
+    if(byFlId&&byFlId.length>0) user=byFlId[0];
     if(!user){
-      r=await client.from('users').select('*').eq('mobile',id).limit(1);
-      if(r.error) throw r.error;
-      user=(r.data&&r.data.length)?r.data[0]:null;
+      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile',flIdOrMobile).limit(1);
+      if(byMobile&&byMobile.length>0) user=byMobile[0];
     }
-
     if(!user) return {success:false,message:'No account found'};
-    if(String(user.password??'')!==pass) return {success:false,message:'Wrong password'};
-
+    if(user.password!==password) return {success:false,message:'Wrong password'};
     return {success:true,user:user};
-  }catch(err){
-    const raw=String(err?.message||err||'Database error');
-    if(/invalid api key/i.test(raw)){
-      return {success:false,message:'Database error: Invalid API key. Update the Supabase Publishable/anon key in login.html.'};
-    }
-    return {success:false,message:'Database error: '+raw};
-  }
+  }catch(err){return {success:false,message:err.message};}
 }
 </script>
 <style>
@@ -89,9 +62,8 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
 <input id="loginPass" type="password" placeholder="Enter password" class="input">
 <button id="loginBtn" class="btn btn-primary">Login</button>
 
-<div style="display:flex;gap:8px;margin-top:12px">
-  <button onclick="demoLogin('FL100001','admin123')" style="flex:1;background:#0f172a;color:#fff;border:0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Admin</button>
-  <button onclick="toggleForgot()" style="flex:1;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Forgot?</button>
+<div style="margin-top:12px">
+  <button onclick="toggleForgot()" style="width:100%;background:#fff;color:#0f172a;border:1px solid #e2e8f0;padding:10px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Forgot?</button>
 </div>
 
 <div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">No account? <a href="./register.html" style="color:#2563eb;font-weight:600;text-decoration:none">Register</a></div>
@@ -114,13 +86,12 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
     <button onclick="sendForgotSupport('mail')" id="mailSupportBtn" class="btn" style="background:#0f172a;color:#fff;padding:12px">📨 Send to Admin</button>
   </div>
 
-    <div id="adminOpt" style="display:none">
+  <div id="adminOpt" style="display:none">
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px;color:#92400e">
       <b>Admin Reset:</b> Send your FL ID and explain the problem. The request will appear in Admin Support. Admin can reset the password from the Admin panel.
       <br><br>FL ID: <span id="supportFlId">FL ID</span>
     </div>
-    <input id="adminFlIdInput" placeholder="Enter FL ID - ex: FL241190" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-top:10px;margin-bottom:8px;text-transform:uppercase">
-    <textarea id="adminResetMessage" placeholder="Example: I forgot my password. Please reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;resize:vertical"></textarea>
+    <textarea id="adminResetMessage" placeholder="Example: I forgot my password. Please reset it." style="width:100%;min-height:80px;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;margin-top:8px;resize:vertical"></textarea>
     <button onclick="sendForgotSupport('admin')" id="adminSupportBtn" class="btn" style="background:#2563eb;color:#fff;padding:12px;margin-top:8px">📨 Send to Admin</button>
   </div>
 
@@ -157,31 +128,20 @@ function selectForgotOpt(opt){
 async function sendForgotSupport(type){
   const msg=document.getElementById('forgotMsg');
   const btn=document.getElementById(type==='mail'?'mailSupportBtn':'adminSupportBtn');
-  function normalizeFlId(raw){
-    if(!raw) return '';
-    let s = String(raw).trim().toUpperCase();
-    s = s.replace(/\s+/g, '');
-    const m = s.match(/FL[0-9A-Z]+/);
-    return m ? m[0] : s;
-  }
-  let flIdRaw = type==='mail' ? document.getElementById('forgotMailFlId').value : (document.getElementById('adminFlIdInput')?.value || document.getElementById('loginId').value || '');
-  let flId = normalizeFlId(flIdRaw);
-  let messageRaw = type==='mail' ? document.getElementById('forgotMailMessage').value : document.getElementById('adminResetMessage').value;
-  let message = String(messageRaw||'').trim();
-  if(!flId || !/^FL[0-9A-Z]+$/i.test(flId)){
-    const fromMsg = normalizeFlId(message);
-    if(fromMsg && /^FL[0-9A-Z]+$/i.test(fromMsg)){
-      flId = fromMsg;
-      if(message.toUpperCase().replace(/\s+/g,'') === flId){
-        message = 'Forgot password - please reset for '+flId;
-      }
-      const inputEl = document.getElementById(type==='mail'?'forgotMailFlId':'adminFlIdInput');
-      if(inputEl) inputEl.value = flId;
-    }
-  }
-  if(!/^FL[0-9A-Z]+$/i.test(flId)){
+
+  const flId=(type==='mail'
+    ? document.getElementById('forgotMailFlId').value
+    : ((document.getElementById('loginId').value||'')||'')
+  ).trim().toUpperCase();
+
+  const message=(type==='mail'
+    ? document.getElementById('forgotMailMessage').value
+    : document.getElementById('adminResetMessage').value
+  ).trim();
+
+  if(!/^FL[A-Z0-9]+$/i.test(flId)){
     msg.style.color='#dc2626';
-    msg.innerText='Please enter correct FL ID. Use FL241190 without space. You typed: '+(flIdRaw||'empty');
+    msg.innerText='Please enter your correct FL ID.';
     return;
   }
   if(!message){
@@ -194,25 +154,39 @@ async function sendForgotSupport(type){
     msg.innerText='Database not available.';
     return;
   }
+
   btn.disabled=true;
   btn.style.opacity='.65';
   msg.style.color='#2563eb';
   msg.innerText='Sending request to Admin...';
+
   try{
-    const client=supabaseClient||initSupabase();
-    if(!client) throw new Error('Database connection failed.');
     let userName=flId;
     try{
-      const q=await client.from('users').select('full_name').eq('fl_id',flId).limit(1);
+      const q=await supabaseClient.from('users').select('full_name').eq('fl_id',flId).limit(1);
       if(!q.error && q.data && q.data[0] && q.data[0].full_name) userName=q.data[0].full_name;
     }catch(e){}
-    const subject=type==='mail' ? 'Forgot Password / Mail OTP Help' : 'Forgot Password / Admin Reset';
-    const r=await client.from('support_requests').insert({fl_id: flId, user_name: userName, subject: subject, message: message, screenshot_data: null, status: 'pending'}).select().single();
+
+    const subject=type==='mail'
+      ? 'Forgot Password / Mail OTP Help'
+      : 'Forgot Password / Admin Reset';
+
+    const r=await supabaseClient.from('support_requests').insert({
+      fl_id:flId,
+      user_name:userName,
+      subject:subject,
+      message:message,
+      screenshot_data:null,
+      status:'pending'
+    }).select().single();
+
     if(r.error) throw r.error;
+
     msg.style.color='#047857';
-    msg.innerText='✅ Request sent for '+flId+'. Admin will reply.';
+    msg.innerText='✅ Request sent. Admin will check and reply in Help Center.';
+
     if(type==='mail') document.getElementById('forgotMailMessage').value='';
-    else {document.getElementById('adminResetMessage').value=''; document.getElementById('adminFlIdInput').value='';}
+    else document.getElementById('adminResetMessage').value='';
   }catch(e){
     msg.style.color='#dc2626';
     msg.innerText='❌ Failed: '+String(e.message||e);
@@ -223,7 +197,6 @@ async function sendForgotSupport(type){
 }
 
 function toast(m){
-
   let t=document.createElement('div');
   t.className='toast';
   t.innerText=m;
@@ -236,23 +209,6 @@ function demoLogin(id,pass){
   document.getElementById('loginPass').value=pass;
   document.getElementById('loginBtn').click();
 }
-
-// If a valid local FLM session already exists, open the dashboard directly.
-// This does not create or bypass a new login session.
-(function(){
-  try{
-    const s=JSON.parse(localStorage.getItem('flm_session')||'null');
-    if(s && (s.flId||s.fl_id)){
-      const id=(s.flId||s.fl_id);
-      const name=s.name||s.full_name||'';
-      const q=new URLSearchParams(location.search);
-      if(q.get('stay')!=='login'){
-        // Keep the normal login page available via ?stay=login.
-        // Do not redirect automatically here; registration and support flows can return here.
-      }
-    }
-  }catch(e){}
-})();
 
 document.getElementById('loginBtn').addEventListener('click',async()=>{
   const id=document.getElementById('loginId').value.trim();
