@@ -842,9 +842,27 @@ async function openWalletAction(type){
   var loanFull=loanNum(FLM_WALLET.loan);
   var loanGross=loanNum(FLM_WALLET.loanGross||FLM_WALLET.rawLoan);
   var loanEligible=loanNum(FLM_WALLET.loanEligible||loanFull);
-  html+=`<div id="loanActionState" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Only the currently eligible incremental loan amount can be withdrawn. No partial amount is allowed.</div><div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#64748b">CURRENT ELIGIBLE LOAN</div><div id="loanFullAmount" style="font-size:22px;font-weight:900;color:#1d4ed8;margin-top:3px">${money(loanFull)}</div><div id="loanFullFormula" style="font-size:10px;color:#64748b;margin-top:4px">Loan Wallet balance available for full withdrawal = ${money(loanFull)}</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Up to ₹2,00,000: no charge. Above ₹2,00,000: Bank 18% deduction, USDT BEP-20 5% deduction.</div><div style="display:flex;gap:8px;margin-top:10px"><button id="loanBankBtn" onclick="submitLoanWithdraw('bank')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank — Full Amount</button><button id="loanUsdtBtn" onclick="submitLoanWithdraw('usdt')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT — Full Amount</button></div>`;
+  html+=`<div id="loanActionState" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Only the currently eligible incremental loan amount can be withdrawn. No partial amount is allowed.</div><div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#64748b">CURRENT ELIGIBLE LOAN</div><div id="loanFullAmount" style="font-size:22px;font-weight:900;color:#1d4ed8;margin-top:3px">${money(loanFull)}</div><div id="loanFullFormula" style="font-size:10px;color:#64748b;margin-top:4px">Loan Wallet balance available for full withdrawal = ${money(loanFull)}</div><div id="loanDeductionPreview" style="font-size:10px;color:#92400e;margin-top:6px;font-weight:700"></div><div id="loanNetPreview" style="font-size:14px;color:#166534;margin-top:5px;font-weight:900"></div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Up to ₹2,00,000: 10% deduction. Above ₹2,00,000: Bank 18% deduction, USDT BEP-20 5% deduction.</div><div style="display:flex;gap:8px;margin-top:10px"><button id="loanBankBtn" onclick="submitLoanWithdraw('bank')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank — Receive</button><button id="loanUsdtBtn" onclick="submitLoanWithdraw('usdt')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT — Receive</button></div>`;
  }
- box.innerHTML=html;box.scrollIntoView({behavior:'smooth',block:'start'});if(type==='matching')checkMatchingStore();
+ box.innerHTML=html;if(type==='loan')updateLoanWithdrawalPreview();box.scrollIntoView({behavior:'smooth',block:'start'});if(type==='matching')checkMatchingStore();
+}
+
+function updateLoanWithdrawalPreview(){
+ var gross=loanNum(FLM_WALLET.loan);
+ var cap=200000;
+ var bankRate=gross<=cap?0.10:0.18;
+ var usdtRate=gross<=cap?0.10:0.05;
+ var bankDed=Math.round(gross*bankRate*100)/100;
+ var usdtDed=Math.round(gross*usdtRate*100)/100;
+ var bankNet=Math.max(0,gross-bankDed);
+ var usdtNet=Math.max(0,gross-usdtDed);
+ var dp=document.getElementById('loanDeductionPreview');
+ if(dp) dp.innerHTML='Bank: '+money(gross)+' - '+money(bankDed)+' ('+(bankRate*100)+'% deduction) &nbsp; | &nbsp; USDT: '+money(gross)+' - '+money(usdtDed)+' ('+(usdtRate*100)+'% deduction)';
+ var np=document.getElementById('loanNetPreview');
+ if(np) np.innerHTML='Bank receive: '+money(bankNet)+' &nbsp; • &nbsp; USDT receive: '+money(usdtNet);
+ var bb=document.getElementById('loanBankBtn'),ub=document.getElementById('loanUsdtBtn');
+ if(bb) bb.innerText='Bank — Receive '+money(bankNet);
+ if(ub) ub.innerText='USDT — Receive '+money(usdtNet);
 }
 function getActionAmount(){return Number(document.getElementById('walletActionAmount')?.value||0);}
 async function ensurePayout(method){var flId=getFlId();var r=await supabaseClient.from('users').select('bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').eq('fl_id',flId).single();var u=r.data||{};if(method==='bank' && (!u.bank_account_holder||!u.bank_name||!u.bank_account_number||!u.bank_ifsc)) {alert('Please complete Bank details in My Profile first.');showSec('profile');return false;}if(method==='usdt'&&!u.usdt_bep20){alert('Please add USDT BEP-20 address in My Profile first.');showSec('profile');return false;}return true;}
