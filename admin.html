@@ -318,7 +318,7 @@ function getAdminId(){try{const s=JSON.parse(localStorage.getItem('flm_admin_ses
 function adminLogin(){const email=document.getElementById('adminEmail').value.trim();const pass=document.getElementById('adminPass').value.trim();const msg=document.getElementById('adminLoginMsg');const admins=[{id:'super@freedomloans.in',pass:'super123'},{id:'FL100001',pass:'admin123'}];const isAdmin=admins.some(a=>a.id.toLowerCase()===email.toLowerCase()&&a.pass===pass)||(email.toLowerCase().includes('admin')&&pass.length>=3);if(isAdmin){localStorage.setItem('flm_admin_session',JSON.stringify({id:email}));msg.innerHTML='<span style=color:#059669>✅ Login Success</span>';setTimeout(()=>{document.getElementById('adminLogin').style.display='none';document.getElementById('adminMain').style.display='block';loadAdminData();},600);}else{msg.innerHTML='<span style=color:#dc2626>❌ Wrong ID/Pass</span>';}}
 function adminLogout(){localStorage.removeItem('flm_admin_session');document.getElementById('adminMain').style.display='none';document.getElementById('adminLogin').style.display='flex';}
 function checkAdminSession(){const sess=localStorage.getItem('flm_admin_session');if(sess){document.getElementById('adminLogin').style.display='none';document.getElementById('adminMain').style.display='block';loadAdminData();setTimeout(function(){var saved=localStorage.getItem('flm_admin_last_section')||'dashboard';showSec(saved,true);},80);}else{document.getElementById('adminLogin').style.display='flex';document.getElementById('adminMain').style.display='none';}}
-async function loadAdminData(){if(supabaseClient){const dash=await loadDashboardReal();if(dash){document.getElementById('statMembers').innerText=dash.usersCount||0;document.getElementById('statTokens').innerText=dash.pinsCount||0;document.getElementById('statStores').innerText=dash.storesCount||0;if(dash.users){document.getElementById('recentMembers').innerHTML=dash.users.map(u=>`<div style="padding:12px;border-bottom:1px solid #f1f5f9"><b>${u.full_name}</b> - ${u.fl_id} - ${u.mobile} - ${u.town||''}</div>`).join('');}if(dash.binarySummary){const totalPairs=dash.binarySummary.reduce((s,x)=>s+(x.total_pairs||0),0);document.getElementById('binaryPairs').innerText=totalPairs+' pairs';}}}}
+async function loadAdminData(){if(supabaseClient){const dash=await loadDashboardReal();if(dash){document.getElementById('statMembers').innerText=dash.usersCount||0;document.getElementById('statTokens').innerText=dash.pinsCount||0;document.getElementById('statStores').innerText=dash.storesCount||0;if(dash.users){document.getElementById('recentMembers').innerHTML=dash.users.map(u=>{const n=String(u.full_name||'Member');const initials=n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();const when=u.created_at?new Date(u.created_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'';return `<div class="dash-member"><div class="dash-avatar">${escapeHtml(initials||'FL')}</div><div class="dash-member-main"><div class="dash-member-name">${escapeHtml(n)}</div><div class="dash-member-meta">${escapeHtml(u.fl_id||'—')} · ${escapeHtml(u.mobile||'—')}${u.town?' · '+escapeHtml(u.town):''}</div></div><div class="dash-member-time">${escapeHtml(when)}</div></div>`;}).join('');}if(dash.binarySummary){const totalPairs=dash.binarySummary.reduce((s,x)=>s+(x.total_pairs||0),0);document.getElementById('binaryPairs').innerText=totalPairs+' pairs';}}}}
 function toggleMenu(){document.getElementById('menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function showSec(id,fromRestore){localStorage.setItem('flm_admin_last_section',id);document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');var target=document.getElementById('sec-'+id);if(target)target.style.display='block';if(!fromRestore)toggleMenu();loadSec(id);if(id==='registrationPayments')loadRegistrationRequests();}
 async function loadSec(id){
@@ -343,12 +343,42 @@ body{background:#eef2f7;color:#0f172a}
 #adminLogin{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:#eef2f7}
 #adminMain{width:100%;max-width:100%;padding:12px;box-sizing:border-box}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+
+/* ===== FLM DASHBOARD UI REFRESH — dashboard only ===== */
+:root{--flm-blue:#2563eb;--flm-blue-dark:#1e3a8a;--flm-green:#059669;--flm-bg:#f5f7fb;--flm-text:#0f172a;--flm-muted:#64748b;--flm-border:#e6eaf0}
+body{background:var(--flm-bg);color:var(--flm-text)}
+#adminMain{padding:0 14px 28px;max-width:1180px;margin:0 auto}
+.topbar{max-width:1180px;margin:0 auto 14px;padding:14px 16px;border:1px solid var(--flm-border);border-top:0;border-radius:0 0 18px 18px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
+.topbar b{font-size:15px;line-height:1.25}
+#sec-dashboard{max-width:1180px;margin:0 auto}
+.dash-hero{background:linear-gradient(135deg,#0f1f4b 0%,#1d4ed8 62%,#0f766e 100%);color:#fff;border-radius:22px;padding:22px;box-shadow:0 10px 28px rgba(30,64,175,.18);margin-bottom:14px;position:relative;overflow:hidden}
+.dash-hero:after{content:"";position:absolute;width:180px;height:180px;border:1px solid rgba(255,255,255,.12);border-radius:50%;right:-55px;top:-70px;box-shadow:0 0 0 35px rgba(255,255,255,.035),0 0 0 70px rgba(255,255,255,.025)}
+.dash-brand{display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.dash-logo{width:52px;height:52px;border-radius:15px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;backdrop-filter:blur(5px)}
+.dash-hero h1{font-size:21px;margin:0;line-height:1.2}.dash-hero p{margin:5px 0 0;font-size:12px;opacity:.82}
+.dash-live{display:inline-flex;align-items:center;gap:6px;margin-top:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800}
+.dash-live i{width:7px;height:7px;border-radius:50%;background:#86efac;display:block;box-shadow:0 0 0 4px rgba(134,239,172,.12)}
+.dash-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.dash-stat{background:#fff;border:1px solid var(--flm-border);border-radius:18px;padding:16px;box-shadow:0 4px 14px rgba(15,23,42,.05);min-width:0}
+.dash-stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.dash-stat-label{font-size:11px;color:var(--flm-muted);font-weight:700}.dash-stat-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;background:#eff6ff}
+.dash-stat-value{font-size:28px;font-weight:900;margin-top:10px;letter-spacing:-.5px}.dash-stat-sub{font-size:10px;color:#94a3b8;margin-top:3px}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:14px;align-items:start}
+.dash-panel{background:#fff;border:1px solid var(--flm-border);border-radius:18px;padding:16px;box-shadow:0 4px 14px rgba(15,23,42,.05);margin-bottom:14px}
+.dash-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.dash-panel-title{font-size:15px;font-weight:900}.dash-panel-note{font-size:10px;color:#94a3b8}
+.dash-member{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid #f1f5f9}.dash-member:last-child{border-bottom:0}.dash-avatar{width:38px;height:38px;border-radius:12px;background:#eff6ff;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:0 0 auto}.dash-member-main{min-width:0;flex:1}.dash-member-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dash-member-meta{font-size:10px;color:#64748b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dash-member-time{font-size:9px;color:#94a3b8;white-space:nowrap}
+.dash-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.dash-action{display:flex;align-items:center;gap:9px;text-decoration:none;border:1px solid var(--flm-border);background:#f8fafc;border-radius:13px;padding:12px;color:#0f172a;cursor:pointer;font-weight:800;font-size:11px}.dash-action span:first-child{font-size:18px}.dash-action:hover{background:#eff6ff;border-color:#bfdbfe}
+.dash-health{border-radius:15px;background:#f0fdf4;border:1px solid #bbf7d0;padding:12px}.dash-health-row{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:6px 0}.dash-health-row b{color:#166534}.dash-badge{font-size:9px;font-weight:900;border-radius:999px;padding:4px 8px;background:#dcfce7;color:#166534}
+.dash-menu-section{font-size:9px!important;letter-spacing:1.2px!important;text-transform:uppercase;padding:12px 14px 5px!important;color:#94a3b8!important}
+.menu-item-modern{padding:11px 13px;border-radius:12px;margin:3px 0;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#e2e8f0;transition:.15s}.menu-item-modern:hover{background:#1e293b}.menu-item-modern.active{background:#1d4ed8;color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.menu{width:310px;max-width:88vw;padding:12px}.menu>div:first-child{padding-top:2px}
+@media(max-width:800px){.dash-stats{grid-template-columns:1fr 1fr}.dash-grid{grid-template-columns:1fr}.dash-hero{padding:18px}.dash-hero h1{font-size:19px}.dash-stat-value{font-size:25px}}
+@media(max-width:480px){#adminMain{padding:0 10px 22px}.dash-stats{gap:9px}.dash-stat{padding:13px;border-radius:15px}.dash-stat-icon{width:32px;height:32px;font-size:16px}.dash-stat-value{font-size:23px}.dash-stat-label{font-size:10px}.dash-grid{gap:10px}.dash-panel{padding:13px;border-radius:15px}.dash-actions{grid-template-columns:1fr 1fr}.topbar{padding:12px 13px}.topbar b{font-size:13px}.topbar button{padding:7px 10px!important}}
 </style>
 </head>
 <body>
 <div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2></div><input id="adminEmail" placeholder="Admin ID" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
 <div id="adminMain" style="display:none">
-<div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b>FLM Admin - Platform Dashboard - All Sections - Pins Logic Implemented</b></div><button onclick="adminLogout()" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer">Logout</button></div>
+<div class="topbar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b>FLM Admin Dashboard</b></div><button onclick="adminLogout()" style="background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer">Logout</button></div>
 <div class="menu" id="menu">
 <div style="padding:8px 0">
 <div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px">ADMIN - FULL 40KB+ - Before Pins Session + Pins Logic</div>
@@ -371,7 +401,53 @@ body{background:#eef2f7;color:#0f172a}
 <div style="margin-top:12px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px;font-size:11px"><b style="color:#10b981">✅ Before Pins Session Files + Pins Logic Implemented</b><br><span style="color:#94a3b8">Before pins session: 40KB+ with 11 sections<br>Now: Same 11 sections + Pins logic (Deposit Check, Status by UTR, Copy Button, Screenshot Preview, Double Approve Prevent) - Full - 40KB+ as requested</span></div>
 </div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
-<div id="sec-dashboard"><div class="card" style="background:#f0fdf4;border:2px solid #059669"><div style="font-weight:800;color:#065f46">✅  Version - All Sections Restored - Before Pins Session Files + Pins Logic</div><div style="font-size:11px;color:#166534;margin-top:6px">This is  version - Before pins session had 11 sections: Dashboard, Users, Pins, Store Locator, Create Store, Store Points, Sub Admin, Wallets, Binary, ROI, Withdraw - Now same + pins logic implemented - As you requested - 40KB+ file</div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Members</div><div style="font-size:24px;font-weight:800" id="statMembers">0</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pins</div><div style="font-size:24px;font-weight:800" id="statTokens">0</div></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Stores</div><div style="font-size:24px;font-weight:800" id="statStores">0</div><div style="font-size:11px;color:#64748b">Restored from 40KB+ before pins session</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pairs</div><div style="font-size:20px;font-weight:800" id="binaryPairs">0 pairs</div></div></div><div class="card"><h3>Recent Members - Real - Live DB</h3><div id="recentMembers">Loading...</div></div></div>
+<div id="sec-dashboard">
+  <section class="dash-hero">
+    <div class="dash-brand">
+      <div class="dash-logo">FLM</div>
+      <div><h1>Admin Dashboard</h1><p>Freedom Loans Mart · Live platform overview</p></div>
+    </div>
+    <div class="dash-live"><i></i> Live database connected</div>
+  </section>
+
+  <section class="dash-stats">
+    <div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-label">TOTAL MEMBERS</div><div class="dash-stat-icon">👥</div></div><div class="dash-stat-value" id="statMembers">0</div><div class="dash-stat-sub">Registered members</div></div>
+    <div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-label">TOTAL PINS</div><div class="dash-stat-icon">🎫</div></div><div class="dash-stat-value" id="statTokens">0</div><div class="dash-stat-sub">Generated pins</div></div>
+    <div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-label">TOTAL STORES</div><div class="dash-stat-icon">🏪</div></div><div class="dash-stat-value" id="statStores">0</div><div class="dash-stat-sub">Store locations</div></div>
+    <div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-label">TOTAL PAIRS</div><div class="dash-stat-icon">🌳</div></div><div class="dash-stat-value" id="binaryPairs">0</div><div class="dash-stat-sub">Binary pairs</div></div>
+  </section>
+
+  <div class="dash-grid">
+    <div>
+      <section class="dash-panel">
+        <div class="dash-panel-head"><div><div class="dash-panel-title">Recent Members</div><div class="dash-panel-note">Latest 10 members from live database</div></div><span class="dash-badge">LIVE</span></div>
+        <div id="recentMembers">Loading...</div>
+      </section>
+    </div>
+    <div>
+      <section class="dash-panel">
+        <div class="dash-panel-head"><div><div class="dash-panel-title">Quick Actions</div><div class="dash-panel-note">Open common admin sections</div></div></div>
+        <div class="dash-actions">
+          <div class="dash-action" onclick="showSec('users')"><span>👥</span><span>Users</span></div>
+          <div class="dash-action" onclick="showSec('registrationPayments')"><span>💳</span><span>Registrations</span></div>
+          <div class="dash-action" onclick="showSec('pins')"><span>🎫</span><span>Pins</span></div>
+          <div class="dash-action" onclick="showSec('stores')"><span>🏪</span><span>Stores</span></div>
+          <div class="dash-action" onclick="showSec('withdraw')"><span>💸</span><span>Withdrawals</span></div>
+          <div class="dash-action" onclick="showSec('supportAdmin')"><span>💬</span><span>Support</span></div>
+        </div>
+      </section>
+      <section class="dash-panel">
+        <div class="dash-panel-head"><div class="dash-panel-title">System Status</div><span class="dash-badge">ONLINE</span></div>
+        <div class="dash-health">
+          <div class="dash-health-row"><span>Supabase connection</span><b>Connected</b></div>
+          <div class="dash-health-row"><span>Member database</span><b>Live</b></div>
+          <div class="dash-health-row"><span>Pins database</span><b>Live</b></div>
+          <div class="dash-health-row"><span>Store database</span><b>Live</b></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
 <div id="sec-users" style="display:none"><div class="card"><h3>👥 Users - Real - Live DB</h3><div id="usersList">Loading...</div></div></div>
 <div id="sec-registrationPayments" style="display:none"><div class="card" style="border:3px solid #f59e0b;background:#fffbeb"><div style="font-weight:800;color:#92400e;font-size:16px">💳 Registration Payment Approvals</div><div style="font-size:11px;color:#78350f;margin-top:6px">Direct ₹2,000 payment registrations. Verify UTR/Hash + screenshot, then approve to create the member account and FL ID.</div><div style="margin-top:8px;padding:9px;border-radius:10px;background:#ecfdf5;border:1px solid #86efac;color:#166534;font-size:11px;font-weight:700">📧 7-ID Rule: Same mobile/email can be used for up to 7 FL IDs. Email #2–#7 will be accepted after the database UNIQUE constraint has been removed.</div><button onclick="loadRegistrationRequests()" style="width:100%;margin-top:12px;background:#f59e0b;color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">🔄 Load Pending Registrations</button><div class="grid2" style="margin-top:12px"><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Total</div><div id="regTodayTotal" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Pending</div><div id="regTodayPending" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Approved</div><div id="regTodayApproved" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Rejected</div><div id="regTodayRejected" style="font-size:24px;font-weight:900">0</div></div></div><div id="registrationHistoryList" style="margin-top:12px"></div><div id="registrationRequestsList" style="margin-top:12px"></div></div></div>
   <div id="sec-pins" style="display:none">
@@ -416,9 +492,9 @@ async function loadStoresAdmin(){
         '<div style="font-weight:800">🏪 '+(s.name||'FLM Store')+' <span style="font-size:11px;color:#059669">• '+(s.status||'active')+'</span></div>'+
         '<button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-weight:800">✏️ Edit Store</button>'+
         '</div>'+
-        '<div style="font-size:11px;color:#64748b;margin-top:5px">Code: '+(s.store_code||'-')+' | Phone: '+(s.phone||s.mobile||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
+        '<div style="font-size:11px;color:#64748b;margin-top:5px">Code: '+(s.store_code||'-')+' | Phone: '+(s.mobile||s.phone||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
         '<div style="font-size:11px;color:#64748b;margin-top:3px">'+(s.address||'-')+'</div>'+
-        '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">✏️ Edit Store</button>'+((s.latitude!=null&&s.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.latitude+','+s.longitude)+'" style="background:#0f766e;color:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:800">🗺️ View Map</a>':'')+'<button type="button" onclick="deleteStore(\''+id+'\',\''+String(s.name||'FLM Store').replace(/'/g,"\\'")+'\')" style="background:#dc2626;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">🗑️ Delete</button></div></div>';
+        '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">✏️ Edit Store</button>'+((s.latitude!=null&&s.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.latitude+','+s.longitude)+'" style="background:#0f766e;color:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:800">🗺️ View Map</a>':'')+'</div></div>';
     }).join('');
   }catch(e){
     console.error('Store load failed:',e);
@@ -440,20 +516,6 @@ async function editStore(id){
 }
 function closeStoreEditor(){document.getElementById('storeEditor').style.display='none';}
 
-async function deleteStore(id,name){
-  if(!id){alert('Store ID missing.');return;}
-  const label=name||'this store';
-  if(!confirm('Delete '+label+' permanently?\n\nThis will remove the store from the admin list and member store locator.')) return;
-  const client=await ensureSupabaseClient();
-  if(!client){alert('Supabase connection failed. Please refresh the page.');return;}
-  try{
-    const r=await client.from('stores').delete().eq('id',id);
-    if(r.error) throw r.error;
-    alert('🗑️ Store deleted successfully.');
-    await loadStoresAdmin();
-  }catch(e){alert('❌ Store delete failed: '+(e.message||e));}
-}
-
 async function saveStoreEdits(){
   const id=document.getElementById('editStoreId')?.value;
   if(!id){alert('Store ID missing.');return;}
@@ -468,7 +530,7 @@ async function saveStoreEdits(){
   const o={
     name:document.getElementById('editStoreName').value.trim(),
     store_code:document.getElementById('editStoreCode').value.trim().toUpperCase(),
-    phone:document.getElementById('editStorePhone').value.trim(),
+    mobile:document.getElementById('editStorePhone').value.trim(),
     address:document.getElementById('editStoreAddress').value.trim(),
     town:document.getElementById('editStoreTown').value.trim(),
     pincode:document.getElementById('editStorePincode').value.trim(),
@@ -574,7 +636,7 @@ async function createStore(){
   const o={
     name:document.getElementById('storeName').value.trim(),
     store_code:document.getElementById('storeCode').value.trim().toUpperCase(),
-    phone:document.getElementById('storePhone').value.trim(),
+    mobile:document.getElementById('storePhone').value.trim(),
     address:document.getElementById('storeAddress').value.trim(),
     town:document.getElementById('storeTown').value.trim(),
     pincode:document.getElementById('storePincode').value.trim(),
@@ -582,8 +644,8 @@ async function createStore(){
     longitude:parseFloat(document.getElementById('storeLng').value),
     status:'active'
   };
-  if(!o.name||!o.store_code||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){
-    alert('Store Name, Code, Pincode and valid coordinates are required');return;
+  if(!o.name||!o.store_code||!o.mobile||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){
+    alert('Store Name, Code, Mobile, Pincode and valid coordinates are required');return;
   }
   try{
     const r=await client.from('stores').insert(o);
