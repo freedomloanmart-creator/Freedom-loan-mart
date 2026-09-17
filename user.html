@@ -820,26 +820,17 @@ async function openWalletAction(type){
    try{
      // The Loan Wallet card is the actual withdrawable wallet balance. Do not recalculate it
      // with a second eligibility check, because that can turn a valid ₹1,000 wallet into ₹0.
-     var currentWallet=loanNum(FLM_WALLET.loan);
-     var freshLoan=await flmLoadLoanV2();
-     var freshWallet=loanNum(freshLoan.wallet);
-     var freshInc=loanNum(freshLoan.incremental||0);
-     var isElig = Boolean(freshLoan.eligible);
-     if(currentWallet<=0 && freshWallet>0)currentWallet=freshWallet;
-     // FIX: If wallet still 0 but eligible incremental exists, use it for withdraw
-     if(currentWallet<=0 && isElig && freshInc>0)currentWallet=freshInc;
-     // Also try localStorage fallback
-     if(currentWallet<=0){
-       try{ var saved=parseFloat(localStorage.getItem('flm_available_loan')||'0')||0; if(saved>0) currentWallet=saved; }catch(e){}
-     }
+     // Read actual DB wallet. Never use eligibility/incremental as cash.
+     try{ await flmLoadLoanV2(); }catch(e){ console.log('loan action status refresh',e.message); }
+     var currentWallet=0;
+     try{
+       var actualR=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',getFlId()).single();
+       if(!actualR.error && actualR.data) currentWallet=loanNum(actualR.data.loan_wallet);
+     }catch(e){ console.log('loan action wallet read',e.message); }
      FLM_WALLET.loan=currentWallet;
      FLM_WALLET.loanEligible=currentWallet;
-     if(freshWallet>0) FLM_WALLET.rawLoan=freshWallet;
-     else if(freshInc>0) FLM_WALLET.rawLoan=freshInc;
-
-     FLM_WALLET.rawLoan=freshWallet||currentWallet;
-     FLM_WALLET.loanGross=freshWallet||currentWallet;
-     FLM_WALLET.loanEligible=currentWallet;
+     FLM_WALLET.rawLoan=currentWallet;
+     FLM_WALLET.loanGross=currentWallet;
    }catch(e){console.log('loan action refresh',e.message);}
  }
  var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income — Withdraw':'🏦 Loan Wallet — Direct Withdraw';
@@ -873,8 +864,14 @@ async function submitMatchingWithdraw(method){var amt=getActionAmount();if(amt<2
 async function submitLoanWithdraw(method){
   var flId=getFlId();
   var st=await flmLoadLoanV2();
-  // Withdrawal amount must come only from the actual Loan Wallet balance.
-  var amt=loanNum(FLM_WALLET.loan||st.wallet||0);
+  // Withdrawal amount must come only from public.wallets.loan_wallet.
+  var actualWithdrawWallet=0;
+  try{
+    var aw=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
+    if(!aw.error && aw.data) actualWithdrawWallet=loanNum(aw.data.loan_wallet);
+  }catch(e){console.log('loan withdraw wallet read:',e.message);}
+  FLM_WALLET.loan=actualWithdrawWallet;
+  var amt=actualWithdrawWallet;
   if(amt<1){alert('Loan Wallet balance is ₹0. No loan amount is currently available for withdrawal.');return;}
   if(!(await ensurePayout(method)))return;
   try{
@@ -920,25 +917,6 @@ async function loadWalletHistory(){var el=document.getElementById('walletHistory
 function loanNum(v){var n=Number(v);return Number.isFinite(n)?n:0;}
 function loanMoney(v){return 'Rs. '+loanNum(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function loanEsc(v){return String(v??'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});}
-function loanRoiDateIST(v){
-  if(v===null||v===undefined||v==='') return '—';
-  var s=String(v);
-  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(s)){
-    var a=s.split('-');
-    return a[2]+'-'+a[1]+'-'+a[0];
-  }
-  var d=new Date(v);
-  if(isNaN(d.getTime())) return s;
-  return new Intl.DateTimeFormat('en-IN',{
-    timeZone:'Asia/Kolkata',
-    day:'2-digit',
-    month:'2-digit',
-    year:'numeric',
-    hour:'2-digit',
-    minute:'2-digit',
-    hour12:true
-  }).format(d);
-}
 function firstVal(o,keys,def){for(var i=0;i<keys.length;i++){if(o&&o[keys[i]]!==undefined&&o[keys[i]]!==null)return o[keys[i]];}return def;}
 var FLM_LOAN_V2={eligible:false,level:0,totalLeft:0,totalRight:0,directLeft:0,directRight:0,loanAmount:0,previousLoan:0,incremental:0,wallet:0,message:''};
 async function flmLoadLoanV2(){
@@ -1152,6 +1130,13 @@ async function loadLoanPanel(){
     var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
     if(loansR.error)throw loansR.error;
     var loans=loansR.data||[];
+    // ACTUAL LOAN WALLET SOURCE OF TRUTH: current withdrawable cash comes only
+    // from public.wallets.loan_wallet. Eligibility is for the NEXT loan only.
+    var actualLoanWallet=0;
+    try{
+      var actualLoanWalletR=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
+      if(!actualLoanWalletR.error && actualLoanWalletR.data) actualLoanWallet=loanNum(actualLoanWalletR.data.loan_wallet);
+    }catch(actualWalletErr){console.log('actual loan wallet read:',actualWalletErr.message);}
     // Read completed loan-release transactions as the authoritative wallet release record.
     // This prevents a stale member_loans status='pending' row from hiding an already released loan.
     var loanReleaseTxR=await supabaseClient.from('wallet_transactions')
@@ -1450,7 +1435,16 @@ async function loadLoanPanel(){
     var grossPlan=displayGross;
     var prevPlan=displayPrev;
     var incPlan=displayInc;
-    var availableIncrement=eligible?displayInc:(latestLevel2>0?loanNum(v2.wallet):0);
+    // Already released loan = actual wallet balance. Do not substitute previous
+    // deduction or next-level eligibility into the current wallet.
+    var availableIncrement=eligible?displayInc:(latestLevel2>0?actualLoanWallet:0);
+    // Loan 1 is the initial ₹1,000 release; there is no previous-loan deduction.
+    if(latestLevel2===1 && totalPairs<4){
+      prevPlan=0;
+      availableIncrement=actualLoanWallet;
+      grossPlan=actualLoanWallet>0?actualLoanWallet:grossPlan;
+      incPlan=availableIncrement;
+    }
     FLM_LOAN_LEVEL=loanNum(lvl);FLM_LOAN_GROSS=grossPlan;FLM_LOAN_PREVIOUS=prevPlan;FLM_LOAN_AVAILABLE=availableIncrement;
     if(status){
       var latestDisplayLoan=currentLoan;
@@ -1466,6 +1460,12 @@ async function loadLoanPanel(){
     }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
     var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Loan (After Previous)':'Current Loan Wallet (Already Released)';
+    // Force current wallet UI from DB for every already-released loan.
+    if(latestLevel2>0){
+      var lwActual=document.getElementById('loanWallet');if(lwActual)lwActual.innerText=loanMoney(actualLoanWallet);
+      localStorage.setItem('flm_available_loan',String(actualLoanWallet));
+      localStorage.setItem('flm_loan_eligible',eligible?'1':'0');
+    }
     // FIX: Save eligible loan for wallet display and force wallet UI update
     try{
       localStorage.setItem('flm_available_loan', String(availableIncrement));
@@ -1597,7 +1597,7 @@ async function loadLoanPanel(){
       var lastRaw=firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],null);
       try{ if(!lastRaw && typeof syncLast!=='undefined' && syncLast && syncLast.created_at) lastRaw=syncLast.created_at; }catch(e){}
       currentRoi.__last_display = lastRaw;
-      var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanRoiDateIST(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanRoiDateIST(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanRoiDateIST(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
+      var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
     // Show the released loan history separately from the NEXT eligible loan.
     // This makes it clear that the ₹1,000 Loan 1 release is already completed while
     // the next Loan 2 remains locked until 4:4.
