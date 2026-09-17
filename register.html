@@ -244,8 +244,8 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div id="paymentSection">
 <div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
 <div class="tabs"><div class="tab active" id="tabUPI" onclick="setPay('UPI')">UPI Payment</div><div class="tab usdt" id="tabUSDT" onclick="setPay('USDT')">USDT BEP20</div></div>
-<div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
-<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - $12</b><br><span style="font-size:9px;font-family:monospace">0x1234... Client Address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
+<div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span id="registerUpiId" style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><img id="registerUpiQr" src="./upi_qr.jpeg" alt="UPI Payment QR" style="display:block;width:100%;max-width:360px;height:auto;margin:12px auto 10px;border-radius:10px;border:1px solid #e2e8f0"><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
+<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b id="registerUsdtTitle" style="color:#059669">USDT BEP20 - $12</b><br><span id="registerUsdtAddress" style="display:block;font-size:9px;font-family:monospace;word-break:break-all">0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7</span><img id="registerUsdtQr" src="./usdt_qr.jpeg" alt="USDT BEP20 Payment QR" style="display:block;width:100%;max-width:360px;height:auto;margin:12px auto 10px;border-radius:10px;border:1px solid #e2e8f0"><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 </div>
 <div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 40 pairs=Rs.8000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Payment cheste screenshot + UTR/Hash mandatory</div>
 <button class="btn" onclick="register()">Register Now - Rs.2000</button>
@@ -316,6 +316,24 @@ function showMobileValidation(){
   else {box.style.color='#dc2626';box.textContent='❌ Mobile number must contain exactly 10 digits.';}
 }
 let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
+
+// Payment QR settings: reads the latest client values from Supabase when the optional
+// payment_settings table exists. If the table is not created yet, the bundled QR files
+// and current values above remain the fallback, so registration continues to work.
+async function loadPaymentSettings(){
+  if(!supabaseClient)return;
+  try{
+    const r=await supabaseClient.from('payment_settings').select('upi_id,upi_qr,usdt_address,usdt_qr,usdt_label').eq('id',1).maybeSingle();
+    if(r.error||!r.data)return;
+    const d=r.data;
+    if(d.upi_id)document.getElementById('registerUpiId').textContent=d.upi_id;
+    if(d.upi_qr)document.getElementById('registerUpiQr').src=d.upi_qr;
+    if(d.usdt_address)document.getElementById('registerUsdtAddress').textContent=d.usdt_address;
+    if(d.usdt_qr)document.getElementById('registerUsdtQr').src=d.usdt_qr;
+    if(d.usdt_label)document.getElementById('registerUsdtTitle').textContent=d.usdt_label;
+  }catch(e){console.log('Payment settings fallback:',e.message);}
+}
+window.addEventListener('DOMContentLoaded',loadPaymentSettings);
 async function checkToken(){
 const token=document.getElementById('pinToken').value.trim();
 const sec=document.getElementById('paymentSection');
