@@ -622,12 +622,10 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
     var ti=document.getElementById('todayIncome');if(ti)ti.innerText='Rs. '+liveToday.income;
 
     /*
-      BINARY TREE FIX:
-      Do NOT use .eq('side','left') / .eq('side','right') for every node.
-      Older registrations can contain LEFT/RIGHT while newer registrations
-      contain left/right. Fetch the live users once, normalize side values,
-      and build the visible tree from sponsor_id + side.
-      This keeps the tree consistent with Wing status / live team counts.
+      BINARY TREE: build the actual stored binary placement from users.
+      Wing counts may include many descendants, so the tree must recursively
+      walk sponsor_id + side instead of only showing the root's two children.
+      Side values are normalized to lowercase so LEFT/Left/left all work.
     */
     var ur=await supabaseClient.from('users').select('fl_id,full_name,sponsor_id,side,created_at').limit(5000);
     if(ur.error)throw ur.error;
@@ -642,7 +640,9 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
     });
     Object.keys(byParent).forEach(function(k){
       ['left','right'].forEach(function(side){
-        byParent[k][side].sort(function(a,b){return new Date(a.created_at||0)-new Date(b.created_at||0);});
+        byParent[k][side].sort(function(a,b){
+          return new Date(a.created_at||0)-new Date(b.created_at||0);
+        });
       });
     });
 
@@ -652,40 +652,57 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
         currentUserData=users[ci];break;
       }
     }
+
     var level1=document.getElementById('level1');
     if(level1)level1.innerHTML=createNodeHtml(currentUserData,'YOU','YOU');
 
-    function child(parent,side,index){
-      var g=byParent[String(parent||'').trim().toUpperCase()];
-      if(!g)return null;
-      var arr=g[side]||[];
-      return arr[index||0]||null;
+    /*
+      A valid binary tree has exactly one LEFT and one RIGHT child per parent.
+      Recursively follow the stored placement. This also makes members such as
+      the second left-wing member visible at LEFT-LEFT / LEFT-RIGHT (or deeper)
+      when they are actually placed under an existing left-side member.
+    */
+    var maxLevels=5;
+    var parents=[{user:currentUserData,path:'',label:''}];
+    for(var level=2;level<=maxLevels;level++){
+      var levelEl=document.getElementById('level'+level);
+      if(!levelEl){
+        levelEl=document.createElement('div');
+        levelEl.id='level'+level;
+        levelEl.style.display='flex';
+        levelEl.style.justifyContent='center';
+        levelEl.style.gap=(level<=3?'20px':'12px');
+        levelEl.style.marginBottom='20px';
+        var wrap=document.getElementById('binaryTreeContainer');
+        if(wrap && wrap.firstElementChild)wrap.firstElementChild.appendChild(levelEl);
+      }
+
+      var nextParents=[];
+      var html='';
+      parents.forEach(function(item){
+        if(!item.user)return;
+        var key=String(item.user.fl_id||'').trim().toUpperCase();
+        var g=byParent[key]||{left:[],right:[]};
+        var left=g.left[0]||null;
+        var right=g.right[0]||null;
+        var leftPath=item.path+'L';
+        var rightPath=item.path+'R';
+        html+=createNodeHtml(left,leftPath+' LEFT',leftPath);
+        html+=createNodeHtml(right,rightPath+' RIGHT',rightPath);
+        nextParents.push({user:left,path:leftPath,label:'LEFT'});
+        nextParents.push({user:right,path:rightPath,label:'RIGHT'});
+      });
+      levelEl.innerHTML=html;
+      parents=nextParents;
+      if(!parents.some(function(x){return !!x.user;})){
+        /* Remove empty extra levels so the existing tree stays compact. */
+        if(level>3)levelEl.innerHTML='';
+        break;
+      }
     }
 
-    var leftChild=child(flId,'left',0);
-    var rightChild=child(flId,'right',0);
-    var level2=document.getElementById('level2');
-    if(level2)level2.innerHTML=createNodeHtml(leftChild,'LEFT','LEFT')+createNodeHtml(rightChild,'RIGHT','RIGHT');
-
-    var ll=leftChild?child(leftChild.fl_id,'left',0):null;
-    var lr=leftChild?child(leftChild.fl_id,'right',0):null;
-    var rl=rightChild?child(rightChild.fl_id,'left',0):null;
-    var rr=rightChild?child(rightChild.fl_id,'right',0):null;
-
-    var level3=document.getElementById('level3');
-    if(level3)level3.innerHTML=
-      createNodeHtml(ll,'LEFT-LEFT','LEFT-LEFT')+
-      createNodeHtml(lr,'LEFT-RIGHT','LEFT-RIGHT')+
-      createNodeHtml(rl,'RIGHT-LEFT','RIGHT-LEFT')+
-      createNodeHtml(rr,'RIGHT-RIGHT','RIGHT-RIGHT');
-
-    /* If data has a second member directly attached to the same side,
-       the database placement is not a valid binary parent/side pair.
-       Do not silently move that member in the UI; Wing status can still
-       count it, while this tree faithfully follows the stored placement. */
   }catch(e){console.log('downline tree:',e.message);}
 }
-
 function calcPins(){
  var wantEl=document.getElementById('pinsWant');
  var want=parseInt(wantEl?wantEl.value:'0')||0;
