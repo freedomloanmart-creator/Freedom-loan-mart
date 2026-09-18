@@ -1,6 +1,6 @@
 <!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<html><head><meta name="flm-build" content="20260918-matching-final"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -72,7 +72,7 @@ body{background:#eef2f7;color:#0f172a}
 </style>
 <!-- FLM level_no compatibility fix: member_loans uses plan_level; do not request missing level_no column. -->
 </head>
-<body>
+<body><!-- FLM_MATCHING_FINAL_BUILD_20260918 -->
 <div style="padding:12px" id="main">
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
@@ -483,77 +483,85 @@ function zoomTree(delta){treeZoomLevel+=delta;if(treeZoomLevel<20) treeZoomLevel
    matching_bonus transactions so the UI resets at the IST date boundary
    even if the scheduled summary reset has not yet run.
 */
+async function flmLoadAllUsers(){
+  if(!supabaseClient)return [];
+  var all=[],from=0,step=1000;
+  while(true){
+    var r=await supabaseClient.from('users')
+      .select('fl_id,full_name,sponsor_id,side,created_at')
+      .range(from,from+step-1);
+    if(r.error)throw r.error;
+    var batch=r.data||[];
+    all=all.concat(batch);
+    if(batch.length<step)break;
+    from+=step;
+    if(from>=10000)break;
+  }
+  return all;
+}
+
+/*
+  ONE binary placement resolver used everywhere in the member panel.
+  sponsor_id is treated as the stored placement parent. For older records
+  where two users were accidentally saved under the same parent+side, the
+  older record keeps the position and later records are displayed as
+  spillover below it. This makes the visible tree and wing totals agree.
+*/
+function flmBuildBinaryPlacement(users){
+  var treeByParent={};
+  var placementByUser={};
+  var sorted=(users||[]).slice().sort(function(a,b){
+    var da=new Date(a.created_at||0).getTime(), db=new Date(b.created_at||0).getTime();
+    if(da!==db)return da-db;
+    return String(a.fl_id||'').localeCompare(String(b.fl_id||''));
+  });
+  sorted.forEach(function(u){
+    var requestedParent=String(u.sponsor_id||'').trim().toUpperCase();
+    var side=String(u.side||'').trim().toLowerCase();
+    if(!requestedParent || (side!=='left' && side!=='right'))return;
+    var parent=requestedParent;
+    var seen={};
+    for(var depth=0;depth<100;depth++){
+      if(seen[parent])break;
+      seen[parent]=true;
+      if(!treeByParent[parent])treeByParent[parent]={left:null,right:null};
+      if(!treeByParent[parent][side]){
+        treeByParent[parent][side]=u;
+        placementByUser[String(u.fl_id).toUpperCase()]={parent:parent,side:side,depth:depth};
+        break;
+      }
+      parent=String(treeByParent[parent][side].fl_id||'').trim().toUpperCase();
+      if(!parent)break;
+    }
+  });
+  return {treeByParent:treeByParent,placementByUser:placementByUser};
+}
+
 async function flmFetchTeamStats(rootFlId){
   var out={left:0,right:0,total:0,pairs:0,teamSize:0,directLeft:0,directRight:0};
   if(!supabaseClient||!rootFlId)return out;
   try{
-    /*
-      Build the REAL binary placement, not only sponsor/direct relationships.
-      This is important for spillover members: when two members have the same
-      sponsor_id + side, the older member occupies the first position and the
-      next member is placed under that member on the same requested side.
-      Therefore a spillover member is counted in the wing of every ancestor
-      above its actual binary position.
-    */
-    var r=await supabaseClient.from('users')
-      .select('fl_id,full_name,sponsor_id,side,created_at')
-      .limit(5000);
-    if(r.error)throw r.error;
-    var rows=(r.data||[]).slice().sort(function(a,b){
-      return new Date(a.created_at||0)-new Date(b.created_at||0);
-    });
-
-    var treeByParent={};
-    rows.forEach(function(u){
-      var requestedParent=String(u.sponsor_id||'').trim().toUpperCase();
-      var side=String(u.side||'').trim().toLowerCase();
-      if(!requestedParent || (side!=='left' && side!=='right'))return;
-
-      var parent=requestedParent;
-      var seenPlacement={};
-      for(var depth=0;depth<100;depth++){
-        if(seenPlacement[parent])break;
-        seenPlacement[parent]=true;
-        if(!treeByParent[parent])treeByParent[parent]={left:null,right:null};
-        if(!treeByParent[parent][side]){
-          treeByParent[parent][side]=u;
-          break;
-        }
-        parent=String(treeByParent[parent][side].fl_id||'').trim().toUpperCase();
-        if(!parent)break;
-      }
-    });
-
+    var users=await flmLoadAllUsers();
+    var placement=flmBuildBinaryPlacement(users);
+    var treeByParent=placement.treeByParent;
     var root=String(rootFlId).trim().toUpperCase();
     var rootGroup=treeByParent[root]||{left:null,right:null};
     var queue=[];
-
-    if(rootGroup.left){
-      out.left++;out.directLeft++;
-      queue.push({fl:String(rootGroup.left.fl_id).trim().toUpperCase(),rootSide:'left'});
-    }
-    if(rootGroup.right){
-      out.right++;out.directRight++;
-      queue.push({fl:String(rootGroup.right.fl_id).trim().toUpperCase(),rootSide:'right'});
-    }
-
+    if(rootGroup.left){out.left++;out.directLeft++;queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});}
+    if(rootGroup.right){out.right++;out.directRight++;queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});}
     var seen={};
     queue.forEach(function(x){if(x.fl)seen[x.fl]=true;});
     for(var i=0;i<queue.length;i++){
-      var node=queue[i];
-      var g=treeByParent[node.fl]||{left:null,right:null};
+      var node=queue[i],g=treeByParent[node.fl]||{left:null,right:null};
       ['left','right'].forEach(function(branch){
-        var u=g[branch];
-        if(!u)return;
+        var u=g[branch];if(!u)return;
         var child=String(u.fl_id||'').trim().toUpperCase();
         if(!child||seen[child])return;
         seen[child]=true;
-        if(node.rootSide==='left')out.left++;
-        else if(node.rootSide==='right')out.right++;
+        if(node.rootSide==='left')out.left++;else if(node.rootSide==='right')out.right++;
         queue.push({fl:child,rootSide:node.rootSide});
       });
     }
-
     out.total=out.left+out.right;
     out.pairs=Math.min(out.left,out.right);
     out.teamSize=out.total;
@@ -565,72 +573,32 @@ async function flmFetchTodayMatchingStats(flId){
   var out={pairs:0,income:0};
   if(!supabaseClient||!flId)return out;
   try{
-    /*
-      FLM DAILY MATCHING WINDOW:
-      Every day starts at 00:30 AM IST and ends at the next day's 00:30 AM IST.
-      Therefore the UI shows 0/25 again immediately after 00:30.
-      Lifetime total_pairs is NOT reset.
-    */
+    // Use the database's single daily-status function first so Dashboard,
+    // Downline and Wallet all read exactly the same 00:30 IST business day.
+    var rpc=await supabaseClient.rpc('flm_get_daily_pair_status',{p_fl_id:flId});
+    if(!rpc.error && rpc.data){
+      var row=Array.isArray(rpc.data)?(rpc.data[0]||{}):rpc.data;
+      out.pairs=Math.min(25,Number(row.daily_pairs_today||0));
+      out.income=Math.min(5000,Number(row.daily_income_today||out.pairs*200));
+      return out;
+    }
+
+    // Safe fallback for older databases where the RPC has not yet been run.
     var now=new Date();
     var istText=now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'});
     var ist=new Date(istText);
-
-    // Build today's 00:30 IST boundary.
-    var startY=ist.getFullYear();
-    var startM=ist.getMonth();
-    var startD=ist.getDate();
-
-    // Before 00:30, the current daily window belongs to yesterday.
-    if(ist.getHours()<0 || (ist.getHours()===0 && ist.getMinutes()<30)){
-      var prev=new Date(startY,startM,startD);
-      prev.setDate(prev.getDate()-1);
-      startY=prev.getFullYear();
-      startM=prev.getMonth();
-      startD=prev.getDate();
-    }
-
-    // Convert 00:30 IST to UTC (IST = UTC+05:30).
-    var utcStart=new Date(Date.UTC(startY,startM,startD,0,30,0)-330*60000);
-
-    var r=await supabaseClient.from('wallet_transactions')
-      .select('amount,wallet_type,transaction_type,status,created_at')
-      .eq('fl_id',flId)
-      .gte('created_at',utcStart.toISOString());
-
+    var y=ist.getFullYear(),m=ist.getMonth(),d=ist.getDate();
+    if(ist.getHours()===0 && ist.getMinutes()<30){var prev=new Date(y,m,d);prev.setDate(prev.getDate()-1);y=prev.getFullYear();m=prev.getMonth();d=prev.getDate();}
+    var utcStart=new Date(Date.UTC(y,m,d,0,30,0)-330*60000);
+    var r=await supabaseClient.from('wallet_transactions').select('amount,wallet_type,transaction_type,status,created_at').eq('fl_id',flId).gte('created_at',utcStart.toISOString());
     if(r.error)throw r.error;
-
     var rows=(r.data||[]).filter(function(x){
-      if(!x.created_at)return false;
-      var wt=String(x.wallet_type||'').trim().toLowerCase();
-      var tt=String(x.transaction_type||'').trim().toLowerCase();
-      var st=String(x.status||'').trim().toLowerCase();
-
-      if(st!=='completed'&&st!=='approved')return false;
-      if(tt==='withdrawal')return false;
-
-      var isMatching=(
-        wt==='matching' ||
-        tt==='matching_bonus' ||
-        tt==='matching_income' ||
-        tt==='matching income'
-      );
-      if(!isMatching)return false;
-
-      return new Date(x.created_at).getTime()>=utcStart.getTime();
+      var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),st=String(x.status||'').toLowerCase();
+      return (st==='completed'||st==='approved') && tt!=='withdrawal' && wt==='matching' && (tt==='matching_bonus'||tt==='matching_income');
     });
-
-    /*
-      ₹200 = 1 pair.
-      Hard UI cap: maximum 25 paid pairs = ₹5,000 in one daily window.
-      Extra historical/duplicate rows can never make the UI show more than 25.
-    */
-    out.pairs=Math.min(25,Math.floor(
-      rows.reduce(function(a,x){return a+Number(x.amount||0);},0)/200
-    ));
-    out.income=out.pairs*200;
-  }catch(e){
-    console.log('today matching stats:',e.message);
-  }
+    out.pairs=Math.min(25,rows.length);
+    out.income=Math.min(5000,rows.reduce(function(a,x){return a+Number(x.amount||0);},0));
+  }catch(e){console.log('today matching stats:',e.message);}
   return out;
 }
 
@@ -664,42 +632,9 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
       walk sponsor_id + side instead of only showing the root's two children.
       Side values are normalized to lowercase so LEFT/Left/left all work.
     */
-    var ur=await supabaseClient.from('users').select('fl_id,full_name,sponsor_id,side,created_at').limit(5000);
-    if(ur.error)throw ur.error;
-    var users=ur.data||[];
-    /*
-      Build the displayed binary placement from the same spillover rule used
-      during registration.  sponsor_id is the sponsor/requested parent, while
-      side is the requested wing.  If that side is already occupied, the member
-      must continue down that same side until the first open position.
-
-      This also repairs older rows where two members were saved with the same
-      sponsor_id + side (for example two LEFT referrals under one root).
-      The older member stays at the first position and the next member is
-      displayed as spillover under it, instead of silently dropping it.
-    */
-    var treeByParent={};
-    users.slice().sort(function(a,b){
-      return new Date(a.created_at||0)-new Date(b.created_at||0);
-    }).forEach(function(u){
-      var requestedParent=String(u.sponsor_id||'').trim().toUpperCase();
-      var side=String(u.side||'').trim().toLowerCase();
-      if(!requestedParent||(side!=='left'&&side!=='right'))return;
-
-      var parent=requestedParent;
-      var seenPlacement={};
-      for(var depth=0;depth<100;depth++){
-        if(seenPlacement[parent])break;
-        seenPlacement[parent]=true;
-        if(!treeByParent[parent])treeByParent[parent]={left:null,right:null};
-        if(!treeByParent[parent][side]){
-          treeByParent[parent][side]=u;
-          break;
-        }
-        parent=String(treeByParent[parent][side].fl_id||'').trim().toUpperCase();
-        if(!parent)break;
-      }
-    });
+    var users=await flmLoadAllUsers();
+    var placement=flmBuildBinaryPlacement(users);
+    var treeByParent=placement.treeByParent;
 
     var currentUserData=null;
     for(var ci=0;ci<users.length;ci++){

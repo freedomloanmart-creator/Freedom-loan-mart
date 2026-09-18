@@ -376,7 +376,7 @@ function toggleMenu(){document.getElementById('menu').classList.toggle('open');d
 function showSec(id,fromRestore){localStorage.setItem('flm_admin_last_section',id);document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');var target=document.getElementById('sec-'+id);if(target)target.style.display='block';if(!fromRestore)toggleMenu();loadSec(id);if(id==='registrationPayments')loadRegistrationRequests();}
 function flmRandomPassword(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';let p='';for(let i=0;i<10;i++)p+=chars[Math.floor(Math.random()*chars.length)];return p;}
 function flmUserRow(u){
- const safe=JSON.stringify({fl_id:u.fl_id||'',full_name:u.full_name||'',mobile:u.mobile||'',email:u.email||'',password:u.password||''}).replace(/\/g,'\\').replace(/'/g,"&#39;");
+ const safe=JSON.stringify({fl_id:u.fl_id||'',full_name:u.full_name||'',mobile:u.mobile||'',email:u.email||'',password:u.password||''}).replace(/'/g,"&#39;");
  const total=Number(u.binary_team_size??u.team_size??0)||0;
  const left=Number(u.binary_left??u.left_tokens??0)||0;
  const right=Number(u.binary_right??u.right_tokens??0)||0;
@@ -434,20 +434,62 @@ function renderAdminUsers(){
 }
 function filterAdminUsers(){renderAdminUsers();}
 function searchAdminUsers(){renderAdminUsers();const input=document.getElementById('userAdminSearch');if(input)input.blur();}
+async function flmAdminLoadAllUsers(){
+  var all=[],from=0,step=1000;
+  while(true){
+    var r=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,password,sponsor_id,side,created_at').range(from,from+step-1);
+    if(r.error)throw r.error;
+    var batch=r.data||[];all=all.concat(batch);
+    if(batch.length<step || from>=10000)break;
+    from+=step;
+  }
+  return all;
+}
+function flmAdminBuildPlacement(users){
+  var tree={};
+  var sorted=(users||[]).slice().sort(function(a,b){
+    var da=new Date(a.created_at||0).getTime(),db=new Date(b.created_at||0).getTime();
+    if(da!==db)return da-db;
+    return String(a.fl_id||'').localeCompare(String(b.fl_id||''));
+  });
+  sorted.forEach(function(u){
+    var parent=String(u.sponsor_id||'').trim().toUpperCase();
+    var side=String(u.side||'').trim().toLowerCase();
+    if(!parent||(side!=='left'&&side!=='right'))return;
+    var seen={};
+    for(var d=0;d<100;d++){
+      if(seen[parent])break;seen[parent]=true;
+      if(!tree[parent])tree[parent]={left:null,right:null};
+      if(!tree[parent][side]){tree[parent][side]=u;break;}
+      parent=String(tree[parent][side].fl_id||'').trim().toUpperCase();
+      if(!parent)break;
+    }
+  });
+  return tree;
+}
+function flmAdminTeamStats(rootId,tree){
+  var out={left:0,right:0,team:0};
+  var root=String(rootId||'').trim().toUpperCase(),g=tree[root]||{left:null,right:null},q=[];
+  if(g.left){out.left++;q.push({id:String(g.left.fl_id).toUpperCase(),wing:'left'});}
+  if(g.right){out.right++;q.push({id:String(g.right.fl_id).toUpperCase(),wing:'right'});}
+  var seen={};q.forEach(function(x){seen[x.id]=true;});
+  for(var i=0;i<q.length;i++){
+    var kids=tree[q[i].id]||{left:null,right:null};
+    ['left','right'].forEach(function(side){var u=kids[side];if(!u)return;var id=String(u.fl_id||'').toUpperCase();if(!id||seen[id])return;seen[id]=true;if(q[i].wing==='left')out.left++;else out.right++;q.push({id:id,wing:q[i].wing});});
+  }
+  out.team=out.left+out.right;out.pairs=Math.min(out.left,out.right);return out;
+}
 async function loadAdminUsers(){
  const el=document.getElementById('usersList');if(!el)return;el.innerHTML='<div class="user-loading">⏳ Loading members from Live DB...</div>';
  try{
-   const {data,error}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(500);
-   if(error)throw error;
-   adminUsersCache=data||[];
-   // Use binary_summary for Team/Left/Right so spillover members are included.
-   const ids=adminUsersCache.map(u=>String(u.fl_id||'').trim().toUpperCase()).filter(Boolean);
-   if(ids.length){
-     const {data:bs,error:be}=await supabaseClient.from('binary_summary').select('fl_id,team_size,left_tokens,right_tokens').in('fl_id',ids);
-     if(be)throw be;
-     const bm={};(bs||[]).forEach(b=>{bm[String(b.fl_id||'').toUpperCase()]=b;});
-     adminUsersCache=adminUsersCache.map(u=>{const b=bm[String(u.fl_id||'').toUpperCase()];return b?{...u,binary_team_size:b.team_size,binary_left:b.left_tokens,binary_right:b.right_tokens}:u;});
-   }
+   var allUsers=await flmAdminLoadAllUsers();
+   var tree=flmAdminBuildPlacement(allUsers);
+   var stats={};
+   allUsers.forEach(function(u){stats[String(u.fl_id||'').trim().toUpperCase()]=flmAdminTeamStats(u.fl_id,tree);});
+   // Keep the existing member-list UI, but use LIVE binary stats instead of
+   // binary_summary values that may be stale/zero for older members.
+   var displayUsers=allUsers.slice().sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);}).slice(0,500);
+   adminUsersCache=displayUsers.map(function(u){var st=stats[String(u.fl_id||'').trim().toUpperCase()]||{left:0,right:0,team:0};return {...u,binary_team_size:st.team,binary_left:st.left,binary_right:st.right};});
    renderAdminUsers();
  }catch(e){el.innerHTML='<div class="user-empty">❌ Could not load users: '+escapeHtml(e.message||e)+'</div>';}
 }
