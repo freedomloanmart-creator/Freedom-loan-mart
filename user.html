@@ -487,28 +487,64 @@ async function flmFetchTeamStats(rootFlId){
   var out={left:0,right:0,total:0,pairs:0,teamSize:0,directLeft:0,directRight:0};
   if(!supabaseClient||!rootFlId)return out;
   try{
-    var r=await supabaseClient.from('users').select('fl_id,sponsor_id,side').limit(5000);
+    /*
+      Build the REAL binary placement, not only sponsor/direct relationships.
+      This is important for spillover members: when two members have the same
+      sponsor_id + side, the older member occupies the first position and the
+      next member is placed under that member on the same requested side.
+      Therefore a spillover member is counted in the wing of every ancestor
+      above its actual binary position.
+    */
+    var r=await supabaseClient.from('users')
+      .select('fl_id,full_name,sponsor_id,side,created_at')
+      .limit(5000);
     if(r.error)throw r.error;
-    var rows=r.data||[];
-    var byParent={};
+    var rows=(r.data||[]).slice().sort(function(a,b){
+      return new Date(a.created_at||0)-new Date(b.created_at||0);
+    });
+
+    var treeByParent={};
     rows.forEach(function(u){
-      var p=String(u.sponsor_id||'').trim().toUpperCase();
-      if(!p)return;
-      if(!byParent[p])byParent[p]=[];
-      byParent[p].push(u);
+      var requestedParent=String(u.sponsor_id||'').trim().toUpperCase();
+      var side=String(u.side||'').trim().toLowerCase();
+      if(!requestedParent || (side!=='left' && side!=='right'))return;
+
+      var parent=requestedParent;
+      var seenPlacement={};
+      for(var depth=0;depth<100;depth++){
+        if(seenPlacement[parent])break;
+        seenPlacement[parent]=true;
+        if(!treeByParent[parent])treeByParent[parent]={left:null,right:null};
+        if(!treeByParent[parent][side]){
+          treeByParent[parent][side]=u;
+          break;
+        }
+        parent=String(treeByParent[parent][side].fl_id||'').trim().toUpperCase();
+        if(!parent)break;
+      }
     });
+
     var root=String(rootFlId).trim().toUpperCase();
+    var rootGroup=treeByParent[root]||{left:null,right:null};
     var queue=[];
-    (byParent[root]||[]).forEach(function(u){
-      var s=String(u.side||'').trim().toLowerCase();
-      if(s==='left'){out.left++;out.directLeft++;}
-      if(s==='right'){out.right++;out.directRight++;}
-      queue.push({fl:String(u.fl_id||'').trim().toUpperCase(),rootSide:s});
-    });
-    var seen={}; queue.forEach(function(x){seen[x.fl]=true;});
+
+    if(rootGroup.left){
+      out.left++;out.directLeft++;
+      queue.push({fl:String(rootGroup.left.fl_id).trim().toUpperCase(),rootSide:'left'});
+    }
+    if(rootGroup.right){
+      out.right++;out.directRight++;
+      queue.push({fl:String(rootGroup.right.fl_id).trim().toUpperCase(),rootSide:'right'});
+    }
+
+    var seen={};
+    queue.forEach(function(x){if(x.fl)seen[x.fl]=true;});
     for(var i=0;i<queue.length;i++){
-      var node=queue[i], kids=byParent[node.fl]||[];
-      kids.forEach(function(u){
+      var node=queue[i];
+      var g=treeByParent[node.fl]||{left:null,right:null};
+      ['left','right'].forEach(function(branch){
+        var u=g[branch];
+        if(!u)return;
         var child=String(u.fl_id||'').trim().toUpperCase();
         if(!child||seen[child])return;
         seen[child]=true;
@@ -517,6 +553,7 @@ async function flmFetchTeamStats(rootFlId){
         queue.push({fl:child,rootSide:node.rootSide});
       });
     }
+
     out.total=out.left+out.right;
     out.pairs=Math.min(out.left,out.right);
     out.teamSize=out.total;
@@ -712,11 +749,8 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
       });
       levelEl.innerHTML=html;
       parents=nextParents;
-      if(!parents.some(function(x){return !!x.user;})){
-        /* Remove empty extra levels so the existing tree stays compact. */
-        if(level>3)levelEl.innerHTML='';
-        break;
-      }
+      /* Keep all five levels visible. Empty positions are shown as Open, so
+         members added later or deeper spillover positions have a stable tree. */
     }
 
   }catch(e){console.log('downline tree:',e.message);}
