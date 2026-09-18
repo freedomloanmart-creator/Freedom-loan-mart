@@ -311,14 +311,7 @@ async function updateBinaryForPlacement(originalSponsor,placementParent,side,isS
         if(allowed>0){
           upd.daily_pairs_today=currentDaily+allowed;
           upd.daily_income_today=(Number(b.daily_income_today||0))+(allowed*200);
-          const {data:w}=await supabaseClient.from('wallets').select('matching_wallet,main_wallet').eq('fl_id',current).single();
-          if(w){
-            const matching=Number(w.matching_wallet||0)+(allowed*200);
-            const main=Number(w.main_wallet||0)+(allowed*200);
-            const {error:wu}=await supabaseClient.from('wallets').update({matching_wallet:matching,main_wallet:main}).eq('fl_id',current);
-            if(wu) throw wu;
-          }
-        }
+}
       }
       if(first){
         if(side==='left') upd.left_own=(b.left_own||0)+1;
