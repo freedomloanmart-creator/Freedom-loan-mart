@@ -630,20 +630,38 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
     var ur=await supabaseClient.from('users').select('fl_id,full_name,sponsor_id,side,created_at').limit(5000);
     if(ur.error)throw ur.error;
     var users=ur.data||[];
-    var byParent={};
-    users.forEach(function(u){
-      var parent=String(u.sponsor_id||'').trim().toUpperCase();
+    /*
+      Build the displayed binary placement from the same spillover rule used
+      during registration.  sponsor_id is the sponsor/requested parent, while
+      side is the requested wing.  If that side is already occupied, the member
+      must continue down that same side until the first open position.
+
+      This also repairs older rows where two members were saved with the same
+      sponsor_id + side (for example two LEFT referrals under one root).
+      The older member stays at the first position and the next member is
+      displayed as spillover under it, instead of silently dropping it.
+    */
+    var treeByParent={};
+    users.slice().sort(function(a,b){
+      return new Date(a.created_at||0)-new Date(b.created_at||0);
+    }).forEach(function(u){
+      var requestedParent=String(u.sponsor_id||'').trim().toUpperCase();
       var side=String(u.side||'').trim().toLowerCase();
-      if(!parent||!side)return;
-      if(!byParent[parent])byParent[parent]={left:[],right:[]};
-      if(side==='left'||side==='right')byParent[parent][side].push(u);
-    });
-    Object.keys(byParent).forEach(function(k){
-      ['left','right'].forEach(function(side){
-        byParent[k][side].sort(function(a,b){
-          return new Date(a.created_at||0)-new Date(b.created_at||0);
-        });
-      });
+      if(!requestedParent||(side!=='left'&&side!=='right'))return;
+
+      var parent=requestedParent;
+      var seenPlacement={};
+      for(var depth=0;depth<100;depth++){
+        if(seenPlacement[parent])break;
+        seenPlacement[parent]=true;
+        if(!treeByParent[parent])treeByParent[parent]={left:null,right:null};
+        if(!treeByParent[parent][side]){
+          treeByParent[parent][side]=u;
+          break;
+        }
+        parent=String(treeByParent[parent][side].fl_id||'').trim().toUpperCase();
+        if(!parent)break;
+      }
     });
 
     var currentUserData=null;
@@ -682,9 +700,9 @@ async function showUserTreeDetails(flId,name){var modal=document.getElementById(
       parents.forEach(function(item){
         if(!item.user)return;
         var key=String(item.user.fl_id||'').trim().toUpperCase();
-        var g=byParent[key]||{left:[],right:[]};
-        var left=g.left[0]||null;
-        var right=g.right[0]||null;
+        var g=treeByParent[key]||{left:null,right:null};
+        var left=g.left||null;
+        var right=g.right||null;
         var leftPath=item.path+'L';
         var rightPath=item.path+'R';
         html+=createNodeHtml(left,leftPath+' LEFT',leftPath);
