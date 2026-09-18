@@ -376,10 +376,13 @@ function toggleMenu(){document.getElementById('menu').classList.toggle('open');d
 function showSec(id,fromRestore){localStorage.setItem('flm_admin_last_section',id);document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');var target=document.getElementById('sec-'+id);if(target)target.style.display='block';if(!fromRestore)toggleMenu();loadSec(id);if(id==='registrationPayments')loadRegistrationRequests();}
 function flmRandomPassword(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';let p='';for(let i=0;i<10;i++)p+=chars[Math.floor(Math.random()*chars.length)];return p;}
 function flmUserRow(u){
- const safe=JSON.stringify({fl_id:u.fl_id||'',full_name:u.full_name||'',mobile:u.mobile||'',email:u.email||'',password:u.password||''}).replace(/\\/g,'\\\\').replace(/'/g,"&#39;");
+ const safe=JSON.stringify({fl_id:u.fl_id||'',full_name:u.full_name||'',mobile:u.mobile||'',email:u.email||'',password:u.password||''}).replace(/\/g,'\\').replace(/'/g,"&#39;");
+ const total=Number(u.binary_team_size??u.team_size??0)||0;
+ const left=Number(u.binary_left??u.left_tokens??0)||0;
+ const right=Number(u.binary_right??u.right_tokens??0)||0;
  return `<div class="user-admin-row">
    <div class="user-admin-main"><div class="user-admin-avatar">${escapeHtml(String(u.full_name||'?').trim().charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><div class="user-admin-name">${escapeHtml(u.full_name||'Unnamed')}</div><div class="user-admin-id">${escapeHtml(u.fl_id||'No FL ID')}</div></div><button class="user-edit-btn" onclick='openUserEditor(${safe})'>✏️ Edit</button></div>
-   <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml(u.sponsor_id||'—')}</b></div><div><span>🌳 Team</span><b>${escapeHtml(String(u.team_size??'0'))}</b></div></div>
+   <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml(u.sponsor_id||'—')}</b></div><div><span>🌳 Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
  </div>`;
 }
 function openUserEditor(u){
@@ -437,6 +440,14 @@ async function loadAdminUsers(){
    const {data,error}=await supabaseClient.from('users').select('*').order('created_at',{ascending:false}).limit(500);
    if(error)throw error;
    adminUsersCache=data||[];
+   // Use binary_summary for Team/Left/Right so spillover members are included.
+   const ids=adminUsersCache.map(u=>String(u.fl_id||'').trim().toUpperCase()).filter(Boolean);
+   if(ids.length){
+     const {data:bs,error:be}=await supabaseClient.from('binary_summary').select('fl_id,team_size,left_tokens,right_tokens').in('fl_id',ids);
+     if(be)throw be;
+     const bm={};(bs||[]).forEach(b=>{bm[String(b.fl_id||'').toUpperCase()]=b;});
+     adminUsersCache=adminUsersCache.map(u=>{const b=bm[String(u.fl_id||'').toUpperCase()];return b?{...u,binary_team_size:b.team_size,binary_left:b.left_tokens,binary_right:b.right_tokens}:u;});
+   }
    renderAdminUsers();
  }catch(e){el.innerHTML='<div class="user-empty">❌ Could not load users: '+escapeHtml(e.message||e)+'</div>';}
 }
