@@ -499,7 +499,7 @@ async function loadSec(id){
  if(id==='stores'){loadStoresAdmin();}
  if(id==='withdraw')loadAdminWithdrawals();if(id==='wallets'&&supabaseClient){const {data}=await supabaseClient.from('wallets').select('*').limit(20);document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9">${w.fl_id} - Rs.${w.balance||0}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets - Wallets feature restored version</div>';}
 }
-window.addEventListener('load',()=>{checkAdminSession();setTimeout(initFlmAdminNavigation,120);});
+window.addEventListener('load',()=>{checkAdminSession();});
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI}
@@ -954,41 +954,13 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   },1500);
 });
-/* FLM ADMIN NAVIGATION - browser back returns to Dashboard instead of leaving admin */
-var FLM_ADMIN_NAV_READY=false;
 function showSec(id,fromRestore){
   localStorage.setItem('flm_admin_last_section',id);
   document.querySelectorAll('[id^=sec-]').forEach(e=>e.style.display='none');
   var target=document.getElementById('sec-'+id);
   if(target) target.style.display='block';
-  if(typeof toggleMenu==='function' && !fromRestore) toggleMenu();
+  if(typeof toggleMenu==='function') toggleMenu();
   if(typeof loadSec==='function') loadSec(id);
-  if(id==='registrationPayments' && typeof loadRegistrationRequests==='function') loadRegistrationRequests();
-  if(FLM_ADMIN_NAV_READY && !fromRestore){
-    history.pushState({flmAdminSection:id},'',window.location.href.split('#')[0]);
-  }
-}
-
-function initFlmAdminNavigation(){
-  try{
-    var saved=localStorage.getItem('flm_admin_last_section')||'dashboard';
-    FLM_ADMIN_NAV_READY=false;
-    history.replaceState({flmAdminSection:'dashboard'},'',window.location.href.split('#')[0]);
-    showSec(saved,true);
-    /* Keep one in-admin history entry when reopening the last section,
-       so Android/browser Back first returns to the Admin Dashboard. */
-    if(saved && saved!=='dashboard'){
-      history.pushState({flmAdminSection:saved},'',window.location.href.split('#')[0]);
-    }
-    FLM_ADMIN_NAV_READY=true;
-    window.addEventListener('popstate',function(){
-      var sess=localStorage.getItem('flm_admin_session');
-      if(!sess) return;
-      localStorage.setItem('flm_admin_last_section','dashboard');
-      showSec('dashboard',true);
-      history.replaceState({flmAdminSection:'dashboard'},'',window.location.href.split('#')[0]);
-    });
-  }catch(e){console.log('Admin navigation init warning:',e.message);}
 }
 </script>
 
