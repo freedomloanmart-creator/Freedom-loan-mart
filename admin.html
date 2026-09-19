@@ -682,7 +682,7 @@ async function loadStoresAdmin(){
         '<div style="font-weight:800">🏪 '+(s.name||'FLM Store')+' <span style="font-size:11px;color:#059669">• '+(s.status||'active')+'</span></div>'+
         '<button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 14px;font-weight:800">✏️ Edit Store</button>'+
         '</div>'+
-        '<div style="font-size:11px;color:#64748b;margin-top:5px">Code: '+(s.store_code||'-')+' | Phone: '+(s.phone||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
+        '<div style="font-size:11px;color:#64748b;margin-top:5px">Code: '+(s.store_code||'-')+' | Phone: '+(s.mobile||s.phone||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
         '<div style="font-size:11px;color:#64748b;margin-top:3px">'+(s.address||'-')+'</div>'+
         '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">✏️ Edit Store</button>'+((s.latitude!=null&&s.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.latitude+','+s.longitude)+'" style="background:#0f766e;color:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:800">🗺️ View Map</a>':'')+'</div></div>';
     }).join('');
@@ -699,7 +699,10 @@ async function editStore(id){
     const r=await client.from('stores').select('*').eq('id',id).single();
     if(r.error) throw r.error;
     const s=r.data||{};
-    const map={id:'Id',name:'Name',store_code:'Code',phone:'Phone',address:'Address',town:'Town',pincode:'Pincode',latitude:'Lat',longitude:'Lng',status:'Status'};
+    const map={id:'Id',name:'Name',store_code:'Code',mobile:'Phone',address:'Address',town:'Town',pincode:'Pincode',latitude:'Lat',longitude:'Lng',status:'Status'};
+    // stores.mobile is NOT NULL; keep the legacy phone field synchronized when it exists.
+    const phoneEl=document.getElementById('editStorePhone');
+    if(phoneEl && !phoneEl.value) phoneEl.value=s.phone==null?'':s.phone;
     Object.keys(map).forEach(function(k){const e=document.getElementById('editStore'+map[k]);if(e)e.value=s[k]==null?'':s[k];});
     document.getElementById('storeEditor').style.display='block';
   }catch(e){alert('Store load failed: '+(e.message||e));}
@@ -717,17 +720,19 @@ async function saveStoreEdits(){
   const longitude=lngValue===''?null:parseFloat(lngValue);
   if(latitude!==null&&!Number.isFinite(latitude)){alert('Invalid Latitude.');return;}
   if(longitude!==null&&!Number.isFinite(longitude)){alert('Invalid Longitude.');return;}
+  const storePhone=document.getElementById('editStorePhone').value.trim();
   const o={
     name:document.getElementById('editStoreName').value.trim(),
     store_code:document.getElementById('editStoreCode').value.trim().toUpperCase(),
-    phone:document.getElementById('editStorePhone').value.trim(),
+    mobile:storePhone,
+    phone:storePhone,
     address:document.getElementById('editStoreAddress').value.trim(),
     town:document.getElementById('editStoreTown').value.trim(),
     pincode:document.getElementById('editStorePincode').value.trim(),
     latitude:latitude,longitude:longitude,
     status:document.getElementById('editStoreStatus').value
   };
-  if(!o.name||!o.store_code||!o.pincode){alert('Store Name, Code and Pincode are required.');return;}
+  if(!o.name||!o.store_code||!o.mobile||!o.pincode){alert('Store Name, Code, Phone and Pincode are required.');return;}
   try{
     const r=await client.from('stores').update(o).eq('id',id);
     if(r.error) throw r.error;
@@ -823,10 +828,12 @@ async function getStoreCoords(){
 async function createStore(){
   const client=await ensureSupabaseClient();
   if(!client){alert('Supabase connection failed. Please refresh the page.');return;}
+  const storePhone=document.getElementById('storePhone').value.trim();
   const o={
     name:document.getElementById('storeName').value.trim(),
     store_code:document.getElementById('storeCode').value.trim().toUpperCase(),
-    phone:document.getElementById('storePhone').value.trim(),
+    mobile:storePhone,
+    phone:storePhone,
     address:document.getElementById('storeAddress').value.trim(),
     town:document.getElementById('storeTown').value.trim(),
     pincode:document.getElementById('storePincode').value.trim(),
@@ -834,8 +841,8 @@ async function createStore(){
     longitude:parseFloat(document.getElementById('storeLng').value),
     status:'active'
   };
-  if(!o.name||!o.store_code||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){
-    alert('Store Name, Code, Pincode and valid coordinates are required');return;
+  if(!o.name||!o.store_code||!o.mobile||!o.pincode||!Number.isFinite(o.latitude)||!Number.isFinite(o.longitude)){
+    alert('Store Name, Code, Phone, Pincode and valid coordinates are required');return;
   }
   try{
     const r=await client.from('stores').insert(o);
