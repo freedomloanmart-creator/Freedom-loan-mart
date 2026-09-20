@@ -1057,6 +1057,23 @@ async function submitWalletPinPurchase(walletType){
   var remaining=Number(d.remaining_balance||0);
   var value=Number(d.pin_value_total||qty*2000);
   var codeText=codes.map(function(x){return typeof x==='string'?x:(x.pin_code||'');}).filter(Boolean).join('\n');
+  // Save a completed PIN-purchase entry in My Wallets -> Transaction History.
+  // Wallet charge = Rs.2,300 per PIN; registration value remains Rs.2,000 per PIN.
+  try{
+   var txPayload={
+    fl_id:flId,
+    wallet_type:walletType==='loan'?'loan':'matching',
+    transaction_type:'pin_purchase',
+    amount:charge,
+    net_amount:charge,
+    status:'completed',
+    title:'PIN Purchase',
+    method:'Wallet',
+    remarks:qty+' PIN'+(qty>1?'s':'')+' generated from '+(walletType==='loan'?'Fund Wallet':'Matching Income')+'. Wallet charged Rs. '+charge.toLocaleString('en-IN')+'; PIN value Rs. '+value.toLocaleString('en-IN')+'.'
+   };
+   var txR=await supabaseClient.from('wallet_transactions').insert(txPayload);
+   if(txR.error) console.log('PIN purchase transaction history insert:',txR.error.message);
+  }catch(txErr){console.log('PIN purchase transaction history:',txErr.message);}
   var msg='✅ '+qty+' PIN'+(qty>1?'s':'')+' generated successfully!\n\nWallet deducted: '+money(charge)+'\nPIN value: '+money(value)+'\nRemaining balance: '+money(remaining)+'\n\nGenerated PIN'+(qty>1?'s':'')+':\n'+codeText+'\n\nThese PINs are now available in My Pins and can be used on the registration page.';
   alert(msg);
   var box=document.getElementById('walletActionBox');if(box)box.style.display='none';
