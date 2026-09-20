@@ -19,7 +19,7 @@ function showSec(id,fromPop){
  var secs=document.querySelectorAll('[id^=sec-]');for(var i=0;i<secs.length;i++) secs[i].style.display='none';
  var target=document.getElementById('sec-'+id);if(target) target.style.display='block';
  var menu=document.getElementById('menu');var overlay=document.getElementById('overlay');if(menu) menu.classList.remove('open');if(overlay) overlay.classList.remove('show');
- var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center'};
+ var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','products':'Products','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center'};
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
@@ -92,6 +92,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="menu-section">STORE & FINANCE</div>
 <div class="menu-item" onclick="showSec('stores')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🏪</span> Store Network</div>
 <div class="menu-item" onclick="showSec('loans')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🏦</span> Loan Plans</div>
+<div class="menu-item" onclick="showSec('products')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">🛍️</span> Products</div>
 <div class="menu-item" onclick="showSec('rewards')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</span> Rewards</div>
 <div class="menu-item" onclick="showSec('withdraw')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">⬆️</span> Withdraw</div>
 <div class="menu-section">SUPPORT</div>
@@ -147,7 +148,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-tokens" style="display:none">
 <div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">My Pins - Tokens</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="pinsTopName">Theja</div><div style="font-size:10px;color:#64748b" id="pinsTopFl">FL ID</div></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎫</div><b style="color:#fff">Token status</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:12px;background:linear-gradient(135deg,#0f766e,#0e7490)" id="tokenTotalText">0 total</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Available</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenAvailable">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Used</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenUsed">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Expired</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenExpired">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Total</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="tokenTotal">0</div></div></div></div>
-<div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #2563eb"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">💳</div><b style="color:#fff">Purchase Pins - Deposit</b></div><div style="text-align:center;padding:6px 0;color:#dbeafe;font-size:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8)">1 Pin = Rs. 2000 - Extra bonus: 25 pins=3 extra, 50 pins=9 extra, 100 pins=20 extra</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">How many pins you want? (1 pin also allowed)</div><input id="pinsWant" type="number" min="1" placeholder="Eg: 10" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px" oninput="calcPins()"></div><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#64748b">Payable Amount (pins × 2000):</span><b style="font-size:13px" id="payableAmount">Rs. 0</b></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-size:11px;color:#64748b">Extra Bonus Pins:</span><b style="font-size:13px;color:#059669" id="extraPins">0 extra</b></div><div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px dashed #bfdbfe;padding-top:6px"><span style="font-size:12px;font-weight:700">You Get Total:</span><b style="font-size:14px;color:#1e40af" id="totalPinsGet">0 pins</b></div><div style="margin-top:6px;font-size:10px;color:#2563eb" id="bonusMsg">Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px"><div style="font-weight:800;font-size:13px">💳 Payment Options - UPI / USDT BEP20</div>
+<div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #2563eb"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">💳</div><b style="color:#fff">Purchase Pins - Deposit</b></div><div style="text-align:center;padding:6px 0;color:#dbeafe;font-size:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8)">1 Pin = Rs. 2000 - Extra bonus: 25 pins=1 extra, 50 pins=4 extra, 100 pins=10 extra + Bangkok Trip</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">How many pins you want? (1 pin also allowed)</div><input id="pinsWant" type="number" min="1" placeholder="Eg: 10" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px" oninput="calcPins()"></div><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#64748b">Payable Amount (pins × 2000):</span><b style="font-size:13px" id="payableAmount">Rs. 0</b></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-size:11px;color:#64748b">Extra Bonus Pins:</span><b style="font-size:13px;color:#059669" id="extraPins">0 extra</b></div><div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px dashed #bfdbfe;padding-top:6px"><span style="font-size:12px;font-weight:700">You Get Total:</span><b style="font-size:14px;color:#1e40af" id="totalPinsGet">0 pins</b></div><div style="margin-top:6px;font-size:10px;color:#2563eb" id="bonusMsg">Enter pins - 25 pins=1 extra (26 total), 50 pins=4 extra (54 total), 100 pins=10 extra (110 total) + Bangkok Trip</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px"><div style="font-weight:800;font-size:13px">💳 Payment Options - UPI / USDT BEP20</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
 <div style="background:#fff;border-radius:12px;padding:10px;text-align:center;border:1px solid #e2e8f0">
 <div style="font-size:11px;font-weight:700">PhonePe UPI</div>
@@ -179,8 +180,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="loanDirectProgress" class="card" style="margin-top:10px;border:2px solid #f59e0b;background:#fffbeb;font-size:12px">Loading referral qualification...</div>
 <div class="grid2">
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Current Pair Progress</div><div id="loanPairProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 : 0</div></div>
- <div class="dark-card"><div id="loanEligibleLabel" style="font-size:11px;opacity:.75">Available Loan (After Previous)</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
- <div class="dark-card"><div style="font-size:11px;opacity:.75">Previous Loan Deduction</div><div id="loanPreviousAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
+ <div class="dark-card"><div id="loanEligibleLabel" style="font-size:11px;opacity:.75">Available Company Fund</div><div id="loanEligibleAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Held Amount</div><div id="loanHeldAmount" style="font-size:22px;font-weight:900;margin-top:5px">Rs. 0.00</div></div>
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Renewal Progress</div><div id="loanRenewalProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 / 0</div></div>
 </div>
@@ -202,7 +202,7 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <div class="card" style="border:2px solid #0ea5e9">
  <div style="font-weight:900;color:#0369a1">📋 Loan Plan Levels</div>
- <div style="font-size:11px;color:#64748b;margin-top:4px">Increment = current loan amount − previous loan amount. The 36:36 renewal rule is applied by the database functions.</div>
+ <div style="font-size:11px;color:#64748b;margin-top:4px">Company Fund = the release fund shown to the member. Previous Loan Deduction and total Loan columns are not displayed. From 36:36 onward, qualification supports 2 new direct referrals (Left + Right) OR 2 old-ID renewals (Left + Right).</div>
  <div id="loanPlansTable" style="margin-top:10px;overflow:auto">Loading plans...</div>
 </div>
 <div class="card" style="border:2px solid #f59e0b">
@@ -210,6 +210,30 @@ body{background:#eef2f7;color:#0f172a}
  <div id="myLoanHistory" style="margin-top:10px">Loading...</div>
 </div>
 </div>
+</div>
+
+<div id="sec-products" style="display:none">
+  <div class="card" style="background:linear-gradient(135deg,#047857,#0e7490);color:#fff;border-radius:20px;padding:18px">
+    <div style="font-size:11px;opacity:.8">FLM STORE</div><div style="font-size:22px;font-weight:900;margin-top:4px">🛍️ Products</div>
+    <div style="font-size:11px;opacity:.9;margin-top:5px">Select products and quantity. Your total bill will update automatically.</div>
+  </div>
+  <div id="flmProductsList" style="margin-top:10px">Loading products...</div>
+  <div class="card" style="border:2px solid #2563eb;background:#eff6ff">
+    <div style="font-weight:900;color:#1d4ed8">🧾 Order Bill</div>
+    <div id="flmCartRows" style="margin-top:8px;color:#475569;font-size:12px">No products selected.</div>
+    <div style="display:flex;justify-content:space-between;border-top:1px dashed #93c5fd;margin-top:10px;padding-top:10px;font-size:16px"><b>Total</b><b id="flmCartTotal">Rs. 0.00</b></div>
+    <div style="margin-top:12px;font-size:12px;font-weight:800">Delivery / Collection Option</div>
+    <select id="flmOrderMethod" onchange="flmOrderMethodChanged()" style="width:100%;margin-top:6px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff">
+      <option value="mega_store_courier">Courier through Mega Store Point</option>
+      <option value="store_point">Collect at Store Point</option>
+      <option value="appliener">Collect from Appliener</option>
+    </select>
+    <div id="flmOrderExtra" style="margin-top:10px"></div>
+    <div id="flmOrderAddress" style="margin-top:10px;background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px">Loading saved address...</div>
+    <button onclick="flmPlaceOrder()" style="width:100%;margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:900">📦 Place Order</button>
+    <div id="flmOrderMsg" style="font-size:11px;text-align:center;margin-top:8px"></div>
+  </div>
+  <div class="card" style="border:2px solid #059669"><div style="font-weight:900;color:#065f46">📋 My Orders</div><div id="flmMyOrders" style="margin-top:10px">Loading...</div></div>
 </div>
 <div id="sec-support" style="display:none">
   <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px">
@@ -694,16 +718,17 @@ function calcPins(){
  var wantEl=document.getElementById('pinsWant');
  var want=parseInt(wantEl?wantEl.value:'0')||0;
  var extra=0;
- if(want>=100) extra=20;
- else if(want>=50) extra=9;
- else if(want>=25) extra=3;
+ var rem=want;
+ if(rem>=100){extra+=Math.floor(rem/100)*10;rem=rem%100;}
+ if(rem>=50){extra+=4;rem=rem%50;}
+ if(rem>=25){extra+=1;}
  var payable=want*2000;
  var totalGet=want+extra;
  var payEl=document.getElementById('payableAmount');if(payEl) payEl.innerText='Rs. '+payable;
  var extraEl=document.getElementById('extraPins');if(extraEl) extraEl.innerText=extra+' extra';
  var totalEl=document.getElementById('totalPinsGet');if(totalEl) totalEl.innerText=totalGet+' pins ('+want+' + '+extra+' bonus)';
  var msgEl=document.getElementById('bonusMsg');
- if(msgEl){if(want>0){msgEl.innerText='You type '+want+' → Pay Rs.'+payable+' → You get total '+totalGet+' pins - Extra '+extra+' free';}else{msgEl.innerText='Enter pins - 25 pins=3 extra (28 total), 50 pins=9 extra (59 total), 100 pins=20 extra (120 total)';}}
+ if(msgEl){if(want>0){msgEl.innerText='You type '+want+' → Pay Rs.'+payable+' → You get total '+totalGet+' pins - Extra '+extra+' free';}else{msgEl.innerText='Enter pins - 25 pins=1 extra (26 total), 50 pins=4 extra (54 total), 100 pins=10 extra (110 total) + Bangkok Trip';}}
  var btn=document.getElementById('submitDepositBtn');
  if(btn){
    if(want>0){btn.innerText='Submit Deposit - Admin Will Confirm '+totalGet+' Pins (Pay Rs.'+payable+' for '+want+' pins) - '+totalGet+' pins total';}
@@ -776,7 +801,7 @@ async function submitPinPurchase(){
  if(want<1){if(msgEl){msgEl.style.color='#dc2626';msgEl.innerText='Enter how many pins - Minimum 1';}return;}
  if(!utr){if(msgEl){msgEl.style.color='#dc2626';msgEl.innerText='Enter UTR / Transaction Hash';}return;}
  if(!fileEl?.files?.[0]){if(msgEl){msgEl.style.color='#dc2626';msgEl.innerText='Please upload the payment screenshot.';}return;}
- const calc=window.currentPurchase||{want,extra:(want>=100?20:want>=50?9:want>=25?3:0),total:want+(want>=100?20:want>=50?9:want>=25?3:0),payable:want*2000};
+ const calc=window.currentPurchase||{want,extra:(function(q){var rem=q,x=0;if(rem>=100){x+=Math.floor(rem/100)*10;rem%=100;}if(rem>=50){x+=4;rem%=50;}if(rem>=25)x+=1;return x;})(want),total:0,payable:want*2000}; calc.total=calc.want+calc.extra;
  if(!supabaseClient){if(msgEl)msgEl.innerText='Supabase is not connected.';return;}
  try{
   const flId=getFlId();
@@ -791,7 +816,7 @@ async function submitPinPurchase(){
   const screenshotData=await readScreenshot(fileEl.files[0]);
   const res=await supabaseClient.from('pin_purchase_requests').insert({
    fl_id:flId,requested_pins:calc.want,extra_pins:calc.extra,total_pins:calc.total,
-   amount:calc.payable,utr:utr,payment_method:'UPI',status:'pending',screenshot_data:screenshotData
+   amount:calc.payable,utr:utr,payment_method:'UPI',status:'pending',screenshot_data:screenshotData,bangkok_trip_eligible:calc.want>=100
   }).select().single();
   if(res.error)throw res.error;
   setPurchaseStatus(`⏳ Already submitted. Waiting for admin approval.\nUTR: ${utr} · Requested: ${calc.want} pins · Total after approval: ${calc.total} pins`,'pending');
@@ -1566,7 +1591,7 @@ async function loadLoanPanel(){
       status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
     }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Loan (After Previous)':'Current Loan Wallet (Already Released)';
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Company Fund':'Current Loan Wallet (Already Released)';
     // Force current wallet UI from DB for every already-released loan.
     if(latestLevel2>0){
       var lwActual=document.getElementById('loanWallet');if(lwActual)lwActual.innerText=loanMoney(actualLoanWallet);
@@ -1587,8 +1612,6 @@ async function loadLoanPanel(){
         ta.innerText=loanMoney(roiV+matchV+availableIncrement);
       }
     }catch(e){}
-
-    var pa=document.getElementById('loanPreviousAmount');if(pa)pa.innerText=loanMoney(prevPlan);
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
     var ws=document.getElementById('loanWithdrawSummary');if(ws){
       // === FLM UNIVERSAL WITHDRAWN CHECK FOR ALL USERS ===
@@ -1661,11 +1684,10 @@ async function loadLoanPanel(){
         prevPlan = nextPrev;
         incPlan = nextInc;
         var ea2=document.getElementById('loanEligibleAmount');if(ea2)ea2.innerText=loanMoney(nextInc);
-        var pa2=document.getElementById('loanPreviousAmount');if(pa2)pa2.innerText=loanMoney(nextPrev);
         // fall through to eligible rendering below
-        ws.innerHTML += '<div style="margin-top:8px"><b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.</div>';
+        ws.innerHTML += '<div style="margin-top:8px"><b style="color:#1d4ed8">Level '+loanEsc(lvl)+' Company Fund: '+loanMoney(availableIncrement)+'</b><br>This is the release fund available for this level.</div>';
       }else if(eligible){
-        ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' available: '+loanMoney(availableIncrement)+'</b><br>Gross loan '+loanMoney(grossPlan)+' − previous loan '+loanMoney(prevPlan)+' = <b>'+loanMoney(availableIncrement)+'</b> withdrawable now.';
+        ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' Company Fund: '+loanMoney(availableIncrement)+'</b><br>This is the release fund available for this level.';
       }else if(latestLevel2>0 && availableIncrement>0){
         ws.innerHTML='<b style="color:#166534">Loan wallet available: '+loanMoney(availableIncrement)+'</b><br>Already released loan amount. Next loan is available after the required pair level is reached.';
       }else{
@@ -1735,7 +1757,7 @@ async function loadLoanPanel(){
     }
 
     var pt=document.getElementById('loanPlansTable');
-    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Loan</th><th style="padding:9px;text-align:right">Increment</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right">'+loanMoney(amt)+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:800">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
+    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Company Fund</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:900">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
     var hist=document.getElementById('myLoanHistory');
     if(hist){
       // Merge member_loans + wallet release tx as source of truth for history
@@ -2122,6 +2144,74 @@ async function claimReward(pairs, name){
   }
   window.addEventListener('load',bootLoanPanel);
   window.addEventListener('pageshow',function(){setTimeout(bootLoanPanel,150);});
+})();
+</script>
+
+<script>
+/* FLM CLIENT MODIFICATIONS - PRODUCTS / ORDERS / SCROLLING */
+(function(){
+  function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  var cart={}; var profileCache=null; var productCache=[];
+  function money2(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  async function flmGetProfile(){
+    var flId=getFlId(); if(!flId||!supabaseClient)return null;
+    try{var r=await supabaseClient.from('users').select('fl_id,full_name,mobile,address,full_address,pincode,city,town,sponsor_id').eq('fl_id',flId).single(); if(r.error)throw r.error; profileCache=r.data||{}; return profileCache;}catch(e){return profileCache||{};}
+  }
+  function cartTotal(){return Object.keys(cart).reduce(function(s,id){var p=productCache.find(function(x){return String(x.id)===String(id)});return s+(p?Number(p.price||0)*Number(cart[id]||0):0)},0);}
+  function renderCart(){
+    var rows=document.getElementById('flmCartRows'), total=document.getElementById('flmCartTotal'); if(!rows)return;
+    var ids=Object.keys(cart).filter(function(id){return Number(cart[id])>0});
+    if(!ids.length){rows.innerHTML='No products selected.';if(total)total.innerText=money2(0);return;}
+    rows.innerHTML=ids.map(function(id){var p=productCache.find(function(x){return String(x.id)===String(id)});return '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #e2e8f0"><span>'+esc(p.name)+' × '+Number(cart[id])+'</span><b>'+money2(Number(p.price||0)*Number(cart[id]))+'</b></div>';}).join('');
+    if(total)total.innerText=money2(cartTotal());
+  }
+  function setQty(id,delta){var n=Math.max(0,Number(cart[id]||0)+delta);if(n)cart[id]=n;else delete cart[id];renderCart();var el=document.getElementById('qty_'+id);if(el)el.innerText=n;}
+  async function loadProducts(){
+    var el=document.getElementById('flmProductsList');if(!el)return;el.innerHTML='<div class="card">Loading products...</div>';
+    try{var r=await supabaseClient.from('products').select('*').eq('active',true).order('created_at',{ascending:false});if(r.error)throw r.error;productCache=r.data||[];
+      if(!productCache.length){el.innerHTML='<div class="card" style="text-align:center;color:#64748b">No products available right now.</div>';renderCart();return;}
+      el.innerHTML=productCache.map(function(p){return '<div class="card" style="border:1px solid #e2e8f0"><div style="display:flex;gap:12px;align-items:center"><div style="width:92px;height:92px;border-radius:12px;background:#f1f5f9;overflow:hidden;flex:none">'+(p.image_data?'<img src="'+p.image_data+'" style="width:100%;height:100%;object-fit:cover">':'<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:30px">📦</div>')+'</div><div style="flex:1"><div style="font-weight:900;font-size:15px">'+esc(p.name)+'</div><div style="font-weight:900;color:#059669;font-size:16px;margin-top:5px">'+money2(p.price)+'</div><div style="display:flex;align-items:center;gap:10px;margin-top:9px"><button onclick="flmQty(\''+esc(p.id)+'\',-1)" style="width:34px;height:34px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font-weight:900">−</button><b id="qty_'+esc(p.id)+'">'+Number(cart[p.id]||0)+'</b><button onclick="flmQty(\''+esc(p.id)+'\',1)" style="width:34px;height:34px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:900">+</button><span style="font-size:10px;color:#64748b">Qty</span></div></div></div></div>';}).join('');
+      renderCart();
+    }catch(e){el.innerHTML='<div class="card" style="color:#991b1b">Products could not be loaded: '+esc(e.message)+'</div>';}
+  }
+  window.flmQty=function(id,d){setQty(id,d);};
+  window.flmOrderMethodChanged=async function(){
+    var method=document.getElementById('flmOrderMethod')?.value, box=document.getElementById('flmOrderExtra');if(!box)return;
+    box.innerHTML='';
+    if(method==='store_point'){
+      box.innerHTML='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;font-size:11px">Finding your nearest Store Point...</div>';
+      var p=await flmGetProfile();var pin=String((p||{}).pincode||'').trim(),town=String((p||{}).city||(p||{}).town||'').trim();
+      try{var r=await supabaseClient.from('stores').select('*').eq('status','active');if(r.error)throw r.error;var arr=r.data||[];var exact=arr.filter(function(s){return String(s.pincode||'').trim()===pin||(town&&String(s.town||s.city||'').trim().toLowerCase()===town.toLowerCase());});var st=exact[0]||arr[0];if(st){box.innerHTML='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;font-size:11px"><b>Nearest Store Point</b><br>'+esc(st.name||st.store_name||'Store')+'<br>'+esc(st.address||'')+'<br>Pincode: '+esc(st.pincode||'')+(st.phone?'<br>Phone: '+esc(st.phone):'')+'</div>';box.dataset.storeId=st.id||'';box.dataset.storeName=st.name||st.store_name||'Store';box.dataset.storeCode=st.code||st.store_code||'';}else box.innerHTML='<div style="color:#92400e">No active Store Point found. Please use another option.</div>';}catch(e){box.innerHTML='<div style="color:#991b1b">Store search failed: '+esc(e.message)+'</div>';}
+    }else if(method==='appliener'){
+      var p2=await flmGetProfile(), sponsor=String((p2||{}).sponsor_id||'').trim();
+      if(sponsor){try{var r2=await supabaseClient.from('users').select('fl_id,full_name,mobile').eq('fl_id',sponsor.toUpperCase()).single();var ap=r2.data||{};box.innerHTML='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px"><b>Appliener Details</b><br>User ID: <b>'+esc(ap.fl_id||sponsor)+'</b><br>Name: '+esc(ap.full_name||'')+'<br>Mobile: '+esc(ap.mobile||'')+'</div>';box.dataset.applienerId=ap.fl_id||sponsor;box.dataset.applienerMobile=ap.mobile||'';}catch(e){box.innerHTML='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px"><b>Appliener User ID:</b> '+esc(sponsor)+'<br>Mobile details unavailable.</div>';box.dataset.applienerId=sponsor;box.dataset.applienerMobile='';}}else box.innerHTML='<div style="color:#92400e">Appliener details are not available for this account.</div>';
+    }else box.innerHTML='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px">Admin will courier the order through Mega Store Point.</div>';
+  };
+  async function renderAddress(){var p=await flmGetProfile(),el=document.getElementById('flmOrderAddress');if(!el)return;if(!p||!(p.address||p.full_address)){el.innerHTML='<b>Delivery Address</b><br>No saved address. Please save your address in My Profile first.';return;}el.innerHTML='<b>Saved Address</b><br>'+esc(p.address||p.full_address)+'<br>'+esc(p.city||p.town||'')+' - '+esc(p.pincode||'')+'<br>Mobile: '+esc(p.mobile||'');}
+  window.flmPlaceOrder=async function(){
+    var ids=Object.keys(cart).filter(function(id){return Number(cart[id])>0});if(!ids.length){alert('Select at least one product.');return;}
+    var p=await flmGetProfile();if(!p||!(p.address||p.full_address)||!p.pincode){alert('Please save your delivery address in My Profile first.');showSec('profile');return;}
+    var method=document.getElementById('flmOrderMethod').value,extra=document.getElementById('flmOrderExtra');var items=ids.map(function(id){var x=productCache.find(function(q){return String(q.id)===String(id)});return {product_id:x.id,name:x.name,price:Number(x.price||0),qty:Number(cart[id]),line_total:Number(x.price||0)*Number(cart[id])};});
+    var payload={fl_id:getFlId(),user_name:p.full_name||getName()||'',mobile:p.mobile||'',address:p.address||p.full_address||'',pincode:p.pincode||'',city:p.city||p.town||'',fulfillment_method:method,store_id:extra?.dataset.storeId||null,store_name:extra?.dataset.storeName||null,store_code:extra?.dataset.storeCode||null,appliener_fl_id:extra?.dataset.applienerId||null,appliener_mobile:extra?.dataset.applienerMobile||null,items:items,total_amount:cartTotal(),status:'pending'};
+    var msg=document.getElementById('flmOrderMsg');msg.innerText='Placing order...';
+    try{var r=await supabaseClient.from('orders').insert(payload).select().single();if(r.error)throw r.error;cart={};renderCart();msg.style.color='#059669';msg.innerText='✅ Order placed successfully. Order ID: '+String(r.data.id).slice(0,8);await loadMyOrders();}catch(e){msg.style.color='#dc2626';msg.innerText='Order failed: '+e.message;}
+  };
+  async function loadMyOrders(){var el=document.getElementById('flmMyOrders');if(!el)return;try{var r=await supabaseClient.from('orders').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders yet.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-weight:800;color:#2563eb">'+esc(o.status||'pending')+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><div style="font-weight:900;margin-top:5px">'+money2(o.total_amount)+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(o.fulfillment_method||'')+' • '+(o.created_at?new Date(o.created_at).toLocaleString():'')+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">Orders unavailable: '+esc(e.message)+'</div>';}}
+  async function loadScrolls(){
+    var old=document.getElementById('flmGlobalScroll');if(old)old.remove();
+    try{
+      var r=await supabaseClient.from('site_scrolls').select('message,sort_order').eq('active',true).order('sort_order',{ascending:true});
+      if(r.error)throw r.error;var rows=r.data||[];if(!rows.length)return;
+      var box=document.createElement('div');box.id='flmGlobalScroll';box.innerHTML='<span style="font-weight:900;margin-right:12px">📢</span><span id="flmScrollText"></span>';box.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#0f172a;color:#fff;padding:10px 14px;font-size:12px;box-shadow:0 -2px 10px rgba(0,0,0,.18);white-space:nowrap;overflow:hidden;text-align:left';document.body.appendChild(box);
+      var idx=0,t=document.getElementById('flmScrollText');
+      function next(){if(!t)return;t.style.transition='none';t.style.transform='translateX(100%)';t.innerText=rows[idx].message||'';idx=(idx+1)%rows.length;var w=Math.max(240,t.scrollWidth+window.innerWidth),sec=Math.max(7,w/55);requestAnimationFrame(function(){t.style.transition='transform '+sec+'s linear';t.style.transform='translateX(-'+w+'px)';setTimeout(next,(sec*1000)+800);});}
+      next();
+    }catch(e){console.log('scrolls:',e.message);}
+  }
+
+  var oldShow=window.showSec;
+  window.showSec=function(id,fromPop){oldShow(id,fromPop);if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadScrolls,400);setInterval(loadScrolls,60000);});
 })();
 </script>
 </body></html>
