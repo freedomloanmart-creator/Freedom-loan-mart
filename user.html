@@ -1,6 +1,6 @@
 <!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
 <!DOCTYPE html>
-<html><head><meta name="flm-build" content="20260920-media-scroll-final"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<html><head><meta name="flm-build" content="20260920-documents-final"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -19,7 +19,7 @@ function showSec(id,fromPop){
  var secs=document.querySelectorAll('[id^=sec-]');for(var i=0;i<secs.length;i++) secs[i].style.display='none';
  var target=document.getElementById('sec-'+id);if(target) target.style.display='block';
  var menu=document.getElementById('menu');var overlay=document.getElementById('overlay');if(menu) menu.classList.remove('open');if(overlay) overlay.classList.remove('show');
- var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','products':'Products','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center'};
+ var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','products':'Products','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center','documents':'Documents'};
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
@@ -159,6 +159,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="menu-item" onclick="showSec('stores')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🏪</span> Store Network</div>
 <div class="menu-item" onclick="showSec('loans')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🏦</span> Loan Plans</div>
 <div class="menu-item" onclick="showSec('products')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">🛍️</span> Products</div>
+<div class="menu-item" onclick="showSec('documents')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">📄</span> Documents</div>
 <div class="menu-item" onclick="showSec('rewards')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</span> Rewards</div>
 <div class="menu-item" onclick="showSec('withdraw')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">⬆️</span> Withdraw</div>
 <div class="menu-section">SUPPORT</div>
@@ -1915,6 +1916,13 @@ async function submitLoanSelfRenewal(){
 }
 </script>
 
+<div id="sec-documents" style="display:none">
+ <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#4f46e5);color:#fff;border-radius:18px;padding:18px">
+  <div style="font-size:21px;font-weight:900">📄 Company Documents</div>
+  <div style="font-size:11px;opacity:.9;margin-top:5px">Company registration documents, PPTs, videos and other files shared by Admin.</div>
+ </div>
+ <div id="flmDocumentsList">Loading documents...</div>
+</div>
 <div id="sec-rewards" style="display:none">
   <div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
     <div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="color:#1e3a8a;font-size:16px">Rewards Club</b></div>
@@ -2284,6 +2292,25 @@ async function claimReward(pairs, name){
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
   function pageLabel(id){var m={dashboard:'Dashboard',profile:'My Profile',invite:'Invite & Share Links',downline:'My Team - Downline',tokens:'My Pins - Tokens',wallets:'My Wallets',stores:'Store Network',loans:'Loan Plans',products:'Products',rewards:'Rewards Club',withdraw:'Withdraw',support:'Help Center'};return m[id]||id;}
+  async function loadDocuments(){
+    var el=document.getElementById('flmDocumentsList');if(!el||!supabaseClient)return;
+    el.innerHTML='<div class="card" style="text-align:center;color:#64748b">Loading documents...</div>';
+    try{
+      var r=await supabaseClient.from('flm_documents').select('*').eq('active',true).order('sort_order',{ascending:true}).order('created_at',{ascending:false});
+      if(r.error)throw r.error;
+      var rows=r.data||[];
+      if(!rows.length){el.innerHTML='<div class="card" style="text-align:center;color:#64748b;padding:25px">No documents available yet.</div>';return;}
+      var icons={pdf:'📕',ppt:'📊',pptx:'📊',video:'🎬',image:'🖼️',doc:'📘',docx:'📘',other:'📎'};
+      el.innerHTML=rows.map(function(x){
+        var typ=String(x.file_type||'other').toLowerCase();var icon=icons[typ]||'📎';
+        var url=String(x.file_url||'').trim();
+        var safeUrl=esc(url);
+        var action=url?'<a href="'+safeUrl+'" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:10px;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:11px;font-weight:900">Open / View</a>':'';
+        return '<div class="card" style="border:1px solid #e2e8f0">'+
+          '<div style="display:flex;align-items:flex-start;gap:10px"><div style="width:46px;height:46px;border-radius:12px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none">'+icon+'</div><div style="min-width:0;flex:1"><div style="font-weight:900;color:#0f172a">'+esc(x.title||x.file_name||'Document')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(String(x.category||'Company Documents'))+' • '+esc(typ.toUpperCase())+'</div>'+(x.description?'<div style="font-size:11px;color:#475569;margin-top:6px;line-height:1.45">'+esc(x.description)+'</div>':'')+'</div></div>'+action+'</div>';
+      }).join('');
+    }catch(e){el.innerHTML='<div class="card" style="color:#991b1b">Documents unavailable: '+esc(e.message)+'</div>';console.log('documents:',e.message);}
+  }
   async function loadPageMedia(pageId){
     var box=document.getElementById('flmBannerMedia');if(!box||!supabaseClient)return;
     try{
@@ -2303,8 +2330,8 @@ async function claimReward(pairs, name){
     }catch(e){box.innerHTML='';box.style.display='none';console.log('page media:',e.message);}
   }
   var oldShow=window.showSec;
-  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadScrolls,400);setTimeout(function(){loadPageMedia(localStorage.getItem('flm_last_section')||'dashboard');},500);setInterval(loadScrolls,60000);});
+  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadScrolls,400);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);});
 })();
 </script>
 </body></html>

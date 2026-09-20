@@ -1,5 +1,5 @@
 <!-- FLM_ADMIN_7IDS_EMAIL_FIXED_20260914 -->
-<!-- FLM MEDIA / PRODUCT UI UPDATE 20260920 -->
+<!-- FLM MEDIA / PRODUCT / DOCUMENTS UI UPDATE 20260920 -->
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Platform Admin Dashboard - 7 ID Email Fix</title>
@@ -561,6 +561,7 @@ body{background:#eef2f7;color:#0f172a}
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#2563eb;color:#fff" onclick="showSec('ordersAdmin')">📦 Orders</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#7c3aed;color:#fff" onclick="showSec('scrollAdmin')">📢 Scrolling Messages</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#0f766e;color:#fff" onclick="showSec('pageMediaAdmin')">🎬 Page Media / Videos</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#1d4ed8;color:#fff" onclick="showSec('documentsAdmin')">📄 Documents / Company Files</div>
 <div style="padding:8px 16px;font-size:10px;font-weight:700;color:#94a3b8;margin-top:8px">STORE MANAGEMENT - Full - Restored from 40KB+ Before Pins</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('stores')">🏪 Store Locator - Full</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('createStore')">➕ Create Store - Full</div>
@@ -662,6 +663,21 @@ body{background:#eef2f7;color:#0f172a}
   <button onclick="admAddPageMedia()" style="width:100%;margin-top:10px;background:#0f766e;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:900">➕ Add Page Media</button><div id="admMediaMsg" style="font-size:11px;text-align:center;margin-top:7px"></div>
  </div>
  <div class="card"><div style="font-weight:900">📋 Page Media List</div><div id="admPageMediaList" style="margin-top:10px">Loading...</div></div>
+</div>
+<div id="sec-documentsAdmin" style="display:none">
+ <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#4f46e5);color:#fff;border-radius:18px;padding:18px"><div style="font-size:21px;font-weight:900">📄 Documents / Company Files</div><div style="font-size:11px;opacity:.9;margin-top:5px">Upload company registration documents, PPT/PPTX, PDFs, videos, images and other files. Members can view active files from the Documents page.</div></div>
+ <div class="card" style="border:2px solid #2563eb">
+  <input id="admDocTitle" class="input" placeholder="Document title" style="margin-top:0">
+  <input id="admDocCategory" class="input" placeholder="Category e.g. Company Registration, Presentation, Training" style="margin-top:8px">
+  <textarea id="admDocDescription" class="input" placeholder="Short description (optional)" style="margin-top:8px;min-height:70px;resize:vertical"></textarea>
+  <select id="admDocType" class="input" style="margin-top:8px"><option value="auto">Auto detect file type</option><option value="pdf">PDF</option><option value="ppt">PPT / PPTX</option><option value="video">Video</option><option value="image">Image</option><option value="doc">Word / Document</option><option value="other">Other</option></select>
+  <input id="admDocUrl" class="input" placeholder="Optional file URL (use this instead of upload)" style="margin-top:8px">
+  <input id="admDocFile" type="file" class="input" style="margin-top:8px">
+  <div style="font-size:10px;color:#64748b;margin-top:6px">For uploaded files, the file is stored in Supabase Storage bucket <b>flm-documents</b>. For large videos, a URL is recommended.</div>
+  <input id="admDocOrder" class="input" type="number" min="1" value="1" placeholder="Display order" style="margin-top:8px">
+  <button onclick="admAddDocument()" style="width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:900">➕ Add Document</button><div id="admDocMsg" style="font-size:11px;text-align:center;margin-top:7px"></div>
+ </div>
+ <div class="card"><div style="font-weight:900">📋 Documents List</div><div id="admDocumentsList" style="margin-top:10px">Loading...</div></div>
 </div>
 <div id="sec-ordersAdmin" style="display:none">
  <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:18px;padding:18px"><div style="font-size:21px;font-weight:900">📦 Orders</div><div style="font-size:11px;opacity:.9;margin-top:5px">User orders, address, products, quantity and collection/courier option.</div><button onclick="admLoadOrders()" style="width:100%;margin-top:10px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:11px;font-weight:900">🔄 Refresh Orders</button></div>
@@ -1077,6 +1093,46 @@ function initFlmAdminNavigation(){
  async function admLoadPageMedia(){var el=document.getElementById('admPageMediaList');if(!el)return;try{var r=await supabaseClient.from('flm_page_media').select('*').order('page_id',{ascending:true}).order('sort_order',{ascending:true});if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No page media.</div>';return;}el.innerHTML=rows.map(function(x){var label=String(x.page_id||'').replace(/^./,function(c){return c.toUpperCase();}),src=x.media_data||x.media_url||'';return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:10px;margin-bottom:8px"><div style="font-weight:900">'+esc(label)+' • '+esc(x.media_type||'')+'</div>'+(x.title?'<div style="font-size:11px;color:#475569;margin-top:3px">'+esc(x.title)+'</div>':'')+'<div style="font-size:10px;color:#64748b;margin-top:4px;word-break:break-all">'+(x.media_data?'Uploaded file':esc(x.media_url||''))+'</div><div style="display:flex;gap:7px;margin-top:7px"><button onclick="admTogglePageMedia(\''+esc(x.id)+'\','+(!x.active)+')" style="border:0;border-radius:8px;padding:8px;background:'+(x.active?'#dcfce7':'#f1f5f9')+';color:'+(x.active?'#166534':'#475569')+';font-weight:800">'+(x.active?'ON':'OFF')+'</button><button onclick="admDeletePageMedia(\''+esc(x.id)+'\')" style="border:0;border-radius:8px;padding:8px;background:#fee2e2;color:#991b1b;font-weight:800">Delete</button></div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">'+esc(e.message)+'</div>';}}
  window.admTogglePageMedia=async function(id,active){try{var r=await supabaseClient.from('flm_page_media').update({active:active,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;admLoadPageMedia();}catch(e){alert(e.message);}};
  window.admDeletePageMedia=async function(id){if(!confirm('Delete this page media?'))return;try{var r=await supabaseClient.from('flm_page_media').delete().eq('id',id);if(r.error)throw r.error;admLoadPageMedia();}catch(e){alert(e.message);}};
+ function flmDocType(file,selected){
+   if(selected && selected!=='auto') return selected;
+   var n=String(file&&file.name||'').toLowerCase(),m=String(file&&file.type||'').toLowerCase();
+   if(m==='application/pdf'||n.endsWith('.pdf')) return 'pdf';
+   if(n.endsWith('.ppt')||n.endsWith('.pptx')||m.indexOf('presentation')>=0) return 'ppt';
+   if(m.indexOf('video/')===0||/\.(mp4|webm|mov|m4v|avi)$/i.test(n)) return 'video';
+   if(m.indexOf('image/')===0) return 'image';
+   if(m.indexOf('word')>=0||/\.(doc|docx)$/i.test(n)) return 'doc';
+   return 'other';
+ }
+ window.admAddDocument=async function(){
+   var title=document.getElementById('admDocTitle').value.trim(),category=document.getElementById('admDocCategory').value.trim()||'Company Documents',description=document.getElementById('admDocDescription').value.trim(),selected=document.getElementById('admDocType').value,url=document.getElementById('admDocUrl').value.trim(),file=document.getElementById('admDocFile').files[0],ord=parseInt(document.getElementById('admDocOrder').value)||1,msg=document.getElementById('admDocMsg');
+   if(!title){msg.style.color='#dc2626';msg.innerText='Enter document title.';return;}
+   if(!file&&!url){msg.style.color='#dc2626';msg.innerText='Select a file or enter a file URL.';return;}
+   if(file&&file.size>25*1024*1024){msg.style.color='#dc2626';msg.innerText='Uploaded file must be 25 MB or smaller. For larger videos, use a public file URL.';return;}
+   try{
+     var client=await ensureSupabaseClient();if(!client)throw new Error('Supabase connection unavailable.');
+     var fileUrl=url,fileName=file?file.name:null,fileType=flmDocType(file,selected);
+     if(file){
+       var safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');var path='documents/'+Date.now()+'_'+safe;
+       var up=await client.storage.from('flm-documents').upload(path,file,{upsert:false,contentType:file.type||undefined});
+       if(up.error)throw up.error;
+       var pub=client.storage.from('flm-documents').getPublicUrl(path);fileUrl=pub.data.publicUrl;
+     }
+     var r=await client.from('flm_documents').insert({title:title,category:category,description:description||null,file_name:fileName,file_type:fileType,file_url:fileUrl,storage_path:file?path:null,active:true,sort_order:ord}).select().single();
+     if(r.error)throw r.error;
+     msg.style.color='#059669';msg.innerText='✅ Document added.';
+     ['admDocTitle','admDocCategory','admDocDescription','admDocUrl','admDocFile'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});document.getElementById('admDocType').value='auto';admLoadDocuments();
+   }catch(e){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}
+ };
+ async function admLoadDocuments(){
+   var el=document.getElementById('admDocumentsList');if(!el)return;
+   try{var r=await supabaseClient.from('flm_documents').select('*').order('sort_order',{ascending:true}).order('created_at',{ascending:false});if(r.error)throw r.error;var rows=r.data||[];
+     if(!rows.length){el.innerHTML='<div style="color:#64748b">No documents.</div>';return;}
+     el.innerHTML=rows.map(function(x){var u=esc(x.file_url||''),typ=esc(x.file_type||'other');return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:900">📄 '+esc(x.title||x.file_name||'Document')+'</div><span style="font-size:10px;padding:4px 7px;border-radius:999px;background:'+(x.active?'#dcfce7':'#f1f5f9')+';color:'+(x.active?'#166534':'#475569')+'">'+(x.active?'ON':'OFF')+'</span></div><div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(x.category||'Company Documents')+' • '+typ.toUpperCase()+'</div>'+(x.description?'<div style="font-size:10px;color:#475569;margin-top:5px">'+esc(x.description)+'</div>':'')+'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button onclick="admToggleDocument(\''+esc(x.id)+'\','+(!x.active)+')" style="border:0;border-radius:8px;padding:8px;background:#eff6ff;color:#1d4ed8;font-weight:800">'+(x.active?'OFF':'ON')+'</button><button onclick="admDeleteDocument(\''+esc(x.id)+'\')" style="border:0;border-radius:8px;padding:8px;background:#fee2e2;color:#991b1b;font-weight:800">Delete</button>'+(u?'<a href="'+u+'" target="_blank" rel="noopener" style="border-radius:8px;padding:8px;background:#e0e7ff;color:#3730a3;text-decoration:none;font-weight:800">View</a>':'')+'</div></div>';}).join('');
+   }catch(e){el.innerHTML='<div style="color:#991b1b">'+esc(e.message)+'</div>'; }
+ }
+ window.admToggleDocument=async function(id,active){try{var r=await supabaseClient.from('flm_documents').update({active:active,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;admLoadDocuments();}catch(e){alert(e.message);}};
+ window.admDeleteDocument=async function(id){if(!confirm('Delete this document?'))return;try{var client=await ensureSupabaseClient();var q=await client.from('flm_documents').select('storage_path').eq('id',id).single();if(q.error)throw q.error;if(q.data&&q.data.storage_path)await client.storage.from('flm-documents').remove([q.data.storage_path]);var r=await client.from('flm_documents').delete().eq('id',id);if(r.error)throw r.error;admLoadDocuments();}catch(e){alert(e.message);}};
+
  window.admLoadOrders=async function(){var el=document.getElementById('admOrdersList');if(!el)return;el.innerHTML='Loading...';try{var r=await supabaseClient.from('orders').select('*').order('created_at',{ascending:false}).limit(200);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];return '<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(o.user_name||'Member')+' • '+esc(o.fl_id)+'</b><select onchange="admOrderStatus(\''+esc(o.id)+'\',this.value)" style="padding:6px;border-radius:8px"><option '+(o.status==='pending'?'selected':'')+'>pending</option><option '+(o.status==='confirmed'?'selected':'')+'>confirmed</option><option '+(o.status==='processing'?'selected':'')+'>processing</option><option '+(o.status==='ready'?'selected':'')+'>ready</option><option '+(o.status==='completed'?'selected':'')+'>completed</option><option '+(o.status==='cancelled'?'selected':'')+'>cancelled</option></select></div><div style="font-size:11px;margin-top:6px">'+items.map(function(i){return esc(i.name)+' × '+i.qty+' = Rs.'+Number(i.line_total||0).toLocaleString('en-IN');}).join('<br>')+'</div><div style="font-weight:900;margin-top:7px">Total: Rs. '+Number(o.total_amount||0).toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:6px"><b>Option:</b> '+esc(o.fulfillment_method||'')+(o.store_name?' • Store: '+esc(o.store_name):'')+(o.appliener_fl_id?' • Appliener: '+esc(o.appliener_fl_id)+' / '+esc(o.appliener_mobile||''):'')+'</div><div style="font-size:11px;color:#475569;margin-top:5px"><b>Address:</b> '+esc(o.address||'')+', '+esc(o.city||'')+' - '+esc(o.pincode||'')+' • Mobile: '+esc(o.mobile||'')+'</div><div style="font-size:9px;color:#94a3b8;margin-top:5px">'+(o.created_at?new Date(o.created_at).toLocaleString():'')+' • Order ID: '+esc(o.id)+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">'+esc(e.message)+'</div>';}};
  window.admOrderStatus=async function(id,status){try{var r=await supabaseClient.from('orders').update({status:status,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;}catch(e){alert(e.message);admLoadOrders();}};
  window.admAddScroll=async function(){var msg=document.getElementById('admScrollMessage').value.trim(),ord=parseInt(document.getElementById('admScrollOrder').value)||1,active=document.getElementById('admScrollActive').value==='true';if(!msg){alert('Enter scrolling message.');return;}try{var r=await supabaseClient.from('site_scrolls').insert({message:msg,sort_order:ord,active:active}).select().single();if(r.error)throw r.error;document.getElementById('admScrollMessage').value='';admLoadScrolls();}catch(e){alert(e.message);}};
@@ -1084,7 +1140,7 @@ function initFlmAdminNavigation(){
  window.admToggleScroll=async function(id,active){try{var r=await supabaseClient.from('site_scrolls').update({active:active,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;admLoadScrolls();}catch(e){alert(e.message);}};
  window.admDeleteScroll=async function(id){if(!confirm('Delete scrolling message?'))return;try{var r=await supabaseClient.from('site_scrolls').delete().eq('id',id);if(r.error)throw r.error;admLoadScrolls();}catch(e){alert(e.message);}};
  var oldLoadSec=window.loadSec;
- window.loadSec=function(id){if(typeof oldLoadSec==='function')oldLoadSec(id);if(id==='productsAdmin')admLoadProducts();if(id==='ordersAdmin')admLoadOrders();if(id==='scrollAdmin')admLoadScrolls();if(id==='pageMediaAdmin')admLoadPageMedia();};
+ window.loadSec=function(id){if(typeof oldLoadSec==='function')oldLoadSec(id);if(id==='productsAdmin')admLoadProducts();if(id==='ordersAdmin')admLoadOrders();if(id==='scrollAdmin')admLoadScrolls();if(id==='pageMediaAdmin')admLoadPageMedia();if(id==='documentsAdmin')admLoadDocuments();};
 })();
 </script>
 </body></html>
