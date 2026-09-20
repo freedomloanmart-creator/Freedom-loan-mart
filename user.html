@@ -19,7 +19,7 @@ function showSec(id,fromPop){
  var secs=document.querySelectorAll('[id^=sec-]');for(var i=0;i<secs.length;i++) secs[i].style.display='none';
  var target=document.getElementById('sec-'+id);if(target) target.style.display='block';
  var menu=document.getElementById('menu');var overlay=document.getElementById('overlay');if(menu) menu.classList.remove('open');if(overlay) overlay.classList.remove('show');
- var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Loan Plans','products':'Products','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center','documents':'Documents'};
+ var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Company Fund','products':'Products','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center','documents':'Documents'};
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
@@ -157,7 +157,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="menu-item" onclick="showSec('wallets')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">💰</span> My Wallets</div>
 <div class="menu-section">STORE & FINANCE</div>
 <div class="menu-item" onclick="showSec('stores')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🏪</span> Store Network</div>
-<div class="menu-item" onclick="showSec('loans')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🏦</span> Loan Plans</div>
+<div class="menu-item" onclick="showSec('loans')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">🏦</span> Company Fund</div>
 <div class="menu-item" onclick="showSec('products')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">🛍️</span> Products</div>
 <div class="menu-item" onclick="showSec('documents')"><span style="width:32px;height:32px;background:#e0e7ff;border-radius:8px;display:flex;align-items:center;justify-content:center">📄</span> Documents</div>
 <div class="menu-item" onclick="showSec('rewards')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🏆</span> Rewards</div>
@@ -190,13 +190,13 @@ body{background:#eef2f7;color:#0f172a}
     <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:20px;font-weight:800">💰 My Wallets</div><div style="font-size:11px;opacity:.8">FLM WALLET</div></div>
     <div style="margin-top:16px;font-size:11px;opacity:.8">TOTAL AMOUNT</div>
     <div id="totalAmount" style="font-size:34px;font-weight:900;margin-top:2px">Rs. 0.00</div>
-    <div style="font-size:11px;opacity:.75;margin-top:4px">ROI + Matching Bonus + Loan Amount</div>
+    <div style="font-size:11px;opacity:.75;margin-top:4px">ROI + Matching Bonus + Fund Amount</div>
   </div>
   <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <div onclick="openWalletAction('roi')" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#1d4ed8;font-weight:700">ROI WALLET</div><div id="roiWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div style="font-size:10px;color:#475569;margin-top:5px">Tap to redeem • Min ₹1,000</div></div>
     <div onclick="openWalletAction('matching')" style="background:linear-gradient(135deg,#dcfce7,#f0fdf4);border:1px solid #bbf7d0;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#047857;font-weight:700">MATCHING INCOME</div><div id="matchingWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div id="matchingPairs" style="font-size:10px;color:#475569;margin-top:5px">0 pairs</div><div id="matchingBalanceNote" style="font-size:9px;color:#64748b;margin-top:4px"></div></div>
-    <div onclick="openWalletAction('loan')" style="background:linear-gradient(135deg,#fef3c7,#fffbeb);border:1px solid #fde68a;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#b45309;font-weight:700">LOAN WALLET</div><div id="loanWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div id="loanEligible" style="font-size:10px;color:#475569;margin-top:5px">Eligible amount</div></div>
-    <div style="background:linear-gradient(135deg,#ede9fe,#f5f3ff);border:1px solid #ddd6fe;border-radius:16px;padding:14px"><div style="font-size:11px;color:#6d28d9;font-weight:700">TOTAL WITHDRAWN</div><div id="totalWithdrawn" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div style="font-size:10px;color:#475569;margin-top:5px">ROI + Matching + Loan</div></div>
+    <div onclick="openWalletAction('loan')" style="background:linear-gradient(135deg,#fef3c7,#fffbeb);border:1px solid #fde68a;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#b45309;font-weight:700">FUND WALLET</div><div id="loanWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div id="loanEligible" style="font-size:10px;color:#475569;margin-top:5px">Eligible amount</div></div>
+    <div style="background:linear-gradient(135deg,#ede9fe,#f5f3ff);border:1px solid #ddd6fe;border-radius:16px;padding:14px"><div style="font-size:11px;color:#6d28d9;font-weight:700">TOTAL WITHDRAWN</div><div id="totalWithdrawn" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div style="font-size:10px;color:#475569;margin-top:5px">ROI + Matching + Fund</div></div>
   </div>
 </div>
 <div id="walletActionBox" class="card" style="margin-top:12px;display:none"></div>
@@ -239,11 +239,11 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <div id="sec-loans" style="display:none">
 <div class="card" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;border-radius:20px;padding:18px">
-  <div style="font-size:11px;opacity:.8">FLM LOAN & ROI</div><div style="font-size:22px;font-weight:900;margin-top:4px">🏦 Loan Plans</div>
+  <div style="font-size:11px;opacity:.8">FLM FUND & ROI</div><div style="font-size:22px;font-weight:900;margin-top:4px">🏦 Company Fund</div>
   <div style="font-size:11px;opacity:.85;margin-top:6px">Eligibility is checked from your real binary/direct-referral data. After 36:36, renewal gating and held amounts are shown here.</div>
-  <button onclick="loadLoanPanel()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:11px;padding:12px;font-weight:800">🔄 Refresh Loan Status</button>
+  <button onclick="loadLoanPanel()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:11px;padding:12px;font-weight:800">🔄 Refresh Fund Status</button>
 </div>
-<div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="text-align:center;color:#64748b">Loading loan status...</div></div>
+<div id="loanStatusBox" class="card" style="border:2px solid #2563eb"><div style="text-align:center;color:#64748b">Loading fund status...</div></div>
 <div id="loanDirectProgress" class="card" style="margin-top:10px;border:2px solid #f59e0b;background:#fffbeb;font-size:12px">Loading referral qualification...</div>
 <div class="grid2">
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Current Pair Progress</div><div id="loanPairProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 : 0</div></div>
@@ -252,9 +252,9 @@ body{background:#eef2f7;color:#0f172a}
  <div class="dark-card"><div style="font-size:11px;opacity:.75">Renewal Progress</div><div id="loanRenewalProgress" style="font-size:22px;font-weight:900;margin-top:5px">0 / 0</div></div>
 </div>
 <div class="card" style="border:2px solid #2563eb;background:#eff6ff">
- <div style="font-weight:900;color:#1d4ed8">💰 Withdrawable Loan Amount</div>
- <div id="loanWithdrawSummary" style="margin-top:8px;font-size:12px;color:#475569">Complete the required pair level to see the new available loan amount.</div>
- <button type="button" onclick="showSec('wallets')" style="width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">💳 Open Loan Wallet</button>
+ <div style="font-weight:900;color:#1d4ed8">💰 Withdrawable Fund Amount</div>
+ <div id="loanWithdrawSummary" style="margin-top:8px;font-size:12px;color:#475569">Complete the required pair level to see the new available fund amount.</div>
+ <button type="button" onclick="showSec('wallets')" style="width:100%;margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">💳 Open Fund Wallet</button>
 </div>
 <div class="card" style="border:2px solid #059669">
  <div style="font-weight:900;color:#065f46">🔄 Self Renewal</div>
@@ -268,12 +268,12 @@ body{background:#eef2f7;color:#0f172a}
  <div id="loanRoiCycleBox" style="margin-top:10px;color:#64748b;font-size:12px">No ROI cycle found.</div>
 </div>
 <div class="card" style="border:2px solid #0ea5e9">
- <div style="font-weight:900;color:#0369a1">📋 Loan Plan Levels</div>
- <div style="font-size:11px;color:#64748b;margin-top:4px">Company Fund = the release fund shown to the member. Previous Loan Deduction and total Loan columns are not displayed. From 36:36 onward, qualification supports 2 new direct referrals (Left + Right) OR 2 old-ID renewals (Left + Right).</div>
+ <div style="font-weight:900;color:#0369a1">📋 Fund Plan Levels</div>
+ <div style="font-size:11px;color:#64748b;margin-top:4px">Company Fund = the release fund shown to the member. Previous Fund Deduction and total Fund columns are not displayed. From 36:36 onward, qualification supports 2 new direct referrals (Left + Right) OR 2 old-ID renewals (Left + Right).</div>
  <div id="loanPlansTable" style="margin-top:10px;overflow:auto">Loading plans...</div>
 </div>
 <div class="card" style="border:2px solid #f59e0b">
- <div style="font-weight:900;color:#92400e">🧾 My Loan History</div>
+ <div style="font-weight:900;color:#92400e">🧾 My Fund History</div>
  <div id="myLoanHistory" style="margin-top:10px">Loading...</div>
 </div>
 </div>
@@ -991,7 +991,7 @@ async function loadWalletData(){
   }catch(e){}
   var b=await supabaseClient.from('binary_summary').select('total_pairs,daily_pairs_today,daily_income_today').eq('fl_id',flId).single();var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
-  var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released loan wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
+  var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
   try{var t=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).in('status',['approved','completed']);var sum=(t.data||[]).reduce(function(a,x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase();var isWithdrawal=(tt==='withdrawal'&&['roi','matching','loan'].indexOf(wt)>=0)||(tt==='roi_coupon'&&wt==='roi');return isWithdrawal?a+Number(x.amount||0):a;},0);FLM_WALLET.totalWithdrawn=sum;var te=document.getElementById('totalWithdrawn');if(te)te.innerText=money(sum);}catch(e){}
  }catch(e){console.log('wallet load',e.message);}
 }
@@ -1014,7 +1014,7 @@ async function openWalletAction(type){
      FLM_WALLET.loanGross=currentWallet;
    }catch(e){console.log('loan action refresh',e.message);}
  }
- var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income — Withdraw':'🏦 Loan Wallet — Direct Withdraw';
+ var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income — Withdraw':'🏦 Fund Wallet — Direct Withdraw';
  var bal=FLM_WALLET[type==='roi'?'roi':type];
  var html='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+title+'</b><span style="font-size:12px;color:#2563eb">Balance: '+money(bal)+'</span></div>';
  if(type==='roi') html+='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Minimum ₹1,000. Redeem any amount from ₹1,000 up to your ROI balance. A store coupon will be generated immediately.</div><input id="walletActionAmount" type="number" min="1000" step="1" placeholder="Enter redeem amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><button onclick="submitRoiRedeem()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:800">Generate Store Coupon</button>';
@@ -1023,7 +1023,7 @@ async function openWalletAction(type){
   var loanFull=loanNum(FLM_WALLET.loan);
   var loanGross=loanNum(FLM_WALLET.loanGross||FLM_WALLET.rawLoan);
   var loanEligible=loanNum(FLM_WALLET.loanEligible||loanFull);
-  html+=`<div id="loanActionState" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Only the currently eligible incremental loan amount can be withdrawn. No partial amount is allowed.</div><div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#64748b">CURRENT ELIGIBLE LOAN</div><div id="loanFullAmount" style="font-size:22px;font-weight:900;color:#1d4ed8;margin-top:3px">${money(loanFull)}</div><div id="loanFullFormula" style="font-size:10px;color:#64748b;margin-top:4px">Loan Wallet balance available for full withdrawal = ${money(loanFull)}</div><div id="loanDeductionPreview" style="font-size:10px;color:#92400e;margin-top:6px;font-weight:700"></div><div id="loanNetPreview" style="font-size:14px;color:#166534;margin-top:5px;font-weight:900"></div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Up to ₹2,00,000: 10% deduction. Above ₹2,00,000: Bank 18% deduction, USDT BEP-20 5% deduction.</div><div style="display:flex;gap:8px;margin-top:10px"><button id="loanBankBtn" onclick="submitLoanWithdraw('bank')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank — Receive</button><button id="loanUsdtBtn" onclick="submitLoanWithdraw('usdt')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT — Receive</button></div>`;
+  html+=`<div id="loanActionState" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Only the currently eligible incremental fund amount can be withdrawn. No partial amount is allowed.</div><div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#64748b">CURRENT ELIGIBLE FUND</div><div id="loanFullAmount" style="font-size:22px;font-weight:900;color:#1d4ed8;margin-top:3px">${money(loanFull)}</div><div id="loanFullFormula" style="font-size:10px;color:#64748b;margin-top:4px">Fund Wallet balance available for full withdrawal = ${money(loanFull)}</div><div id="loanDeductionPreview" style="font-size:10px;color:#92400e;margin-top:6px;font-weight:700"></div><div id="loanNetPreview" style="font-size:14px;color:#166534;margin-top:5px;font-weight:900"></div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Up to ₹2,00,000: 10% deduction. Above ₹2,00,000: Bank 18% deduction, USDT BEP-20 5% deduction.</div><div style="display:flex;gap:8px;margin-top:10px"><button id="loanBankBtn" onclick="submitLoanWithdraw('bank')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank — Receive</button><button id="loanUsdtBtn" onclick="submitLoanWithdraw('usdt')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT — Receive</button></div>`;
  }
  box.innerHTML=html;if(type==='loan')updateLoanWithdrawalPreview();box.scrollIntoView({behavior:'smooth',block:'start'});if(type==='matching')checkMatchingStore();
 }
@@ -1071,7 +1071,7 @@ async function submitLoanWithdraw(method){
   }catch(e){console.log('loan withdraw wallet read:',e.message);}
   FLM_WALLET.loan=actualWithdrawWallet;
   var amt=actualWithdrawWallet;
-  if(amt<1){alert('Loan Wallet balance is ₹0. No loan amount is currently available for withdrawal.');return;}
+  if(amt<1){alert('Fund Wallet balance is ₹0. No fund amount is currently available for withdrawal.');return;}
   if(!(await ensurePayout(method)))return;
   try{
     // Do not force-update or re-credit wallets.loan_wallet from the browser.
@@ -1185,9 +1185,9 @@ async function flmLoadLoanV2(){
        FLM_LOAN_V2.incremental=inc;
        FLM_LOAN_V2.eligible=fallbackEligible;
      }
-     if(FLM_LOAN_V2.eligible&&!FLM_LOAN_V2.message)FLM_LOAN_V2.message='Loan '+FLM_LOAN_V2.level+' eligible: required pair level completed.';
+     if(FLM_LOAN_V2.eligible&&!FLM_LOAN_V2.message)FLM_LOAN_V2.message='Fund '+FLM_LOAN_V2.level+' eligible: required pair level completed.';
    }else{
-     FLM_LOAN_V2={eligible:fallbackEligible,level:nextPlan?loanNum(nextPlan.level_no):latestLevel,totalLeft:live.left,totalRight:live.right,directLeft:live.directLeft,directRight:live.directRight,loanAmount:gross,previousLoan:prev,incremental:fallbackEligible?inc:0,wallet:0,message:fallbackEligible?'Loan '+(nextPlan?nextPlan.level_no:'')+' eligible: required pair level completed.':'Loan status is temporarily unavailable.'};
+     FLM_LOAN_V2={eligible:fallbackEligible,level:nextPlan?loanNum(nextPlan.level_no):latestLevel,totalLeft:live.left,totalRight:live.right,directLeft:live.directLeft,directRight:live.directRight,loanAmount:gross,previousLoan:prev,incremental:fallbackEligible?inc:0,wallet:0,message:fallbackEligible?'Fund '+(nextPlan?nextPlan.level_no:'')+' eligible: required pair level completed.':'Fund status is temporarily unavailable.'};
    }
 
    // FIX V4: If eligible but no active loan record for this level, try to create it
@@ -1217,7 +1217,7 @@ async function flmLoadLoanV2(){
      }catch(e){}
      if(isEligibleForNext || FLM_LOAN_V2.level==1) FLM_LOAN_V2.wallet=syncWalletAmount;
    }
-   // CRITICAL FIX: If current pairs < required for next level, don't show next loan as available
+   // CRITICAL FIX: If current pairs < required for next level, don't show next fund as available
    // Available Loan should be only released amount, not future gross
    try{
      var currPairs = Math.min(loanNum(live.left||0), loanNum(live.right||0));
@@ -1244,7 +1244,7 @@ async function flmLoadLoanV2(){
      var currPairsFix = Math.min(loanNum(live.left||0), loanNum(live.right||0));
      var reqForLv2 = 4;
      if(latestLv <=1 && currPairsFix < reqForLv2){
-       // User is still on Loan 1, so Previous = 0, Available = 1000, Held =0
+       // User is still on Fund 1, so Previous = 0, Available = 1000, Held =0
        FLM_LOAN_V2.prev_deduction = 0;
        FLM_LOAN_V2.held = 0;
        // Ensure wallet shows 1000
@@ -1270,7 +1270,7 @@ async function flmLoadLoanV2(){
    }catch(e){}
 
    return FLM_LOAN_V2;
- }catch(err){console.log('loan v2:',err.message);FLM_LOAN_V2.message=String(err.message||'Loan status unavailable');return FLM_LOAN_V2;}
+ }catch(err){console.log('loan v2:',err.message);FLM_LOAN_V2.message=String(err.message||'Fund status unavailable');return FLM_LOAN_V2;}
 }
 
 
@@ -1329,7 +1329,7 @@ async function loadLoanPanel(){
     var loansR=await supabaseClient.from('member_loans').select('*').eq('fl_id',flId).order('plan_level',{ascending:true});
     if(loansR.error)throw loansR.error;
     var loans=loansR.data||[];
-    // ACTUAL LOAN WALLET SOURCE OF TRUTH: current withdrawable cash comes only
+    // ACTUAL FUND WALLET SOURCE OF TRUTH: current withdrawable cash comes only
     // from public.wallets.loan_wallet. Eligibility is for the NEXT loan only.
     var actualLoanWallet=0;
     try{
@@ -1616,14 +1616,14 @@ async function loadLoanPanel(){
     var nextMsg;
     if(eligible){
       nextMsg = displayLevel===1
-        ? 'Loan 1 eligible: 1 direct LEFT + 1 direct RIGHT referral completed.'
-        : ('Loan '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs completed.');
+        ? 'Fund 1 eligible: 1 direct LEFT + 1 direct RIGHT referral completed.'
+        : ('Fund '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs completed.');
     }else if(nextPlan2){
       nextMsg = displayLevel===1
-        ? 'Loan 1 requires 1 direct LEFT + 1 direct RIGHT referral.'
-        : ('Loan '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs.');
+        ? 'Fund 1 requires 1 direct LEFT + 1 direct RIGHT referral.'
+        : ('Fund '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs.');
     }else{
-      nextMsg = 'No next loan level is currently available.';
+      nextMsg = 'No next fund level is currently available.';
     }
     var held=loanNum(firstVal(e,['hold_amount','held_amount'],currentLoan?currentLoan.hold_amount:0));
     var renewalReq=loanNum(firstVal(e,['renewal_required_count','renewal_required'],currentLoan?currentLoan.renewal_required_count:0));
@@ -1637,7 +1637,7 @@ async function loadLoanPanel(){
     // Already released loan = actual wallet balance. Do not substitute previous
     // deduction or next-level eligibility into the current wallet.
     var availableIncrement=eligible?displayInc:(latestLevel2>0?actualLoanWallet:0);
-    // Loan 1 is the initial ₹1,000 release; there is no previous-loan deduction.
+    // Fund 1 is the initial ₹1,000 release; there is no previous-loan deduction.
     if(latestLevel2===1 && totalPairs<4){
       prevPlan=0;
       availableIncrement=actualLoanWallet;
@@ -1654,11 +1654,11 @@ async function loadLoanPanel(){
       }
       var latestStatus=latestRelease?'released':(latestDisplayLoan?latestDisplayLoan.status:'—');
       var latestLevelText=latestRelease?latestRelease.plan_level:(latestDisplayLoan?firstVal(latestDisplayLoan,['plan_level','level_no'],'—'):'—');
-      var latestHtml=latestDisplayLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest loan: '+loanEsc(latestLevelText)+' · Status: '+loanEsc(latestStatus)+'</div>':'';
-      status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Loan eligible':'⏳ Loan progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
+      var latestHtml=latestDisplayLoan?'<div style="margin-top:10px;font-size:11px;color:#64748b">Latest fund: '+loanEsc(latestLevelText)+' · Status: '+loanEsc(latestStatus)+'</div>':'';
+      status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Fund eligible':'⏳ Fund progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
     }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Company Fund':'Current Loan Wallet (Already Released)';
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Company Fund':'Current Fund Wallet (Already Released)';
     // Force current wallet UI from DB for every already-released loan.
     if(latestLevel2>0){
       var lwActual=document.getElementById('loanWallet');if(lwActual)lwActual.innerText=loanMoney(actualLoanWallet);
@@ -1723,9 +1723,9 @@ async function loadLoanPanel(){
         var needMore = Math.max(0, nextReqPairs - totalPairs);
         ws.innerHTML='<div style="background:#e8f5e9;border:2px solid #4caf50;border-radius:10px;padding:12px;text-align:center;">'
           +'<div style="font-size:22px;">✅</div>'
-          +'<b style="color:#2e7d32;font-size:14px;">Eligible Loan Withdrawal Completed</b><br>'
+          +'<b style="color:#2e7d32;font-size:14px;">Eligible Fund Withdrawal Completed</b><br>'
           +'<span style="font-size:12px;color:#374151;">Level '+loanEsc(withdrawnLevel)+' - '+loanMoney(withdrawnAmt)+' withdrawn successfully.</span><br>'
-          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Wait for next withdrawal loan - Need '+nextReqPairs+':'+nextReqPairs+' binary pairs</b><br>'
+          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Wait for next fund withdrawal - Need '+nextReqPairs+':'+nextReqPairs+' binary pairs</b><br>'
           +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs) | Need '+needMore+' more pairs</span>'
           +'</div>';
         var avEl=document.getElementById('loanAvailableAmount');if(avEl) avEl.innerText='Rs. 0.00';
@@ -1739,8 +1739,8 @@ async function loadLoanPanel(){
         ws.innerHTML='<div style="background:#e0f2fe;border:2px solid #0284c7;border-radius:10px;padding:12px;text-align:center;">'
           +'<div style="font-size:22px;">🎉</div>'
           +'<b style="color:#0c4a6e;font-size:14px;">Level '+loanEsc(nextPlanAfterWithdraw.level_no)+' Eligible Now!</b><br>'
-          +'<span style="font-size:12px;color:#374151;">'+loanNum(nextPlanAfterWithdraw.required_pairs)+':'+loanNum(nextPlanAfterWithdraw.required_pairs)+' pairs completed - Rs. '+nextInc+' loan ready</span><br>'
-          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Previous loan Rs. '+nextPrev+' deducted - Rs. '+nextInc+' available</b><br>'
+          +'<span style="font-size:12px;color:#374151;">'+loanNum(nextPlanAfterWithdraw.required_pairs)+':'+loanNum(nextPlanAfterWithdraw.required_pairs)+' pairs completed - Rs. '+nextInc+' fund ready</span><br>'
+          +'<b style="color:#1f2937;font-size:12px;margin-top:6px;display:inline-block;">Previous fund Rs. '+nextPrev+' deducted - Rs. '+nextInc+' available</b><br>'
           +'<span style="font-size:11px;color:#6b7280;">Current: '+ql+' : '+qr+' ('+totalPairs+' pairs)</span>'
           +'</div>';
         // Update global available for this case
@@ -1756,9 +1756,9 @@ async function loadLoanPanel(){
       }else if(eligible){
         ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' Company Fund: '+loanMoney(availableIncrement)+'</b><br>This is the release fund available for this level.';
       }else if(latestLevel2>0 && availableIncrement>0){
-        ws.innerHTML='<b style="color:#166534">Loan wallet available: '+loanMoney(availableIncrement)+'</b><br>Already released loan amount. Next loan is available after the required pair level is reached.';
+        ws.innerHTML='<b style="color:#166534">Fund wallet available: '+loanMoney(availableIncrement)+'</b><br>Already released fund amount. Next fund is available after the required pair level is reached.';
       }else{
-        ws.innerHTML='No new loan amount is withdrawable until the required pair level is reached.';
+        ws.innerHTML='No new fund amount is withdrawable until the required pair level is reached.';
       }
     }
     var rp=document.getElementById('loanRenewalProgress');if(rp)rp.innerText=renewalDone+' / '+renewalReq;
@@ -1795,8 +1795,8 @@ async function loadLoanPanel(){
       currentRoi.__last_display = lastRaw;
       var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(firstVal(currentRoi,['start_date','started_at','created_at'],'—'))+'<br>End: '+loanEsc(firstVal(currentRoi,['end_date','ends_at'],'—'))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
     // Show the released loan history separately from the NEXT eligible loan.
-    // This makes it clear that the ₹1,000 Loan 1 release is already completed while
-    // the next Loan 2 remains locked until 4:4.
+    // This makes it clear that the ₹1,000 Fund 1 release is already completed while
+    // the next Fund 2 remains locked until 4:4.
     var releaseSummary=document.getElementById('loanReleasedSummary');
     if(!releaseSummary){
       var anchor=document.getElementById('loanPlansTable');
@@ -1813,18 +1813,18 @@ async function loadLoanPanel(){
         releasedLoans2.slice().sort(function(a,b){return loanNum(a.plan_level)-loanNum(b.plan_level);}).forEach(function(l){
           var la=loanNum(firstVal(l,['incremental_amount','gross_loan_amount','loan_amount'],0));
           sh+='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #dbeafe">'+
-              '<span><b>✅ Loan '+loanEsc(l.plan_level||'—')+' Released</b><br><span style="font-size:10px;color:#64748b">'+loanEsc(l.release_status||l.status||'Released')+'</span></span>'+
+              '<span><b>✅ Fund '+loanEsc(l.plan_level||'—')+' Released</b><br><span style="font-size:10px;color:#64748b">'+loanEsc(l.release_status||l.status||'Released')+'</span></span>'+
               '<b style="color:#166534">'+loanMoney(la)+'</b></div>';
         });
-        sh+='<div style="margin-top:9px;font-size:11px;color:#475569">Next available level: <b>Loan '+loanEsc(displayLevel||'—')+'</b> · '+loanEsc(nextMsg)+'</div>';
+        sh+='<div style="margin-top:9px;font-size:11px;color:#475569">Next available level: <b>Fund '+loanEsc(displayLevel||'—')+'</b> · '+loanEsc(nextMsg)+'</div>';
         releaseSummary.innerHTML=sh;
       }else{
-        releaseSummary.innerHTML='<b>Loan Release History</b><div style="margin-top:6px;font-size:11px;color:#64748b">No released loan recorded yet.</div>';
+        releaseSummary.innerHTML='<b>Fund Release History</b><div style="margin-top:6px;font-size:11px;color:#64748b">No released fund recorded yet.</div>';
       }
     }
 
     var pt=document.getElementById('loanPlansTable');
-    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No loan plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Company Fund</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(p.plan_name||('Loan '+lv))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:900">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
+    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No fund plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Company Fund</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(String(p.plan_name||('Fund '+lv)).replace(/^Loan\s+/i,'Fund '))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:900">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
     var hist=document.getElementById('myLoanHistory');
     if(hist){
       // Merge member_loans + wallet release tx as source of truth for history
@@ -1867,7 +1867,7 @@ async function loadLoanPanel(){
           released_at: rl.released_at||existing.released_at||null
         };
       });
-      // Also include loanReleaseTxs directly if not in merged (e.g. Loan 3 from wallet)
+      // Also include loanReleaseTxs directly if not in merged (e.g. Fund 3 from wallet)
       loanReleaseTxs.forEach(function(tx){
         var amt = loanNum(tx.amount);
         var lvl = 1;
@@ -2173,7 +2173,7 @@ async function claimReward(pairs, name){
 
 <script>
 /* FLM LOAN PANEL BOOT FIX 2026-09-17
-   Ensures the Loan Plans section always initializes even if another dashboard
+   Ensures the Company Fund section always initializes even if another dashboard
    initializer finishes late or the browser restores the loans section from storage. */
 (function(){
   function bootLoanPanel(){
@@ -2202,7 +2202,7 @@ async function claimReward(pairs, name){
 </script>
 <script>
 /* FLM FINAL LOAN/ROI BOOT FIX
-   Re-open Loan Plans after all scripts are loaded. This prevents the Loan panel
+   Re-open Company Fund after all scripts are loaded. This prevents the Loan panel
    from remaining on its HTML defaults ("Loading...", "No ROI cycle found")
    when the saved section is loans.
 */
@@ -2291,7 +2291,7 @@ async function claimReward(pairs, name){
       requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(20,distance/32);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
-  function pageLabel(id){var m={dashboard:'Dashboard',profile:'My Profile',invite:'Invite & Share Links',downline:'My Team - Downline',tokens:'My Pins - Tokens',wallets:'My Wallets',stores:'Store Network',loans:'Loan Plans',products:'Products',rewards:'Rewards Club',withdraw:'Withdraw',support:'Help Center'};return m[id]||id;}
+  function pageLabel(id){var m={dashboard:'Dashboard',profile:'My Profile',invite:'Invite & Share Links',downline:'My Team - Downline',tokens:'My Pins - Tokens',wallets:'My Wallets',stores:'Store Network',loans:'Company Fund',products:'Products',rewards:'Rewards Club',withdraw:'Withdraw',support:'Help Center'};return m[id]||id;}
   async function loadDocuments(){
     var el=document.getElementById('flmDocumentsList');if(!el||!supabaseClient)return;
     el.innerHTML='<div class="card" style="text-align:center;color:#64748b">Loading documents...</div>';
