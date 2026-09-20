@@ -494,11 +494,70 @@ async function loadAdminUsers(){
    renderAdminUsers();
  }catch(e){el.innerHTML='<div class="user-empty">❌ Could not load users: '+escapeHtml(e.message||e)+'</div>';}
 }
+
+async function loadAdminWalletAdjust(){
+  const flEl=document.getElementById('walletAdjustFlId'), box=document.getElementById('walletAdjustBox'), hist=document.getElementById('walletAdjustHistory');
+  if(!flEl||!box||!supabaseClient)return;
+  const flId=String(flEl.value||'').trim().toUpperCase();
+  if(!flId){box.innerHTML='<div style="padding:12px;color:#dc2626">Please enter FL ID.</div>';return;}
+  box.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">Loading wallet...</div>';
+  try{
+    const r=await supabaseClient.from('wallets').select('fl_id,roi_wallet,matching_wallet,loan_wallet,main_wallet').eq('fl_id',flId).single();
+    if(r.error)throw r.error;
+    const w=r.data||{};
+    const moneyA=v=>'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const row=(key,label,icon,color,balance)=>`<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin-top:10px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="color:${color}">${icon} ${label}</b><b>${moneyA(balance)}</b></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px">
+        <button type="button" onclick="adminWalletAdjust('${flId}','${key}','increase')" style="background:#059669;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:800">➕ Increase</button>
+        <button type="button" onclick="adminWalletAdjust('${flId}','${key}','decrease')" style="background:#dc2626;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:800">➖ Decrease</button>
+      </div>
+    </div>`;
+    box.innerHTML=`<div style="background:#f8fafc;border-radius:12px;padding:10px;font-size:11px"><b>${flId}</b><br>Admin changes are saved with amount, direction, old balance, new balance and reason.</div>
+      ${row('roi','ROI Wallet','🔵','#1d4ed8',w.roi_wallet)}
+      ${row('matching','Matching Income','🟢','#047857',w.matching_wallet)}
+      ${row('loan','Company Fund','🟡','#b45309',w.loan_wallet)}`;
+    await loadAdminWalletAdjustHistory(flId);
+  }catch(e){box.innerHTML='<div style="padding:12px;background:#fff1f2;color:#be123c;border-radius:10px">❌ Wallet not found: '+safeText(e.message||e)+'</div>';if(hist)hist.innerHTML='';}
+}
+async function adminWalletAdjust(flId,walletType,direction){
+  const label=walletType==='roi'?'ROI Wallet':walletType==='matching'?'Matching Income':'Company Fund';
+  const raw=prompt((direction==='increase'?'Increase ':'Decrease ')+label+' for '+flId+'\nEnter amount:');
+  if(raw===null)return;
+  const amount=Number(String(raw).replace(/,/g,''));
+  if(!Number.isFinite(amount)||amount<=0){alert('Enter a valid positive amount.');return;}
+  const reason=prompt('Why is this '+direction+'?\nEnter reason for admin record:');
+  if(reason===null||!String(reason).trim()){alert('Reason is required.');return;}
+  const adminId=getAdminId();
+  try{
+    const r=await supabaseClient.rpc('flm_admin_adjust_wallet',{p_fl_id:flId,p_wallet_type:walletType,p_direction:direction,p_amount:amount,p_reason:String(reason).trim(),p_admin_id:adminId});
+    if(r.error)throw r.error;
+    const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+    alert('✅ Wallet updated successfully.\n\n'+label+'\n'+(direction==='increase'?'Added: ':'Deducted: ')+moneyA(d.amount||amount)+'\nNew balance: '+moneyA(d.new_balance||0));
+    await loadAdminWalletAdjust();
+  }catch(e){alert('❌ Wallet adjustment failed: '+(e.message||e));}
+}
+async function loadAdminWalletAdjustHistory(flId){
+  const el=document.getElementById('walletAdjustHistory');if(!el||!supabaseClient)return;
+  try{
+    const r=await supabaseClient.from('wallet_admin_adjustments').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(50);
+    if(r.error)throw r.error;
+    const rows=r.data||[];
+    if(!rows.length){el.innerHTML='<div style="padding:10px">No manual wallet adjustments for this member.</div>';return;}
+    el.innerHTML=rows.map(x=>{const inc=String(x.direction||'').toLowerCase()==='increase';const c=inc?'#059669':'#dc2626';return `<div style="border-bottom:1px solid #e2e8f0;padding:10px 2px"><div style="display:flex;justify-content:space-between"><b>${x.wallet_label||x.wallet_type||''}</b><b style="color:${c}">${inc?'+':'-'}₹${Number(x.amount||0).toLocaleString('en-IN')}</b></div><div style="font-size:10px;color:#64748b;margin-top:3px">${x.reason||'—'} · Admin: ${x.admin_id||'—'}</div><div style="font-size:10px;color:#64748b">Old: ₹${Number(x.old_balance||0).toLocaleString('en-IN')} → New: ₹${Number(x.new_balance||0).toLocaleString('en-IN')} · ${x.created_at?new Date(x.created_at).toLocaleString():'—'}</div></div>`;}).join('');
+  }catch(e){el.innerHTML='<div style="padding:10px;color:#dc2626">Unable to load adjustment history: '+safeText(e.message||e)+'</div>';}
+}
+function moneyA(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 async function loadSec(id){
  if(id==='users'&&supabaseClient){loadAdminUsers();}
  if(id==='pins'&&supabaseClient){const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(200);if(data){const total=data.length;const unused=data.filter(p=>p.status==='unused').length;const used=data.filter(p=>p.status==='used').length;document.getElementById('pinsTotal').innerText=total;document.getElementById('pinsUnused').innerText=unused;document.getElementById('pinsUsed').innerText=used;let filtered=data;if(currentPinsFilter==='unused') filtered=data.filter(p=>p.status==='unused');if(currentPinsFilter==='used') filtered=data.filter(p=>p.status==='used');document.getElementById('pinsList').innerHTML=filtered.map(p=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-family:monospace;font-size:12px">${p.pin_code}</div><div style="margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span> <span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span> ${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''} ${p.generated_source==='wallet_purchase'?`<span style="padding:2px 6px;border-radius:4px;background:#ede9fe;color:#6d28d9;font-size:10px">🎫 Wallet Purchase</span>`:''} ${p.generated_source==='admin'?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;color:#1d4ed8;font-size:10px">🛠 Admin</span>`:''} ${p.town?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;font-size:10px">📍 ${p.town}</span>`:''}</div></div><div>${p.status==='unused'?``:''}</div></div></div>`).join('');}loadDepositRequests();}
  if(id==='stores'){loadStoresAdmin();}
- if(id==='withdraw')loadAdminWithdrawals();if(id==='wallets'&&supabaseClient){const {data}=await supabaseClient.from('wallets').select('*').limit(20);document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:8px;border-bottom:1px solid #f1f5f9">${w.fl_id} - Rs.${w.balance||0}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets - Wallets feature restored version</div>';}
+ if(id==='withdraw')loadAdminWithdrawals();
+ if(id==='wallets'&&supabaseClient){
+   loadAdminWalletAdjust();
+   const {data}=await supabaseClient.from('wallets').select('fl_id,roi_wallet,matching_wallet,loan_wallet').order('fl_id').limit(100);
+   document.getElementById('walletsList').innerHTML=data&&data.length>0?data.map(w=>`<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:11px"><b>${w.fl_id}</b> &nbsp; ROI ₹${Number(w.roi_wallet||0).toLocaleString('en-IN')} · Matching ₹${Number(w.matching_wallet||0).toLocaleString('en-IN')} · Fund ₹${Number(w.loan_wallet||0).toLocaleString('en-IN')}</div>`).join(''):'<div style="padding:20px;text-align:center;color:#64748b">No wallets</div>';
+ }
 }
 window.addEventListener('load',()=>{checkAdminSession();setTimeout(initFlmAdminNavigation,120);});
 </script>
@@ -692,7 +751,25 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-createStore" style="display:none"><div class="card" style="border:2px solid #10b981"><div style="font-weight:800;color:#065f46">➕ Create / Add FLM Store</div><input id="storeName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="storeCode" class="input" placeholder="Unique Store Code e.g. FLM-HYD-001" style="margin-top:8px"><input id="storePhone" class="input" placeholder="Store Phone Number" style="margin-top:8px"><textarea id="storeAddress" class="input" placeholder="Complete Store Address" style="margin-top:8px;min-height:70px;resize:none"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeTown" class="input" placeholder="Town / City"><input id="storePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="storeLat" class="input" placeholder="Latitude"><input id="storeLng" class="input" placeholder="Longitude"></div><button type="button" onclick="getStoreCoords()" style="width:100%;margin-top:8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:10px;padding:11px;font-weight:800">📍 Use Current Location</button><button type="button" onclick="createStore()" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store</button></div></div>
 <div id="sec-storePoints" style="display:none"><div class="card"><h3>⭐ Store Points - Restored from Before Pins Session</h3><div>Store points management - Before pins session files - 40KB+ as requested</div></div></div>
 <div id="sec-subAdmin" style="display:none"><div class="card"><h3>👤 Sub Admin - Restored</h3><div>Sub admin management - Before pins session - Restored</div></div></div>
-<div id="sec-wallets" style="display:none"><div class="card" style="border:2px solid #8b5cf6"><div style="font-weight:800;color:#5b21b6">💰 Wallets - Real - Live DB - Restored from Before Pins Session</div><div id="walletsList" style="margin-top:10px">Loading wallets...</div></div></div>
+<div id="sec-wallets" style="display:none">
+<div class="card" style="border:2px solid #8b5cf6">
+  <div style="font-weight:800;color:#5b21b6;font-size:18px">💰 Wallets - Real - Live DB</div>
+  <div style="font-size:11px;color:#64748b;margin-top:5px">View member wallets and manually increase/decrease ROI, Matching Income or Company Fund.</div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <input id="walletAdjustFlId" class="input" placeholder="Enter FL ID e.g. FL241190" style="flex:1;text-transform:uppercase">
+    <button type="button" onclick="loadAdminWalletAdjust()" style="background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:800">🔎 Search</button>
+  </div>
+  <div id="walletAdjustBox" style="margin-top:12px"></div>
+</div>
+<div class="card" style="border:2px solid #0f766e">
+  <div style="font-weight:800;color:#0f766e">📋 Wallet Adjustment History</div>
+  <div id="walletAdjustHistory" style="margin-top:10px;color:#64748b;font-size:11px">Search an FL ID to view adjustments.</div>
+</div>
+<div class="card" style="border:2px solid #c4b5fd">
+  <div style="font-weight:800;color:#5b21b6">💼 Wallet List</div>
+  <div id="walletsList" style="margin-top:10px">Loading wallets...</div>
+</div>
+</div>
 <div id="sec-binary" style="display:none"><div class="card"><h3>🌳 Binary Summary - Real - Restored</h3><div>Binary summary - Before pins session had this - Real data</div></div></div>
 <div id="sec-roi" style="display:none"><div class="card"><h3>🔄 ROI - Real - Restored from Before Pins Session</h3><div>ROI management - Daily Rs.40 - Before pins session files</div></div></div>
 <div id="sec-withdraw" style="display:none"><div class="card" style="background:linear-gradient(135deg,#172554,#4c1d95);color:#fff;border-radius:18px;padding:18px"><div style="font-size:19px;font-weight:900">💳 Withdrawals & Settlements</div><div style="font-size:11px;opacity:.85;margin-top:5px">Matching income, loan withdrawals and ROI/store redemptions are shown separately.</div><button onclick="loadAdminWithdrawals()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Finance Data</button></div><div class="grid2"><div class="dark-card"><div style="font-size:11px;color:#64748b">Processing</div><div id="wdPendingCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Approved</div><div id="wdApprovedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Rejected</div><div id="wdRejectedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Total Records</div><div id="wdTotalCount" style="font-size:24px;font-weight:900">0</div></div></div><div class="card" style="border:2px solid #2563eb"><b>🔎 Quick Filter</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input id="wdSearch" class="input" placeholder="Search FL ID / store / method" oninput="renderAdminWithdrawals()"><select id="wdStatus" class="input" onchange="renderAdminWithdrawals()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div><div class="card" style="border:2px solid #059669"><div style="font-weight:900;font-size:16px">💰 Matching / Loan Direct Withdrawals</div><div id="adminWithdrawList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card" style="border:2px solid #b45309"><div style="font-weight:900;font-size:16px">🏪 ROI Store Redemptions / Store Settlements</div><div id="adminStoreList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card"><div style="font-weight:900;font-size:16px">📋 Complete Finance History</div><div id="adminWithdrawHistory" style="margin-top:10px">Click Refresh Finance Data.</div></div></div>
