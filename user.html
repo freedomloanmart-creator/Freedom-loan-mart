@@ -998,34 +998,81 @@ async function loadWalletData(){
 async function openWalletAction(type){
  var box=document.getElementById('walletActionBox');if(!box)return;box.style.display='block';
  if(type==='loan'){
-   try{
-     // The Loan Wallet card is the actual withdrawable wallet balance. Do not recalculate it
-     // with a second eligibility check, because that can turn a valid ₹1,000 wallet into ₹0.
-     // Read actual DB wallet. Never use eligibility/incremental as cash.
-     try{ await flmLoadLoanV2(); }catch(e){ console.log('loan action status refresh',e.message); }
-     var currentWallet=0;
-     try{
-       var actualR=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',getFlId()).single();
-       if(!actualR.error && actualR.data) currentWallet=loanNum(actualR.data.loan_wallet);
-     }catch(e){ console.log('loan action wallet read',e.message); }
-     FLM_WALLET.loan=currentWallet;
-     FLM_WALLET.loanEligible=currentWallet;
-     FLM_WALLET.rawLoan=currentWallet;
-     FLM_WALLET.loanGross=currentWallet;
-   }catch(e){console.log('loan action refresh',e.message);}
+  try{
+   try{await flmLoadLoanV2();}catch(e){console.log('fund action status refresh',e.message);}
+   var currentWallet=0;
+   try{var actualR=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',getFlId()).single();if(!actualR.error&&actualR.data)currentWallet=loanNum(actualR.data.loan_wallet);}catch(e){console.log('fund action wallet read',e.message);}
+   FLM_WALLET.loan=currentWallet;FLM_WALLET.loanEligible=currentWallet;FLM_WALLET.rawLoan=currentWallet;FLM_WALLET.loanGross=currentWallet;
+  }catch(e){console.log('fund action refresh',e.message);}
  }
- var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income — Withdraw':'🏦 Fund Wallet — Direct Withdraw';
- var bal=FLM_WALLET[type==='roi'?'roi':type];
+ var key=type==='loan'?'loan':type;
+ var bal=Number(FLM_WALLET[key]||0);
+ var title=type==='roi'?'🛒 ROI Redeem — Store Product':type==='matching'?'🏪 Matching Income':'🏦 Fund Wallet';
  var html='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+title+'</b><span style="font-size:12px;color:#2563eb">Balance: '+money(bal)+'</span></div>';
- if(type==='roi') html+='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Minimum ₹1,000. Redeem any amount from ₹1,000 up to your ROI balance. A store coupon will be generated immediately.</div><input id="walletActionAmount" type="number" min="1000" step="1" placeholder="Enter redeem amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><button onclick="submitRoiRedeem()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:800">Generate Store Coupon</button>';
- if(type==='matching') html+='<div id="matchingActionNote" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Minimum withdrawal ₹200. Until the ₹5,000/day store condition is reached, normal Bank/USDT withdrawal is available. Once ₹5,000 is reached in a day, the nearest store must be used if a store exists within 25 KM. If no store is available within 25 KM, Bank/USDT remains available.</div><input id="walletActionAmount" type="number" min="200" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:10px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:10px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:10px"></div>';
- if(type==='loan'){
-  var loanFull=loanNum(FLM_WALLET.loan);
-  var loanGross=loanNum(FLM_WALLET.loanGross||FLM_WALLET.rawLoan);
-  var loanEligible=loanNum(FLM_WALLET.loanEligible||loanFull);
-  html+=`<div id="loanActionState" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Only the currently eligible incremental fund amount can be withdrawn. No partial amount is allowed.</div><div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#64748b">CURRENT ELIGIBLE FUND</div><div id="loanFullAmount" style="font-size:22px;font-weight:900;color:#1d4ed8;margin-top:3px">${money(loanFull)}</div><div id="loanFullFormula" style="font-size:10px;color:#64748b;margin-top:4px">Fund Wallet balance available for full withdrawal = ${money(loanFull)}</div><div id="loanDeductionPreview" style="font-size:10px;color:#92400e;margin-top:6px;font-weight:700"></div><div id="loanNetPreview" style="font-size:14px;color:#166534;margin-top:5px;font-weight:900"></div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Up to ₹2,00,000: 10% deduction. Above ₹2,00,000: Bank 18% deduction, USDT BEP-20 5% deduction.</div><div style="display:flex;gap:8px;margin-top:10px"><button id="loanBankBtn" onclick="submitLoanWithdraw('bank')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">Bank — Receive</button><button id="loanUsdtBtn" onclick="submitLoanWithdraw('usdt')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:800">USDT — Receive</button></div>`;
+ if(type==='roi'){
+  html+='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;margin-top:10px;font-size:11px">Minimum ₹1,000. Redeem any amount from ₹1,000 up to your ROI balance. A store coupon will be generated immediately.</div><input id="walletActionAmount" type="number" min="1000" step="1" placeholder="Enter redeem amount" style="width:100%;margin-top:10px;padding:13px;border:1px solid #e2e8f0;border-radius:10px"><button onclick="submitRoiRedeem()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:800">Generate Store Coupon</button>';
+ }else if(type==='matching'){
+  html+='<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><button type="button" onclick="showWalletPinPurchase(\'matching\')" style="background:#7c3aed;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">🎫 Pin Purchase</button><button type="button" onclick="showWalletWithdraw(\'matching\')" style="background:#2563eb;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💸 Withdraw</button></div><div id="walletSubAction" style="margin-top:10px"></div>';
+ }else if(type==='loan'){
+  html+='<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px"><button type="button" onclick="showWalletPinPurchase(\'loan\')" style="background:#7c3aed;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">🎫 Pin Purchase</button><button type="button" onclick="showWalletWithdraw(\'loan\')" style="background:#2563eb;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💸 Withdraw</button></div><div id="walletSubAction" style="margin-top:10px"></div>';
  }
- box.innerHTML=html;if(type==='loan')updateLoanWithdrawalPreview();box.scrollIntoView({behavior:'smooth',block:'start'});if(type==='matching')checkMatchingStore();
+ box.innerHTML=html;
+ if(type==='loan')box.scrollIntoView({behavior:'smooth',block:'start'});else box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function showWalletPinPurchase(walletType){
+ var box=document.getElementById('walletSubAction');if(!box)return;
+ var balance=Number(FLM_WALLET[walletType==='loan'?'loan':'matching']||0);
+ var maxPins=Math.floor(balance/2300);
+ if(maxPins<1){box.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px;font-size:11px;color:#9a3412"><b>🎫 Pin Purchase</b><br>One PIN requires <b>Rs. 2,300</b> from this wallet. Current balance: <b>'+money(balance)+'</b>.<br><span style="display:block;margin-top:5px">You need at least Rs.2,300 to purchase 1 PIN. Rs. '+Math.max(0,2300-balance).toLocaleString('en-IN')+' more is required.</span></div>';return;}
+ var options='';for(var i=1;i<=Math.min(maxPins,100);i++)options+='<option value="'+i+'">'+i+' PIN'+(i>1?'s':'')+' — Pay '+money(i*2300)+'</option>';
+ box.innerHTML='<div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:10px;padding:12px">'+
+ '<div style="font-weight:900;color:#6d28d9">🎫 Buy PINs from '+(walletType==='loan'?'Fund Wallet':'Matching Income')+'</div>'+
+ '<div style="font-size:10px;color:#64748b;margin-top:4px">Each PIN has registration value Rs.2,000, but wallet purchase charges Rs.2,300 per PIN.</div>'+
+ '<select id="walletPinQty" onchange="updateWalletPinPurchasePreview(\''+walletType+'\')" style="width:100%;margin-top:10px;padding:12px;border:1px solid #c4b5fd;border-radius:10px;background:#fff;font-size:13px;font-weight:700">'+options+'</select>'+
+ '<div id="walletPinPreview" style="margin-top:9px;background:#fff;border:1px solid #e9d5ff;border-radius:9px;padding:10px;font-size:11px"></div>'+
+ '<button type="button" id="walletPinBuyBtn" onclick="submitWalletPinPurchase(\''+walletType+'\')" style="width:100%;margin-top:10px;background:#7c3aed;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:900">Generate PINs</button>'+
+ '</div>';
+ updateWalletPinPurchasePreview(walletType);
+}
+function updateWalletPinPurchasePreview(walletType){
+ var q=Math.max(1,parseInt(document.getElementById('walletPinQty')?.value||1));
+ var balance=Number(FLM_WALLET[walletType==='loan'?'loan':'matching']||0);
+ var charge=q*2300,remaining=balance-charge,value=q*2000;
+ var el=document.getElementById('walletPinPreview');
+ if(el)el.innerHTML='<b>Wallet deduction:</b> '+money(charge)+'<br><b>PIN registration value:</b> '+money(value)+'<br><b>Remaining wallet balance:</b> '+money(Math.max(0,remaining));
+}
+async function submitWalletPinPurchase(walletType){
+ var flId=getFlId();if(!flId||!supabaseClient){alert('Supabase connection is required.');return;}
+ var qty=Math.max(1,parseInt(document.getElementById('walletPinQty')?.value||1));
+ var balance=Number(FLM_WALLET[walletType==='loan'?'loan':'matching']||0);
+ var charge=qty*2300;
+ if(balance<charge){alert('Insufficient '+(walletType==='loan'?'Fund Wallet':'Matching Income')+' balance. Need '+money(charge)+' but available balance is '+money(balance)+'.');return;}
+ var btn=document.getElementById('walletPinBuyBtn');if(btn)btn.disabled=true;
+ try{
+  var r=await supabaseClient.rpc('flm_purchase_pins_from_wallet',{p_fl_id:flId,p_wallet_type:walletType,p_pin_count:qty});
+  if(r.error)throw r.error;
+  var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+  var codes=Array.isArray(d.pins)?d.pins:[];
+  var remaining=Number(d.remaining_balance||0);
+  var value=Number(d.pin_value_total||qty*2000);
+  var codeText=codes.map(function(x){return typeof x==='string'?x:(x.pin_code||'');}).filter(Boolean).join('\n');
+  var msg='✅ '+qty+' PIN'+(qty>1?'s':'')+' generated successfully!\n\nWallet deducted: '+money(charge)+'\nPIN value: '+money(value)+'\nRemaining balance: '+money(remaining)+'\n\nGenerated PIN'+(qty>1?'s':'')+':\n'+codeText+'\n\nThese PINs are now available in My Pins and can be used on the registration page.';
+  alert(msg);
+  var box=document.getElementById('walletActionBox');if(box)box.style.display='none';
+  await loadWalletData();await loadWalletHistory();await loadPins();
+ }catch(e){alert('PIN purchase failed: '+e.message);}finally{if(btn)btn.disabled=false;}
+}
+
+function showWalletWithdraw(walletType){
+ if(walletType==='matching'){
+  var box=document.getElementById('walletSubAction');if(!box)return;
+  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹200. Until the ₹5,000/day store condition is reached, Bank/USDT withdrawal is available.</div><input id="walletActionAmount" type="number" min="200" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
+  checkMatchingStore();
+  return;
+ }
+ // Fund withdrawal uses the existing full-balance flow.
+ var box2=document.getElementById('walletSubAction');if(box2)box2.innerHTML='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px">Fund withdrawal uses the full currently available Fund Wallet amount. Choose the payout method below.</div><div style="display:flex;gap:8px;margin-top:8px"><button onclick="submitLoanWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button onclick="submitLoanWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div>';
 }
 
 function updateLoanWithdrawalPreview(){
@@ -1111,7 +1158,7 @@ async function checkMatchingStore(){
  }catch(e){el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px">Location permission is needed to find the nearest store. If no store can be located, Bank/USDT withdrawal remains available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';}
 }
 async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Store withdrawal failed: '+e.message);}}
-async function loadWalletHistory(){var el=document.getElementById('walletHistory');if(!el||!supabaseClient)return;var flId=getFlId();try{var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}var g={matching:[],loan:[],roi:[],other:[]};rows.forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase();if(t==='matching'&&y==='withdrawal')g.matching.push(x);else if(t==='loan'&&y==='withdrawal')g.loan.push(x);else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);});function card(x){var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';var displayTitle=(x.title||x.wallet_type||'Transaction');if(String(x.wallet_type||'').toLowerCase()==='loan'&&String(x.transaction_type||'').toLowerCase()==='withdrawal'){displayTitle=displayTitle.replace(/\bLoan\b/gi,'Fund');}return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+displayTitle+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+x.store_name:'')+(x.store_code?' • Code: '+x.store_code:'')+(x.coupon_code?' • Coupon: '+x.coupon_code:'')+'</div></div>';}function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}el.innerHTML=group('💰 Matching Income Withdrawals',g.matching)+group('🏦 Fund Amount Withdrawals',g.loan)+group('🛒 ROI Store Redemptions',g.roi)+(g.other.length?group('📋 Other Wallet Transactions',g.other):'');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}}
+async function loadWalletHistory(){var el=document.getElementById('walletHistory');if(!el||!supabaseClient)return;var flId=getFlId();try{var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}var g={matching:[],loan:[],roi:[],pins:[],other:[]};rows.forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase();if(y==='pin_purchase')g.pins.push(x);else if(t==='matching'&&y==='withdrawal')g.matching.push(x);else if(t==='loan'&&y==='withdrawal')g.loan.push(x);else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);});function card(x){var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';var displayTitle=(x.title||x.wallet_type||'Transaction');if(String(x.wallet_type||'').toLowerCase()==='loan'&&String(x.transaction_type||'').toLowerCase()==='withdrawal'){displayTitle=displayTitle.replace(/\bLoan\b/gi,'Fund');}return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+displayTitle+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+x.store_name:'')+(x.store_code?' • Code: '+x.store_code:'')+(x.coupon_code?' • Coupon: '+x.coupon_code:'')+'</div></div>';}function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}el.innerHTML=group('💰 Matching Income Withdrawals',g.matching)+group('🏦 Fund Amount Withdrawals',g.loan)+group('🎫 PIN Purchases',g.pins)+group('🛒 ROI Store Redemptions',g.roi)+(g.other.length?group('📋 Other Wallet Transactions',g.other):'');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}}
 
 function loanNum(v){var n=Number(v);return Number.isFinite(n)?n:0;}
 function loanMoney(v){return 'Rs. '+loanNum(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
