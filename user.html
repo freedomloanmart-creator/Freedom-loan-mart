@@ -1,6 +1,6 @@
 <!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
 <!DOCTYPE html>
-<html><head><meta name="flm-build" content="20260918-matching-final"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<html><head><meta name="flm-build" content="20260920-media-scroll-final"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -74,9 +74,8 @@ body{background:#eef2f7;color:#0f172a}
 </head>
 <body><!-- FLM_MATCHING_FINAL_BUILD_20260918 -->
 <div style="padding:12px" id="main">
-<div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div></div>
+<div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:44px;height:68px;overflow:hidden;border-radius:12px;background:rgba(15,23,42,.18);z-index:3"></div><div id="flmDashboardScroll" style="display:none;position:absolute;left:12px;right:12px;bottom:8px;background:rgba(15,23,42,.82);color:#fff;border-radius:10px;padding:7px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left;z-index:4"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
-<div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:#0f172a;color:#fff;border-radius:12px;padding:10px 12px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:10px">📢</span><span id="flmScrollText"></span></div>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -2202,21 +2201,44 @@ async function claimReward(pairs, name){
     try{var r=await supabaseClient.from('orders').insert(payload).select().single();if(r.error)throw r.error;cart={};renderCart();msg.style.color='#059669';msg.innerText='✅ Order placed successfully. Order ID: '+String(r.data.id).slice(0,8);await loadMyOrders();}catch(e){msg.style.color='#dc2626';msg.innerText='Order failed: '+e.message;}
   };
   async function loadMyOrders(){var el=document.getElementById('flmMyOrders');if(!el)return;try{var r=await supabaseClient.from('orders').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders yet.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-weight:800;color:#2563eb">'+esc(o.status||'pending')+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><div style="font-weight:900;margin-top:5px">'+money2(o.total_amount)+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(o.fulfillment_method||'')+' • '+(o.created_at?new Date(o.created_at).toLocaleString():'')+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">Orders unavailable: '+esc(e.message)+'</div>';}}
+  var flmScrollTimer=null,flmMediaTimer=null;
   async function loadScrolls(){
-    var box=document.getElementById('flmDashboardScroll');if(!box)return;
+    var box=document.getElementById('flmDashboardScroll'),track=document.getElementById('flmScrollTrack');if(!box||!track)return;
     try{
       var r=await supabaseClient.from('site_scrolls').select('message,sort_order').eq('active',true).order('sort_order',{ascending:true});
       if(r.error)throw r.error;var rows=r.data||[];
       if(!rows.length){box.style.display='none';return;}
-      box.style.display='block';var t=document.getElementById('flmScrollText');if(!t)return;
-      var idx=0;
-      function next(){if(!t)return;t.style.transition='none';t.style.transform='translateX(100%)';t.innerText=rows[idx].message||'';idx=(idx+1)%rows.length;var w=Math.max(240,t.scrollWidth+window.innerWidth),sec=Math.max(7,w/55);requestAnimationFrame(function(){t.style.transition='transform '+sec+'s linear';t.style.transform='translateX(-'+w+'px)';setTimeout(next,(sec*1000)+800);});}
-      next();
+      box.style.display='block';
+      var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
+      if(!text){box.style.display='none';return;}
+      track.innerText=text+'   *   '+text;
+      track.style.transition='none';track.style.transform='translateX(100%)';
+      if(flmScrollTimer)clearTimeout(flmScrollTimer);
+      requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(14,distance/48);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
+  function pageLabel(id){var m={dashboard:'Dashboard',profile:'My Profile',invite:'Invite & Share Links',downline:'My Team - Downline',tokens:'My Pins - Tokens',wallets:'My Wallets',stores:'Store Network',loans:'Loan Plans',products:'Products',rewards:'Rewards Club',withdraw:'Withdraw',support:'Help Center'};return m[id]||id;}
+  async function loadPageMedia(pageId){
+    var box=document.getElementById('flmBannerMedia');if(!box||!supabaseClient)return;
+    try{
+      var r=await supabaseClient.from('flm_page_media').select('*').eq('page_id',pageId).eq('active',true).order('sort_order',{ascending:true});
+      if(r.error)throw r.error;var rows=r.data||[];
+      if(!rows.length){box.innerHTML='';box.style.display='none';return;}
+      var m=rows[0];var src=String(m.media_data||m.media_url||'').trim();if(!src){box.innerHTML='';box.style.display='none';return;}
+      var title=m.title?'<div style="position:absolute;left:6px;right:6px;bottom:4px;z-index:2;font-size:9px;font-weight:800;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(m.title)+'</div>':'';
+      var html='';
+      if(String(m.media_type||'').toLowerCase()==='video'){
+        html='<video src="'+esc(src)+'" autoplay muted loop playsinline preload="auto" disablepictureinpicture style="display:block;width:100%;height:100%;object-fit:cover;border:0;background:#0f172a"></video>';
+      } else {
+        html='<img src="'+esc(src)+'" alt="'+esc(m.title||pageLabel(pageId))+'" style="display:block;width:100%;height:100%;object-fit:cover;background:#f1f5f9">';
+      }
+      box.innerHTML=html+title;box.style.display='block';
+      var v=box.querySelector('video');if(v){v.muted=true;v.setAttribute('muted','');v.setAttribute('playsinline','');var p=v.play();if(p&&typeof p.catch==='function')p.catch(function(){});}
+    }catch(e){box.innerHTML='';box.style.display='none';console.log('page media:',e.message);}
+  }
   var oldShow=window.showSec;
-  window.showSec=function(id,fromPop){oldShow(id,fromPop);if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadScrolls,400);setInterval(loadScrolls,60000);});
+  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadScrolls,400);setTimeout(function(){loadPageMedia(localStorage.getItem('flm_last_section')||'dashboard');},500);setInterval(loadScrolls,60000);});
 })();
 </script>
 </body></html>
