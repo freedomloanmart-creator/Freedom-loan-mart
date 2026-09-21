@@ -752,6 +752,11 @@ body{background:#eef2f7;color:#0f172a}
   <div class="card" style="border:2px solid #db2777">
     <input id="admAnnTitle" class="input" placeholder="Announcement title" style="width:100%">
     <textarea id="admAnnMessage" class="input" placeholder="Write the update / announcement..." style="width:100%;min-height:120px;margin-top:8px;resize:vertical"></textarea>
+    <label style="display:block;font-size:11px;font-weight:900;color:#475569;margin-top:9px">🖼️ Photo / 🎬 Video (optional)</label>
+    <input id="admAnnMediaFile" type="file" accept="image/*,video/*" class="input" style="width:100%;margin-top:5px">
+    <input id="admAnnMediaUrl" class="input" placeholder="Optional photo/video URL instead of upload" style="width:100%;margin-top:8px">
+    <div style="font-size:10px;color:#64748b;margin-top:5px">Upload limit: 4 MB. Short compressed videos are recommended.</div>
+    <div id="admAnnMediaPreview" style="margin-top:8px"></div>
     <select id="admAnnActive" class="input" style="width:100%;margin-top:8px"><option value="true">ON - Show to members</option><option value="false">OFF - Hide</option></select>
     <button onclick="admSaveAnnouncement()" style="width:100%;margin-top:9px;background:#db2777;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:900">💾 Save / Update Announcement</button>
     <div id="admAnnMsg" style="font-size:11px;text-align:center;margin-top:7px"></div>
@@ -1230,19 +1235,41 @@ function initFlmAdminNavigation(){
 
   async function admLoadAnnouncement(){
     var el=document.getElementById('admAnnouncementList');if(!el)return;
-    try{var r=await supabaseClient.from('flm_login_announcements').select('*').order('updated_at',{ascending:false}).limit(10);if(r.error)throw r.error;var rows=r.data||[];
+    try{
+      var r=await supabaseClient.from('flm_login_announcements').select('*').order('updated_at',{ascending:false}).limit(10);if(r.error)throw r.error;var rows=r.data||[];
       if(!rows.length){el.innerHTML='<div style="color:#64748b">No login announcement yet.</div>';return;}
-      el.innerHTML=rows.map(function(x){return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(x.title||'Update')+'</b><span style="font-size:10px;padding:4px 7px;border-radius:999px;background:'+(x.active?'#dcfce7':'#f1f5f9')+';color:'+(x.active?'#166534':'#475569')+'">'+(x.active?'ON':'OFF')+'</span></div><div style="font-size:11px;color:#475569;white-space:pre-wrap;margin-top:7px">'+esc(x.message||'')+'</div><div style="font-size:9px;color:#94a3b8;margin-top:7px">'+(x.updated_at?new Date(x.updated_at).toLocaleString():'')+'</div><div style="display:flex;gap:7px;margin-top:8px"><button onclick="admEditAnnouncement(\''+esc(x.id)+'\')" style="border:0;border-radius:8px;padding:8px;background:#eff6ff;color:#1d4ed8;font-weight:800">✏️ Edit</button><button onclick="admToggleAnnouncement(\''+esc(x.id)+'\','+(!x.active)+')" style="border:0;border-radius:8px;padding:8px;background:#f1f5f9;color:#334155;font-weight:800">'+(x.active?'OFF':'ON')+'</button><button onclick="admDeleteAnnouncement(\''+esc(x.id)+'\')" style="border:0;border-radius:8px;padding:8px;background:#fee2e2;color:#991b1b;font-weight:800">Delete</button></div></div>';}).join('');
+      el.innerHTML=rows.map(function(x){
+        var media=x.media_data||x.media_url||'',mt=String(x.media_type||'').toLowerCase();
+        var mediaHtml=media?(mt==='video'?`<video src="${esc(media)}" controls muted playsinline style="width:100%;max-height:180px;border-radius:10px;margin-top:8px;background:#000"></video>`:`<img src="${esc(media)}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:8px">`):'';
+        return `<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(x.title||'Update')}</b><span style="font-size:10px;padding:4px 7px;border-radius:999px;background:${x.active?'#dcfce7':'#f1f5f9'};color:${x.active?'#166534':'#475569'}">${x.active?'ON':'OFF'}</span></div>
+          <div style="font-size:11px;color:#475569;white-space:pre-wrap;margin-top:7px">${esc(x.message||'')}</div>
+          ${mediaHtml}
+          <div style="font-size:9px;color:#94a3b8;margin-top:7px">${x.updated_at?new Date(x.updated_at).toLocaleString():''}</div>
+          <div style="display:flex;gap:7px;margin-top:8px">
+            <button onclick="admEditAnnouncement('${esc(x.id)}')" style="border:0;border-radius:8px;padding:8px;background:#eff6ff;color:#1d4ed8;font-weight:800">✏️ Edit</button>
+            <button onclick="admToggleAnnouncement('${esc(x.id)}',${!x.active})" style="border:0;border-radius:8px;padding:8px;background:#f1f5f9;color:#334155;font-weight:800">${x.active?'OFF':'ON'}</button>
+            <button onclick="admDeleteAnnouncement('${esc(x.id)}')" style="border:0;border-radius:8px;padding:8px;background:#fee2e2;color:#991b1b;font-weight:800">Delete</button>
+          </div>
+        </div>`;
+      }).join('');
     }catch(e){el.innerHTML='<div style="color:#991b1b">Announcement load failed: '+esc(e.message)+'</div>';}
   }
   window.admSaveAnnouncement=async function(){
-    var title=document.getElementById('admAnnTitle').value.trim()||'Update',message=document.getElementById('admAnnMessage').value.trim(),active=document.getElementById('admAnnActive').value==='true',msg=document.getElementById('admAnnMsg'),editId=window._flmAnnEditId||null;
+    var title=document.getElementById('admAnnTitle').value.trim()||'Update',message=document.getElementById('admAnnMessage').value.trim(),active=document.getElementById('admAnnActive').value==='true',msg=document.getElementById('admAnnMsg'),editId=window._flmAnnEditId||null,file=document.getElementById('admAnnMediaFile')?.files?.[0],url=document.getElementById('admAnnMediaUrl')?.value.trim()||'';
     if(!message){msg.style.color='#dc2626';msg.innerText='Enter announcement message.';return;}
-    try{var payload={title:title,message:message,active:active,updated_at:new Date().toISOString()},r=editId?await supabaseClient.from('flm_login_announcements').update(payload).eq('id',editId).select().single():await supabaseClient.from('flm_login_announcements').insert(payload).select().single();if(r.error)throw r.error;
-      window._flmAnnEditId=null;document.getElementById('admAnnTitle').value='';document.getElementById('admAnnMessage').value='';document.getElementById('admAnnActive').value='true';msg.style.color='#059669';msg.innerText='✅ Announcement saved.';admLoadAnnouncement();
+    if(file&&file.size>4*1024*1024){msg.style.color='#dc2626';msg.innerText='Photo/video must be 4 MB or smaller.';return;}
+    try{
+      var mediaType=null,mediaData=null,mediaUrl=url||null;
+      if(file){mediaType=file.type.startsWith('video/')?'video':'image';mediaData=await new Promise(function(resolve,reject){var rr=new FileReader();rr.onload=function(){resolve(String(rr.result||''));};rr.onerror=reject;rr.readAsDataURL(file);});mediaUrl=null;}
+      var payload={title:title,message:message,active:active,updated_at:new Date().toISOString()};
+      if(file||url){payload.media_type=mediaType||(url.match(/\.(mp4|webm|mov)(\?|$)/i)?'video':'image');payload.media_data=mediaData;payload.media_url=mediaUrl;}else if(editId){payload.media_type=null;payload.media_data=null;payload.media_url=null;}
+      var r=editId?await supabaseClient.from('flm_login_announcements').update(payload).eq('id',editId).select().single():await supabaseClient.from('flm_login_announcements').insert(payload).select().single();if(r.error)throw r.error;
+      window._flmAnnEditId=null;['admAnnTitle','admAnnMessage','admAnnMediaUrl','admAnnMediaFile'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});document.getElementById('admAnnMediaPreview').innerHTML='';document.getElementById('admAnnActive').value='true';msg.style.color='#059669';msg.innerText='✅ Announcement saved.';admLoadAnnouncement();
     }catch(e){msg.style.color='#dc2626';msg.innerText='Save failed: '+e.message;}
   };
-  window.admEditAnnouncement=async function(id){try{var r=await supabaseClient.from('flm_login_announcements').select('*').eq('id',id).single();if(r.error)throw r.error;var x=r.data;window._flmAnnEditId=x.id;document.getElementById('admAnnTitle').value=x.title||'';document.getElementById('admAnnMessage').value=x.message||'';document.getElementById('admAnnActive').value=x.active?'true':'false';document.getElementById('admAnnTitle').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){alert('Edit failed: '+e.message);}};
+  window.admEditAnnouncement=async function(id){try{var r=await supabaseClient.from('flm_login_announcements').select('*').eq('id',id).single();if(r.error)throw r.error;var x=r.data;window._flmAnnEditId=x.id;document.getElementById('admAnnTitle').value=x.title||'';document.getElementById('admAnnMessage').value=x.message||'';document.getElementById('admAnnActive').value=x.active?'true':'false';document.getElementById('admAnnMediaUrl').value=x.media_url||'';document.getElementById('admAnnMediaPreview').innerHTML=x.media_data?(String(x.media_type)==='video'?'<video src="'+esc(x.media_data)+'" controls muted playsinline style="width:100%;max-height:180px;border-radius:10px;background:#000"></video>':'<img src="'+esc(x.media_data)+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">'):'';document.getElementById('admAnnTitle').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){alert('Edit failed: '+e.message);}};
+  document.getElementById('admAnnMediaFile')?.addEventListener('change',function(){var f=this.files&&this.files[0],p=document.getElementById('admAnnMediaPreview');if(!p)return;if(!f){p.innerHTML='';return;}if(f.size>4*1024*1024){p.innerHTML='<div style="color:#dc2626;font-size:11px">File is larger than 4 MB.</div>';return;}var u=URL.createObjectURL(f);p.innerHTML=f.type.startsWith('video/')?'<video src="'+u+'" controls muted playsinline style="width:100%;max-height:180px;border-radius:10px;background:#000"></video>':'<img src="'+u+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px">';});
   window.admToggleAnnouncement=async function(id,active){try{var r=await supabaseClient.from('flm_login_announcements').update({active:active,updated_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;admLoadAnnouncement();}catch(e){alert('Update failed: '+e.message);}};
   window.admDeleteAnnouncement=async function(id){if(!confirm('Delete this login announcement?'))return;try{var r=await supabaseClient.from('flm_login_announcements').delete().eq('id',id);if(r.error)throw r.error;admLoadAnnouncement();}catch(e){alert('Delete failed: '+e.message);}};
  var oldLoadSec=window.loadSec;

@@ -149,6 +149,7 @@ body{background:#eef2f7;color:#0f172a}
       <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
     </div>
     <div id="flmAnnMessage" style="padding:20px 18px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
     <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
@@ -2370,15 +2371,16 @@ async function claimReward(pairs, name){
   function flmTodayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
   window.closeFlmLoginAnnouncement=function(){var box=document.getElementById('flmLoginAnnouncement');if(box)box.style.display='none';};
   async function loadFlmLoginAnnouncement(){
-    var box=document.getElementById('flmLoginAnnouncement'),title=document.getElementById('flmAnnTitle'),message=document.getElementById('flmAnnMessage');
+    var box=document.getElementById('flmLoginAnnouncement'),title=document.getElementById('flmAnnTitle'),message=document.getElementById('flmAnnMessage'),mediaBox=document.getElementById('flmAnnMedia');
     if(!box||!supabaseClient)return;
     try{
-      var r=await supabaseClient.from('flm_login_announcements').select('id,title,message,updated_at').eq('active',true).order('updated_at',{ascending:false}).limit(1);
+      var r=await supabaseClient.from('flm_login_announcements').select('id,title,message,updated_at,media_type,media_data,media_url').eq('active',true).order('updated_at',{ascending:false}).limit(1);
       if(r.error)throw r.error;var row=(r.data||[])[0];if(!row)return;
       var day=flmTodayKey(),version=String(row.id)+'|'+String(row.updated_at||''),key='flm_login_announcement_seen_'+version;
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
