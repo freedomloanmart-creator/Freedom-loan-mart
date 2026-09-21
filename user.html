@@ -142,15 +142,17 @@ body{background:#eef2f7;color:#0f172a}
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:48px;bottom:10px;overflow:hidden;border-radius:14px;background:rgba(15,23,42,.18);z-index:3"></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
-<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
-  <div style="width:min(100%,430px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;animation:flmAnnPop .22s ease-out">
+<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.62);z-index:99999;align-items:center;justify-content:center;padding:10px">
+  <div style="width:min(100%,460px);max-height:94vh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.32);overflow:hidden;display:flex;flex-direction:column;animation:flmAnnPop .22s ease-out">
     <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
       <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
     </div>
-    <div id="flmAnnMessage" style="padding:20px 18px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
-    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
-    <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
+    <div style="overflow-y:auto;min-height:0;flex:1">
+      <div id="flmAnnMessage" style="padding:18px 18px 12px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+      <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
+    </div>
+    <div style="padding:0 18px 18px;background:#fff;flex:none"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:13px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
 <style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
@@ -2380,7 +2382,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:55vh;min-height:120px;object-fit:contain;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:55vh;min-height:120px;object-fit:contain;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
