@@ -23,11 +23,11 @@ function showSec(id,fromPop){
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();try{loadActiveRoiCoupons();}catch(e){}}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans') loadLoanPanel();
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans') loadLoanPanel();
 }
 function initFlmNavigation(){
  if(!requireLogin()) return;
- var saved=localStorage.getItem('flm_last_section')||'dashboard'; try{ if(saved==='dashboard' || saved==='wallets'){ setTimeout(function(){ try{loadActiveRoiCoupons();}catch(e){} },500);} }catch(e){}
+ var saved=localStorage.getItem('flm_last_section')||'dashboard';
  FLM_NAV_READY=false;
  if(!history.state||!history.state.flmSection) history.replaceState({flmSection:saved},'',window.location.href.split('#')[0]);
  showSec(saved,true);
@@ -142,20 +142,18 @@ body{background:#eef2f7;color:#0f172a}
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:48px;bottom:10px;overflow:hidden;border-radius:14px;background:rgba(15,23,42,.18);z-index:3"></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
-<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.65);z-index:99999;align-items:center;justify-content:center;padding:14px">
-  <div style="width:min(100%,440px);max-height:90vh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.32);display:flex;flex-direction:column;overflow:hidden;animation:flmAnnPop .22s ease-out">
-    <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0">
-      <div><div id="flmAnnTitle" style="font-size:18px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:2px">FLM Member Update</div></div>
-      <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer;flex-shrink:0">×</button>
+<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
+  <div style="width:min(100%,430px);max-height:92vh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:auto;animation:flmAnnPop .22s ease-out">
+    <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
+      <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
     </div>
-    <div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;max-height:70vh">
-      <div id="flmAnnMessage" style="padding:18px;color:#334155;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word"></div>
-      <div id="flmAnnMedia" style="display:none;padding:0 14px 14px"></div>
-    </div>
-    <div style="padding:12px 18px 18px;flex-shrink:0;background:#fff;border-top:1px solid #f1f5f9"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:12px;padding:13px;background:#2563eb;color:#fff;font-weight:900;font-size:14px;cursor:pointer">✓ Got it</button></div>
+    <div id="flmAnnMessage" style="padding:20px 18px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
+    <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
-<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes flmMarquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}</style>
+<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -363,7 +361,6 @@ body{background:#eef2f7;color:#0f172a}
 <div id="treeModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this) closeTreeModal()"><div style="background:#fff;border-radius:20px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.3)"><div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><div id="modalInitial" style="width:40px;height:40px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800">T</div><div><div style="font-weight:800" id="modalName">Theja k</div><div style="font-size:11px;opacity:.8" id="modalFl">FL241190</div></div></div><span onclick="closeTreeModal()" style="cursor:pointer;font-size:20px;background:rgba(255,255,255,.2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">×</span></div><div style="padding:16px"><div style="text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px;margin-bottom:12px"><div style="font-size:11px;color:#166534">Click chesina user details</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;border-radius:12px;padding:12px;text-align:center"><div style="font-size:11px;color:#1e40af">LEFT SIDE</div><div style="font-size:24px;font-weight:800;color:#1e40af;margin-top:4px" id="modalLeft">0</div><div style="font-size:10px;color:#3b82f6;margin-top:2px" id="modalLeftText">Left lo 0 mandi</div></div><div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:12px;text-align:center"><div style="font-size:11px;color:#92400e">RIGHT SIDE</div><div style="font-size:24px;font-weight:800;color:#b45309;margin-top:4px" id="modalRight">0</div><div style="font-size:10px;color:#d97706;margin-top:2px" id="modalRightText">Right lo 0 mandi</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total Pairs</div><div style="font-weight:700" id="modalPairs">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Team Size</div><div style="font-weight:700" id="modalTeam">0</div></div></div><button onclick="closeTreeModal()" style="width:100%;margin-top:12px;background:#0f172a;color:#fff;border:0;border-radius:12px;padding:12px;font-weight:700;cursor:pointer">Close</button></div></div></div>
 
 <script>
-
 async function initDashboard(){
  var flId=getFlId();var name=getName();if(!flId){location.href='./login.html';return;}
  var topFlIdEl=document.getElementById('topFlId');if(topFlIdEl) topFlIdEl.innerText=flId;
@@ -373,72 +370,27 @@ async function initDashboard(){
  var dashFlIdEl=document.getElementById('dashFlId');if(dashFlIdEl) dashFlIdEl.innerText=flId;
  var pMemberIdEl=document.getElementById('pMemberId');if(pMemberIdEl) pMemberIdEl.innerText=flId;
  var menuFlIdEl=document.getElementById('menuFlId');if(menuFlIdEl) menuFlIdEl.innerText=flId;
- // Ensure supabase client exists - retry init
- if(!supabaseClient){
-   try{ if(typeof supabase!=='undefined' && supabase.createClient) supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); }catch(e){}
- }
  try{
   if(supabaseClient){
-   var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();
-   if(r.error){ console.log('users fetch error:', r.error.message); throw r.error; }
-   var user=r.data;
-   if(user){
-     var realName=user.full_name||name||flId;
-     if(topNameEl) topNameEl.innerText=realName;
-     if(dashNameEl) dashNameEl.innerText=realName;
-     if(dashInit) dashInit.innerText=realName.charAt(0).toUpperCase();
-     var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl) pJoinedEl.innerText=user.created_at?new Date(user.created_at).toLocaleDateString():'--';
-     var pActEl=document.getElementById('pActivation');if(pActEl) pActEl.innerText=user.activation_date?new Date(user.activation_date).toLocaleDateString(): (user.created_at?new Date(user.created_at).toLocaleDateString():'--');
-     var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl) pSponsorEl.innerText=user.sponsor_id||'None';
-     // also store full profile to localStorage for offline use
-     try{ localStorage.setItem('flm_user_cache_'+flId, JSON.stringify(user)); }catch(e){}
-   }
-  } else {
-   throw new Error('supabase not ready');
+   var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();var user=r.data;
+   if(user){var realName=user.full_name||name||flId;if(topNameEl) topNameEl.innerText=realName;if(dashNameEl) dashNameEl.innerText=realName;if(dashInit) dashInit.innerText=realName.charAt(0).toUpperCase();var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl) pJoinedEl.innerText=new Date(user.created_at).toLocaleDateString();var pActEl=document.getElementById('pActivation');if(pActEl) pActEl.innerText=new Date(user.created_at).toLocaleDateString();var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl) pSponsorEl.innerText=user.sponsor_id||'None';}
+   var r2=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();var bin=r2.data||{};var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);
+   {var lt=document.getElementById('leftTokens');if(lt) lt.innerText=liveStats.left;var rt=document.getElementById('rightTokens');if(rt) rt.innerText=liveStats.right;var lc=document.getElementById('leftCarry');if(lc) lc.innerText=bin.left_carry||0;var rc=document.getElementById('rightCarry');if(rc) rc.innerText=bin.right_carry||0;var tp=document.getElementById('totalPairs');if(tp) tp.innerText=liveStats.pairs;var ts=document.getElementById('teamSize');if(ts) ts.innerText=liveStats.teamSize;var dm=document.getElementById('dailyMatching');if(dm) dm.innerText=liveToday.pairs+' / 25 pairs';var db=document.getElementById('dailyBar');if(db) db.style.width=(Math.min(25,liveToday.pairs)/25*100)+'%';var remaining=5000-liveToday.income;if(remaining<0) remaining=0;var remEl=document.getElementById('remainingToday');if(remEl) remEl.innerText='Rs. '+remaining+' remaining today';}
+   var r3=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();var wallet=r3.data;
+   if(wallet){var roi=wallet.roi_wallet||0;var matching=wallet.matching_wallet||0;var loan=wallet.loan_wallet||0;var total=roi+matching+loan;var mw=document.getElementById('mainWallet');if(mw) mw.innerText='Rs. '+total+'.00';var rc2=document.getElementById('roiCredits');if(rc2) rc2.innerText=roi+'.00';var mi=document.getElementById('matchingIncome');if(mi) mi.innerText='Rs. '+matching+'.00';var rw=document.getElementById('roiWallet');if(rw) rw.innerText='Rs.'+roi;var mw2=document.getElementById('matchingWallet');if(mw2) mw2.innerText='Rs.'+matching;var lw=document.getElementById('loanWallet');if(lw) lw.innerText='Rs.'+loan;var ta=document.getElementById('totalAmount');if(ta) ta.innerText='Rs.'+total;}
   }
- }catch(e){
-   console.log('initDashboard fallback:', e.message);
-   // Fallback to cached user
-   try{
-     var cached=localStorage.getItem('flm_user_cache_'+flId);
-     if(cached){
-       var cu=JSON.parse(cached);
-       var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl) pJoinedEl.innerText=cu.created_at?new Date(cu.created_at).toLocaleDateString():'--';
-       var pActEl=document.getElementById('pActivation');if(pActEl) pActEl.innerText=cu.activation_date?new Date(cu.activation_date).toLocaleDateString():(cu.created_at?new Date(cu.created_at).toLocaleDateString():'--');
-       var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl) pSponsorEl.innerText=cu.sponsor_id||'None';
-     } else {
-       // last fallback from session
-       var sess=getSession();
-       if(sess){
-         var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl && sess.created_at) pJoinedEl.innerText=new Date(sess.created_at).toLocaleDateString();
-         var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl && sess.sponsor_id) pSponsorEl.innerText=sess.sponsor_id;
-       }
-     }
-   }catch(ee){}
-   // show small retry button
-   var pSponsorEl=document.getElementById('pSponsor');
-   if(pSponsorEl && pSponsorEl.innerText==='--'){
-     // auto retry after 2 sec
-     setTimeout(function(){ initDashboard(); }, 2000);
-   }
- }
- try{
-  if(supabaseClient){
-   var r2=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();
-   if(!r2.error && r2.data){
-     // you can update matching bonus etc here if needed
-   }
-  }
- }catch(e){}
+ }catch(e){console.log(e.message);}
+ var registerBase=new URL('register.html',window.location.href).href.split('?')[0];var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';var leftT=document.getElementById('leftLinkText');if(leftT) leftT.innerText='Left link: '+leftLink;var rightT=document.getElementById('rightLinkText');if(rightT) rightT.innerText='Right link: '+rightLink;window.leftLink=leftLink;window.rightLink=rightLink;
 }
 function copyLeft(){if(window.leftLink) navigator.clipboard.writeText(window.leftLink);alert('Left link copied');}
 function copyRight(){if(window.rightLink) navigator.clipboard.writeText(window.rightLink);alert('Right link copied');}
 function escStore(v){return String(v??'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});}
 function storeDistanceKm(a,b,c,d){var R=6371,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,z=Math.sin(x/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(z),Math.sqrt(1-z));}
-function mapsUrl(lat,lng){return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng);}
+function mapsUrl(lat,lng,originLat,originLng){var u='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng);if(Number.isFinite(Number(originLat))&&Number.isFinite(Number(originLng)))u+='&origin='+encodeURIComponent(originLat+','+originLng);return u;}
+function openStoreDirections(lat,lng){lat=Number(lat);lng=Number(lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;if(navigator.geolocation){navigator.geolocation.getCurrentPosition(function(pos){window.open(mapsUrl(lat,lng,pos.coords.latitude,pos.coords.longitude),'_blank');},function(){window.open(mapsUrl(lat,lng),'_blank');},{enableHighAccuracy:true,timeout:8000,maximumAge:120000});}else{window.open(mapsUrl(lat,lng),'_blank');}}
 function osmMapUrl(lat,lng){var d=.008;return 'https://www.openstreetmap.org/export/embed.html?bbox='+(lng-d)+'%2C'+(lat-d)+'%2C'+(lng+d)+'%2C'+(lat+d)+'&layer=mapnik&marker='+lat+'%2C'+lng;}
 async function geocodeStoreSearch(q){try{var r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q='+encodeURIComponent(q+', India'),{headers:{Accept:'application/json'}}),d=await r.json();return d&&d[0]?{lat:Number(d[0].lat),lng:Number(d[0].lon),label:d[0].display_name}:null;}catch(e){return null;}}
-function renderStoreResults(rows,label){var el=document.getElementById('sRes');if(!el)return;if(!rows.length){el.innerHTML='<div style="padding:14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;color:#9a3412">🏪 No FLM store found within 25 KM.<br><span style="font-size:11px">No nearby store means Bank / USDT can be used where applicable.</span></div>';return;}rows.sort((a,b)=>(a.distance_km??9999)-(b.distance_km??9999));var h='<div style="font-size:12px;font-weight:800;margin-bottom:8px">📍 Stores near '+escStore(label||'your location')+'</div>';rows.slice(0,10).forEach(function(st,i){var lat=Number(st.latitude),lng=Number(st.longitude),addr=[st.address,st.town,st.pincode].filter(Boolean).join(', ');h+='<div style="background:#fff;border:1px solid '+(i===0?'#10b981':'#e2e8f0')+';border-radius:16px;padding:12px;margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>🏪 '+escStore(st.name||st.store_name||'FLM Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">Store Code: '+escStore(st.store_code||'--')+'</div></div>'+(st.distance_km!=null?'<b style="color:#059669;font-size:12px">'+Number(st.distance_km).toFixed(1)+' KM</b>':'')+'</div>';if(addr)h+='<div style="font-size:12px;margin-top:8px">📍 '+escStore(addr)+'</div>';if(st.phone||st.mobile)h+='<div style="font-size:12px;margin-top:5px">📞 '+escStore(st.phone||st.mobile)+'</div>';if(Number.isFinite(lat)&&Number.isFinite(lng))h+='<iframe loading="lazy" title="Store map" style="width:100%;height:170px;border:0;border-radius:12px;margin-top:9px" src="'+osmMapUrl(lat,lng)+'"></iframe><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><a href="'+mapsUrl(lat,lng)+'" target="_blank" style="text-decoration:none;text-align:center;background:#2563eb;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">🗺️ Navigate</a>'+(st.phone||st.mobile?'<a href="tel:'+escStore(st.phone||st.mobile)+'" style="text-decoration:none;text-align:center;background:#059669;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">📞 Call Store</a>':'<span></span>')+'</div>';h+='</div>';});el.innerHTML=h;}
+function renderStoreResults(rows,label){var el=document.getElementById('sRes');if(!el)return;if(!rows.length){el.innerHTML='<div style="padding:14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;color:#9a3412">🏪 No FLM store found within 25 KM.<br><span style="font-size:11px">No nearby store means Bank / USDT can be used where applicable.</span></div>';return;}rows.sort((a,b)=>(a.distance_km??9999)-(b.distance_km??9999));var h='<div style="font-size:12px;font-weight:800;margin-bottom:8px">📍 Stores near '+escStore(label||'your location')+'</div>';rows.slice(0,10).forEach(function(st,i){var lat=Number(st.latitude),lng=Number(st.longitude),addr=[st.address,st.town,st.pincode].filter(Boolean).join(', ');h+='<div style="background:#fff;border:1px solid '+(i===0?'#10b981':'#e2e8f0')+';border-radius:16px;padding:12px;margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>🏪 '+escStore(st.name||st.store_name||'FLM Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">Store Code: '+escStore(st.store_code||'--')+'</div></div>'+(st.distance_km!=null?'<b style="color:#059669;font-size:12px">'+Number(st.distance_km).toFixed(1)+' KM</b>':'')+'</div>';if(addr)h+='<div style="font-size:12px;margin-top:8px">📍 '+escStore(addr)+'</div>';if(st.phone||st.mobile)h+='<div style="font-size:12px;margin-top:5px">📞 '+escStore(st.phone||st.mobile)+'</div>';if(Number.isFinite(lat)&&Number.isFinite(lng))h+='<iframe loading="lazy" title="Store map" style="width:100%;height:170px;border:0;border-radius:12px;margin-top:9px" src="'+osmMapUrl(lat,lng)+'"></iframe><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><a href="javascript:void(0)" onclick="openStoreDirections('+lat+','+lng+')" style="text-decoration:none;text-align:center;background:#2563eb;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">🗺️ Navigate</a>'+(st.phone||st.mobile?'<a href="tel:'+escStore(st.phone||st.mobile)+'" style="text-decoration:none;text-align:center;background:#059669;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">📞 Call Store</a>':'<span></span>')+'</div>';h+='</div>';});el.innerHTML=h;}
 async function findS(){
   var q=(document.getElementById('sp')?.value||'').trim();
   var el=document.getElementById('sRes');
@@ -500,9 +452,10 @@ async function findS(){
       var geoQuery=q;
 
       if(/^\d{6}$/.test(q)){
-        /* Numeric pincode with no exact active store:
-           never geocode the pincode alone, because it can resolve
-           to a different locality. */
+        /* Numeric pincode without an exact FLM store: resolve it through
+           India Post first, then geocode the returned locality. This lets
+           pins such as 517416 (Bangarupalem) find the nearest FLM store in
+           Palamaner instead of incorrectly returning no store. */
         if(exact.length){
           var st0=exact[0];
           var town0=String(st0.town||st0.city||'').trim();
@@ -512,7 +465,17 @@ async function findS(){
             geoQuery='';
           }
         }else{
-          geoQuery='';
+          try{
+            var pr=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(q),{headers:{Accept:'application/json'}});
+            var pd=await pr.json();
+            var po=pd&&pd[0]&&Array.isArray(pd[0].PostOffice)?pd[0].PostOffice:[];
+            if(po.length){
+              var po0=po[0]||{};
+              var locality=String(po0.Name||po0.Block||po0.Division||po0.District||'').trim();
+              var district=String(po0.District||'').trim();
+              if(locality)geoQuery=locality+' '+q+(district?' '+district:'');
+            }
+          }catch(ignore){geoQuery='';}
         }
       }
 
@@ -580,104 +543,47 @@ async function findS(){
 }
 function findMyStore(){var el=document.getElementById('sRes');if(!navigator.geolocation){el.innerHTML='Location unavailable on this device.';return;}el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">📍 Getting your location…</div>';navigator.geolocation.getCurrentPosition(async function(pos){try{var r=await supabaseClient.from('stores').select('*').eq('status','active');if(r.error)throw r.error;var near=(r.data||[]).filter(st=>st.latitude!=null&&st.longitude!=null).map(st=>{st.distance_km=storeDistanceKm(pos.coords.latitude,pos.coords.longitude,Number(st.latitude),Number(st.longitude));return st;}).filter(st=>st.distance_km<=25);renderStoreResults(near,'your current location');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626">Unable to find stores: '+escStore(e.message)+'</div>'; }},function(){el.innerHTML='<div style="padding:12px;color:#b45309">Location permission denied. Enter your pincode or town instead.</div>';},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});}
 let flmPincodeTimer=null;
-var flmPincodeTimer=null;
-
 async function flmLookupPincode(pin){
  pin=String(pin||'').replace(/\D/g,'').slice(0,6);
  var cityEl=document.getElementById('profCity');
+ var msg=document.getElementById('profMsg');
  if(pin.length!==6)return;
  try{
-  var townFromStore='', foundStores=[];
+  // Prefer the FLM store table so the same pincode immediately drives Store Point availability.
   if(supabaseClient){
-   try{
-     var sr=await supabaseClient.from('stores').select('id,name,store_name,town,city,district,pincode,address,phone,status').eq('status','active');
-     var all=(sr.data||[]);
-     foundStores=all.filter(function(s){
-       var sp=String(s.pincode||'').replace(/\D/g,'').slice(0,6);
-       return sp===pin;
-     });
-     if(!foundStores.length){
-       var prefix4=pin.slice(0,4);
-       foundStores=all.filter(function(s){ return String(s.pincode||'').replace(/\D/g,'').startsWith(prefix4); });
-     }
-     if(foundStores.length){
-       townFromStore=String(foundStores[0].town||foundStores[0].city||foundStores[0].district||'').trim();
-       if(townFromStore){
-         if(cityEl) cityEl.value=townFromStore;
-         document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=townFromStore; });
-       }
-       var hint=document.getElementById('profStoreHint');
-       if(hint){
-         hint.style.display='block';
-         if(String(foundStores[0].pincode||'').replace(/\D/g,'').slice(0,6)===pin){
-           hint.innerHTML='🏪 <b>'+escStore(foundStores.length)+' Store Point(s) found for '+pin+'</b><br>🏬 '+escStore(foundStores[0].name||foundStores[0].store_name||'FLM Store')+'<br><span style="font-size:10px">'+escStore(foundStores[0].address||'')+'</span><br><span style="font-size:10px;color:#059669">Exact pincode match ✅</span>';
-         } else {
-           hint.innerHTML='🏪 Store Point nearby pincode: <b>'+escStore(foundStores[0].name||foundStores[0].store_name||'FLM Store')+'</b> ('+escStore(foundStores[0].pincode||'')+')<br><span style="font-size:10px">'+escStore(foundStores[0].address||'')+'</span>';
-         }
-       }
-       if(typeof flmRefreshOrderOptions==='function') await flmRefreshOrderOptions();
-     }
-   }catch(e){ console.log('store pincode lookup error', e.message); }
+   var sr=await supabaseClient.from('stores').select('name,store_name,town,city,pincode,address,phone,status').eq('status','active').eq('pincode',pin).limit(5);
+   var stores=sr.data||[];
+   if(stores.length){
+    var town=String(stores[0].town||stores[0].city||'').trim();
+    if(cityEl&&town)cityEl.value=town;
+    var hint=document.getElementById('profStoreHint');
+    if(hint){hint.style.display='block';hint.innerHTML='🏪 Store Point available: <b>'+escStore(stores[0].name||stores[0].store_name||'FLM Store')+'</b><br><span style="font-size:10px">'+escStore(stores[0].address||'')+'</span>';}
+    if(typeof flmRefreshOrderOptions==='function')flmRefreshOrderOptions();
+    return;
+   }
   }
-  try{
-    var resp=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(pin),{headers:{Accept:'application/json'}});
-    var data=await resp.json();
-    var po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];
-    if(po.length){
-      var first=po[0];
-      var district=String(first.District||'').trim();
-      var block=String(first.Block||'').trim();
-      var division=String(first.Division||'').trim();
-      var state=String(first.State||'').trim();
-      var bestCity=townFromStore||block||district||division;
-      if(bestCity){
-        if(cityEl) cityEl.value=bestCity;
-        document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=bestCity; });
-      }
-      if(!foundStores.length && supabaseClient && district){
-        try{
-          var sr2=await supabaseClient.from('stores').select('id,name,store_name,town,city,district,pincode,address,phone,status').eq('status','active');
-          var all2=sr2.data||[];
-          var distLower=district.toLowerCase();
-          var nearBy=all2.filter(function(s){
-            var t=String(s.town||s.city||s.district||'').toLowerCase();
-            var d=String(s.district||'').toLowerCase();
-            return t.includes(distLower) || distLower.includes(t) || d===distLower;
-          });
-          if(nearBy.length){
-            var hint2=document.getElementById('profStoreHint');
-            if(hint2){
-              hint2.style.display='block';
-              hint2.innerHTML='🏪 No exact store for '+pin+' ('+escStore(block||district)+'), but nearby store in same district:<br><b>'+escStore(nearBy[0].name||nearBy[0].store_name||'Store')+'</b> - '+escStore(nearBy[0].pincode||'')+' ('+escStore(nearBy[0].town||nearBy[0].city||'')+')<br><span style="font-size:10px">'+escStore(nearBy[0].address||'')+'</span><br><span style="font-size:10px;color:#d97706">~22 km away from Bangarupalem area - you can still select Store Point or use Mega Store / Upliner</span>';
-            }
-          }
-        }catch(e){}
-      }
-      if(typeof flmRefreshOrderOptions==='function') await flmRefreshOrderOptions();
-    }
-  }catch(e){ console.log('postal lookup error', e.message); }
+  // If there is no FLM store for that pincode, use India Post to fill the city/district automatically.
+  var resp=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(pin),{headers:{Accept:'application/json'}});
+  var data=await resp.json();
+  var po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];
+  if(po.length){
+   var city=String(po[0].Name||po[0].Block||po[0].Division||po[0].District||'').trim();
+   if(cityEl&&city)cityEl.value=city;
+   var hint=document.getElementById('profStoreHint');
+   if(hint){hint.style.display='block';hint.innerHTML='🏪 No FLM Store Point found for this pincode yet. You can use <b>Mega Store Point</b> or <b>Collect from Upliner</b>.';}
+   if(typeof flmRefreshOrderOptions==='function')flmRefreshOrderOptions();
+  }
  }catch(e){console.log('pincode lookup:',e.message||e);}
 }
-
 function flmBindPincodeLookup(){
- var inputs=document.querySelectorAll('#profPincode, input[id*="Pincode" i], input[placeholder*="pincode" i]');
- if(!inputs.length){ inputs=[document.getElementById('profPincode')]; }
- inputs.forEach(function(p){
-   if(!p||p.dataset.lookupBound==='1') return;
-   p.dataset.lookupBound='1';
-   p.addEventListener('input',function(){
-     var v=String(this.value||'').replace(/\D/g,'').slice(0,6);this.value=v;
-     clearTimeout(flmPincodeTimer);if(v.length!==6)return;
-     flmPincodeTimer=setTimeout(function(){flmLookupPincode(v);},350);
-   });
-   p.addEventListener('blur',function(){
-     var v=String(this.value||'').replace(/\D/g,'').slice(0,6);
-     if(v.length===6) flmLookupPincode(v);
-   });
+ var p=document.getElementById('profPincode');if(!p||p.dataset.lookupBound==='1')return;
+ p.dataset.lookupBound='1';
+ p.addEventListener('input',function(){
+  var v=String(this.value||'').replace(/\D/g,'').slice(0,6);this.value=v;
+  clearTimeout(flmPincodeTimer);if(v.length!==6)return;
+  flmPincodeTimer=setTimeout(function(){flmLookupPincode(v);},350);
  });
 }
-var flmPincodeTimer=null;
-
 
 async function loadProfile(){
  if(!requireLogin()) return;
@@ -1120,7 +1026,7 @@ async function loadPins(){
   }
  }catch(e){console.log(e.message);}
 }
-window.addEventListener('DOMContentLoaded',function(){try{initDashboard();}catch(e){} try{initFlmNavigation();}catch(e){}}); window.addEventListener('load',function(){initDashboard();initFlmNavigation();});
+window.addEventListener('load',function(){initDashboard();initFlmNavigation();});
 window.addEventListener('pageshow',function(){if(getFlId()){var saved=localStorage.getItem('flm_last_section');if(saved&&saved!=='dashboard'){setTimeout(function(){showSec(saved,true);},50);}}});
 </script>
 <script>
@@ -2585,7 +2491,7 @@ async function claimReward(pairs, name){
       return exact[0]||null;
     }catch(e){console.log('nearest store lookup:',e.message||e);return null;}
   }
-  async async function flmRefreshOrderOptions(){
+  async function flmRefreshOrderOptions(){
     var sel=document.getElementById('flmOrderMethod');if(!sel)return null;
     var previous=sel.value;
     var store=await flmFindNearestStore();
@@ -2648,22 +2554,13 @@ async function claimReward(pairs, name){
       var badge=document.getElementById('flmUplinerBadge');if(badge){badge.innerText=rows.length;badge.style.display='inline-flex';}
       var seen=JSON.parse(localStorage.getItem('flm_upliner_seen_orders')||'[]');
       var fresh=rows.filter(function(o){return seen.indexOf(String(o.id))<0;});
-      // Always save seen so it won't spam again
-      if(fresh.length){
-        seen=seen.concat(fresh.map(function(x){return String(x.id);}));
-        localStorage.setItem('flm_upliner_seen_orders',JSON.stringify(seen.slice(-100)));
-      }
       if(!showToast||!fresh.length)return;
-      // Respect mute setting
-      if(localStorage.getItem('flm_upliner_mute')==='1') return;
       var o=fresh[0],items=Array.isArray(o.items)?o.items:[];
-      // Remove old toast if any
-      var old=document.getElementById('flmUplinerDeliveryToast'); if(old) old.remove();
-      var box=document.createElement('div');box.id='flmUplinerDeliveryToast';box.style.cssText='position:fixed;right:10px;bottom:78px;z-index:12050;background:#fff;border:1px solid #0e7490;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.22);padding:12px;width:min(92vw,360px);';
-      box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:900;color:#0f766e;font-size:13px">🔔 New Upliner Request ('+fresh.length+')</div><button onclick="this.closest(\'#flmUplinerDeliveryToast\').remove()" style="border:0;background:#f1f5f9;width:24px;height:24px;border-radius:50%;font-weight:800;cursor:pointer">×</button></div><div style="font-size:11px;color:#475569;margin-top:5px">Order #'+esc(String(o.id).slice(0,8))+' • '+esc(o.user_name||o.fl_id)+'</div><div style="font-size:11px;margin-top:4px;color:#334155">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><button data-order-id="'+esc(o.id)+'" onclick="flmConfirmUplinerDelivered(this.dataset.orderId)" style="width:100%;margin-top:9px;background:#059669;color:#fff;border:0;border-radius:9px;padding:9px;font-weight:900;cursor:pointer">✓ Delivered</button><div style="display:flex;gap:6px;margin-top:6px"><button onclick="this.parentElement.parentElement.remove()" style="flex:1;background:#e2e8f0;color:#334155;border:0;border-radius:8px;padding:7px;font-weight:800;cursor:pointer">Later</button><button onclick="localStorage.setItem(\'flm_upliner_mute\',\'1\'); this.closest(\'#flmUplinerDeliveryToast\').remove(); alert(\'Upliner notifications muted. Unmute from Products page.\')" style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:7px;font-size:10px;font-weight:700;cursor:pointer">Mute</button></div>';
+      var box=document.createElement('div');box.id='flmUplinerDeliveryToast';box.style.cssText='position:fixed;right:12px;bottom:76px;z-index:12050;background:#fff;border:1px solid #2563eb;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.22);padding:12px;max-width:340px;width:calc(100% - 24px);';
+      box.innerHTML='<div style="font-weight:900;color:#1e3a8a;font-size:14px">🔔 New Upliner Product Request</div><div style="font-size:11px;color:#475569;margin-top:4px">Order #'+esc(String(o.id).slice(0,8))+' • '+esc(o.user_name||o.fl_id)+'</div><div style="font-size:11px;margin-top:4px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><button data-order-id="'+esc(o.id)+'" onclick="flmConfirmUplinerDelivered(this.dataset.orderId)" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:9px;padding:9px;font-weight:900">✓ Upliner Product Delivered</button><button onclick="this.parentElement.remove()" style="width:100%;margin-top:6px;background:#e2e8f0;color:#334155;border:0;border-radius:9px;padding:7px;font-weight:800">Later</button>';
       document.body.appendChild(box);
-      setTimeout(function(){var t=document.getElementById('flmUplinerDeliveryToast'); if(t) t.remove();}, 8000);
-
+      seen=seen.concat(fresh.map(function(x){return String(x.id);}));
+      localStorage.setItem('flm_upliner_seen_orders',JSON.stringify(seen.slice(-100)));
     }catch(e){console.log('upliner delivery check:',e.message||e);}
   }
   function initUplinerRealtime(){
@@ -2686,24 +2583,14 @@ async function claimReward(pairs, name){
       var r=await supabaseClient.from('site_scrolls').select('message,sort_order').eq('active',true).order('sort_order',{ascending:true});
       if(r.error)throw r.error;var rows=r.data||[];
       if(!rows.length){box.style.display='none';return;}
-      var combined=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   •   ');
-      if(!combined){box.style.display='none';return;}
-      var text=combined;
-      // Duplicate for seamless loop
-      track.innerText=text+'   •   '+text+'   •   '+text;
       box.style.display='block';
-      // Force reflow and start CSS marquee immediately - no delay
-      track.style.animation='none';
-      track.offsetHeight;
-      var len=text.length;
-      var duration=Math.max(25, Math.min(90, len*0.35)); // 25s to 90s based on length - slower, readable
-      track.style.whiteSpace='nowrap';
-      track.style.display='inline-block';
-      track.style.animation='flmMarquee '+duration+'s linear infinite';
+      var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
+      if(!text){box.style.display='none';return;}
+      track.innerText=text+'   *   '+text;
+      track.style.transition='none';track.style.transform='translateX(100%)';
       if(flmScrollTimer)clearTimeout(flmScrollTimer);
-      // reload data after animation completes to get new messages without interrupting
-      flmScrollTimer=setTimeout(loadScrolls,(duration*1000)+1000);
-    }catch(e){var b=document.getElementById('flmDashboardScroll');if(b) b.style.display='none';console.log('scrolls:',e.message);}
+      requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(20,distance/32);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
+    }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
 
   function flmTodayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -2718,7 +2605,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:min(52vh,420px);border-radius:12px;background:#0f172a;object-fit:contain"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:min(52vh,420px);object-fit:contain;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:55vh;border-radius:12px;background:#000;object-fit:contain"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:55vh;object-fit:contain;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
@@ -2751,7 +2638,7 @@ async function claimReward(pairs, name){
       if(!rows.length){box.innerHTML='';box.style.display='none';return;}
       var m=rows[0];var src=String(m.media_data||m.media_url||'').trim();if(!src){box.innerHTML='';box.style.display='none';return;}
       var html='';
-      var mediaStyle='display:block;width:100%;height:auto;max-height:520px;object-fit:contain;object-position:center;border:0;border-radius:12px;background:#0f172a;';
+      var mediaStyle='display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0;border-radius:0;background:#000;';
       if(String(m.media_type||'').toLowerCase()==='video'){
         html='<video src="'+esc(src)+'" autoplay muted loop playsinline preload="auto" style="'+mediaStyle+'" onloadedmetadata="try{this.play()}catch(e){}"></video>';
       } else {
@@ -2762,8 +2649,8 @@ async function claimReward(pairs, name){
     }catch(e){box.innerHTML='';box.style.display='none';console.log('page media:',e.message);}
   }
   var oldShow=window.showSec;
-  window.showSec=function(id,fromPop){oldShow(id,fromPop); if(id==='dashboard'){ try{loadScrolls();}catch(e){} } loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmRefreshOrderOptions().then(function(){flmOrderMethodChanged();});loadUplinerDeliveryRequests(false);}};
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,400);loadScrolls();setTimeout(function(){try{loadActiveRoiCoupons();}catch(e){} loadUplinerDeliveryRequests(false);initUplinerRealtime();},700);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,120000); // refresh every 2 min, not 1 min - less flickerwindow.addEventListener('focus',function(){loadUplinerDeliveryRequests(false);}); // never show toast on focus - only badge update});
+  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmRefreshOrderOptions().then(function(){flmOrderMethodChanged();});loadUplinerDeliveryRequests(false);}};
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,650);setTimeout(loadScrolls,400);setTimeout(function(){loadUplinerDeliveryRequests(false);initUplinerRealtime();},900);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);window.addEventListener('focus',function(){loadUplinerDeliveryRequests(false);});});
 })();
 </script>
 <div id="roiCouponSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:100000;align-items:center;justify-content:center;padding:18px">
@@ -2785,49 +2672,4 @@ async function claimReward(pairs, name){
   </div>
 </div>
 
-
-<script>
-// FLM LOADING FIX - ensure dashboard never stuck on Loading...
-(function(){
-  function forceSetNames(){
-    try{
-      var raw=localStorage.getItem('flm_session');
-      if(!raw) return false;
-      var sess=JSON.parse(raw);
-      var flId=(sess.flId||sess.fl_id||sess.flID||sess.FL_ID||sess.user_id||'').toString().toUpperCase();
-      var name=(sess.name||sess.full_name||sess.fullName||sess.username||flId||'').toString();
-      if(!flId) return false;
-      var map={
-        'topFlId':flId,
-        'topName':name||flId,
-        'dashFlId':flId,
-        'dashName':name||flId,
-        'pMemberId':flId,
-        'menuFlId':flId,
-        'dashInitial':(name||flId).charAt(0).toUpperCase()
-      };
-      Object.keys(map).forEach(function(id){
-        var el=document.getElementById(id);
-        if(el && (el.innerText==='Loading...' || el.innerText==='FL ID' || el.innerText==='U' || !el.innerText.trim())){
-          el.innerText=map[id];
-        }
-      });
-      return true;
-    }catch(e){return false;}
-  }
-  // Run immediately
-  forceSetNames();
-  // Run on DOM ready
-  document.addEventListener('DOMContentLoaded', function(){ forceSetNames(); setTimeout(forceSetNames, 300); setTimeout(forceSetNames, 1000); setTimeout(forceSetNames, 2500); });
-  window.addEventListener('load', function(){ forceSetNames(); setTimeout(forceSetNames, 800); });
-  // Periodic check if still Loading...
-  var tries=0;
-  var iv=setInterval(function(){
-    tries++;
-    var still=document.getElementById('dashName') && document.getElementById('dashName').innerText.indexOf('Loading')>=0;
-    if(still){ forceSetNames(); }
-    if(tries>15 || !still) clearInterval(iv);
-  }, 700);
-})();
-</script>
 </body></html>
