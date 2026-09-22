@@ -23,7 +23,7 @@ function showSec(id,fromPop){
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans') loadLoanPanel();
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();loadRoiCouponCount();}if(id==='loans') loadLoanPanel();
 }
 function initFlmNavigation(){
  if(!requireLogin()) return;
@@ -143,13 +143,13 @@ body{background:#eef2f7;color:#0f172a}
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
 <div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
-  <div style="width:min(100%,430px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;animation:flmAnnPop .22s ease-out">
+  <div style="width:min(100%,430px);max-height:calc(100vh - 36px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;animation:flmAnnPop .22s ease-out">
     <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
       <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
     </div>
     <div id="flmAnnMessage" style="padding:20px 18px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
-    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
+    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px;overflow:visible"></div>
     <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
@@ -1026,6 +1026,7 @@ async function loadWalletData(){
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
   var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
   try{var t=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).in('status',['approved','completed']);var sum=(t.data||[]).reduce(function(a,x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase();var isWithdrawal=(tt==='withdrawal'&&['roi','matching','loan'].indexOf(wt)>=0)||(tt==='roi_coupon'&&wt==='roi')||(tt==='pin_purchase'&&['matching','loan'].indexOf(wt)>=0);return isWithdrawal?a+Number(x.amount||0):a;},0);FLM_WALLET.totalWithdrawn=sum;var te=document.getElementById('totalWithdrawn');if(te)te.innerText=money(sum);}catch(e){}
+ try{await loadRoiCouponCount();}catch(e){}
  }catch(e){console.log('wallet load',e.message);}
 }
 async function openWalletAction(type){
@@ -1061,21 +1062,34 @@ async function copyRoiCoupon(code){
   var b=document.getElementById('copyCouponBtn_'+code);if(b){var old=b.innerText;b.innerText='✓ Copied';setTimeout(function(){b.innerText=old;},1600);}
  }catch(e){alert('Copy failed. Please copy the coupon code manually: '+code);}
 }
+async function loadRoiCouponRows(limit){
+ var flId=getFlId();if(!flId||!supabaseClient)return [];
+ var r=await supabaseClient.from('roi_coupons').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(limit||100);
+ if(!r.error)return r.data||[];
+ /* RLS fallback: member-owned coupon transactions can still be displayed safely. */
+ var wr=await supabaseClient.from('wallet_transactions').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).eq('transaction_type','roi_coupon').not('coupon_code','is',null).order('created_at',{ascending:false}).limit(limit||100);
+ if(wr.error)throw r.error;
+ return (wr.data||[]).map(function(x){return {id:x.id,coupon_code:x.coupon_code,amount:x.amount,status:x.status||'processing',created_at:x.created_at};});
+}
+function flmUnusedCouponRows(rows){
+ return (rows||[]).filter(function(x){var st=String(x.status||'issued').trim().toLowerCase();return st!=='redeemed'&&st!=='used'&&st!=='completed'&&st!=='rejected'&&st!=='cancelled';});
+}
+async function loadRoiCouponCount(){
+ var count=document.getElementById('roiCouponCount');if(!count||!supabaseClient)return;
+ try{var rows=flmUnusedCouponRows(await loadRoiCouponRows(100));count.innerText=rows.length;}catch(e){count.innerText='0';console.log('roi coupon count:',e.message||e);}
+}
 async function loadActiveRoiCoupons(){
- var el=document.getElementById('roiCouponBox');if(!el||!supabaseClient)return;
- var flId=getFlId();if(!flId)return;
+ var el=document.getElementById('roiCouponBox');
+ await loadRoiCouponCount();
+ if(!el||!supabaseClient)return;
  try{
-  var r=await supabaseClient.from('roi_coupons').select('coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(50);
-  if(r.error)throw r.error;
-  /* A generated coupon is unused until redeemed. Treat temporary processing as unused. */
-  var rows=(r.data||[]).filter(function(x){var st=String(x.status||'issued').toLowerCase();return st!=='redeemed'&&st!=='completed'&&st!=='rejected'&&st!=='cancelled';});
+  var rows=flmUnusedCouponRows(await loadRoiCouponRows(50));
   var count=document.getElementById('roiCouponCount');if(count)count.innerText=rows.length;
   if(!rows.length){el.innerHTML='';return;}
-  var cards=rows.map(function(x){var code=flmEscHtml(x.coupon_code);return '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:12px;margin-top:8px"><div style="font-weight:900;color:#166534;font-size:13px">✅ Coupon Generated — One-time Store Redemption</div><div style="font-size:11px;color:#475569;margin-top:5px">Amount: <b>'+money(x.amount)+'</b> • Issued: '+new Date(x.created_at).toLocaleString()+'</div><div style="display:flex;gap:7px;align-items:center;margin-top:9px"><div style="flex:1;background:#fff;border:1px dashed #16a34a;border-radius:9px;padding:10px;font-weight:900;letter-spacing:.6px;font-size:13px;word-break:break-all">'+code+'</div><button id="copyCouponBtn_'+code+'" type="button" onclick="copyRoiCoupon(\''+code.replace(/'/g,"\\'")+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:10px 12px;font-weight:800;white-space:nowrap">Copy</button></div><div style="font-size:10px;color:#64748b;margin-top:7px">Show this code to the store/admin. It can be redeemed only once.</div></div>';}).join('');
+  var cards=rows.map(function(x){var code=flmEscHtml(x.coupon_code),raw=String(x.coupon_code||'');return '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:12px;margin-top:8px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:12px;color:#14532d">🎫 ROI Store Coupon</b><span style="font-size:10px;font-weight:900;color:#166534">🟢 UNUSED</span></div><div style="font-size:11px;color:#475569;margin-top:7px">Amount: <b>'+money(x.amount)+'</b></div><div style="margin-top:8px;background:#fff;border:1px dashed #86efac;border-radius:9px;padding:9px;font-weight:900;color:#14532d;word-break:break-all">'+code+'</div><div style="display:flex;justify-content:flex-end;margin-top:8px"><button type="button" data-code="'+flmEscHtml(raw)+'" onclick="copyRoiCoupon(this.dataset.code)" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 11px;font-size:10px;font-weight:900">Copy</button></div><div style="font-size:10px;color:#64748b;margin-top:6px">Show this coupon at the FLM store/admin. One-time redemption only.</div></div>';}).join('');
   el.innerHTML=cards;
  }catch(e){el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px;color:#9a3412">Unable to load active coupon: '+flmEscHtml(e.message)+'</div>';}
 }
-
 function showWalletPinPurchase(walletType){
  var box=document.getElementById('walletSubAction');if(!box)return;
  var balance=Number(FLM_WALLET[walletType==='loan'?'loan':'matching']||0);
@@ -1175,15 +1189,13 @@ async function loadRoiCouponsPage(){
  var el=document.getElementById('roiCouponsPage');if(!el||!supabaseClient)return;var flId=getFlId();if(!flId)return;
  el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:18px">Loading unused coupons...</div>';
  try{
-  var r=await supabaseClient.from('roi_coupons').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);
-  if(r.error)throw r.error;
-  /* Show only coupons that have not been redeemed. Processing is still unused. */
-  var rows=(r.data||[]).filter(function(x){var st=String(x.status||'issued').toLowerCase();return st!=='redeemed'&&st!=='completed'&&st!=='rejected'&&st!=='cancelled';});
+  var rows=flmUnusedCouponRows(await loadRoiCouponRows(100));
   var count=document.getElementById('roiCouponCount');if(count)count.innerText=rows.length;
-  if(!rows.length){el.innerHTML='<div style="text-align:center;padding:28px 12px;color:#64748b"><div style="font-size:38px">🎫</div><div style="font-weight:800;margin-top:8px;color:#334155">No ROI coupons yet</div><div style="font-size:11px;margin-top:5px">Generate a coupon from your ROI Wallet.</div><button type="button" onclick="showSec(\'wallets\');setTimeout(function(){openWalletAction(\'roi\');},80)" style="margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:800">Open ROI Wallet</button></div>';return;}
-  function statusInfo(st){return {label:'ACTIVE',bg:'#ecfdf5',border:'#86efac',color:'#166534',icon:'🟢'};}
-  el.innerHTML=rows.map(function(x){var si=statusInfo(x.status),code=flmEscHtml(x.coupon_code),raw=String(x.coupon_code||'');var copyId='couponPageCopy_'+String(x.id||Math.random()).replace(/[^a-zA-Z0-9_-]/g,'');var copyBtn=si.label==='ACTIVE'?'<button type="button" id="'+copyId+'" data-code="'+flmEscHtml(raw)+'" onclick="copyRoiCoupon(this.dataset.code)" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 11px;font-size:10px;font-weight:900;white-space:nowrap">Copy</button>':'';return '<div style="background:'+si.bg+';border:1px solid '+si.border+';border-radius:15px;padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div style="font-weight:900;color:#0f172a;font-size:13px">🎫 ROI Store Coupon</div><div style="font-size:10px;font-weight:900;color:'+si.color+'">'+si.icon+' '+si.label+'</div></div><div style="display:flex;justify-content:space-between;gap:10px;margin-top:10px"><div><div style="font-size:10px;color:#64748b">Amount</div><div style="font-size:20px;font-weight:900;color:#0f172a">'+money(x.amount)+'</div></div><div style="text-align:right"><div style="font-size:10px;color:#64748b">Generated</div><div style="font-size:10px;font-weight:700;color:#334155">'+new Date(x.created_at).toLocaleString()+'</div></div></div><div style="margin-top:10px;font-size:10px;color:#64748b;font-weight:800">COUPON CODE</div><div style="display:flex;gap:7px;align-items:center;margin-top:5px"><div style="flex:1;background:#fff;border:1px dashed '+si.border+';border-radius:9px;padding:10px;font-size:12px;font-weight:900;letter-spacing:.5px;word-break:break-all;color:#14532d">'+code+'</div>'+copyBtn+'</div><div style="font-size:10px;color:#64748b;margin-top:7px">'+(si.label==='ACTIVE'?'Show this code to the store/admin. One-time redemption only.':'Coupon status: '+si.label.toLowerCase()+'.')+'</div></div>';}).join('');
- }catch(e){el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px;font-size:11px;color:#9a3412">Unable to load coupons: '+flmEscHtml(e.message)+'</div>';}}
+  if(!rows.length){el.innerHTML='<div style="text-align:center;padding:28px 12px;color:#64748b"><div style="font-size:38px">🎫</div><div style="font-weight:800;margin-top:8px;color:#334155">No unused ROI coupons</div><div style="font-size:11px;margin-top:5px">Generated coupons will appear here until they are redeemed at the store.</div><button type="button" onclick="showSec(\'wallets\');setTimeout(function(){openWalletAction(\'roi\');},80)" style="margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:800">Open ROI Wallet</button></div>';return;}
+  function statusInfo(){return {label:'UNUSED',bg:'#ecfdf5',border:'#86efac',color:'#166534',icon:'🟢'};}
+  el.innerHTML=rows.map(function(x){var si=statusInfo(),code=flmEscHtml(x.coupon_code),raw=String(x.coupon_code||''),copyId='couponPageCopy_'+String(x.id||Math.random()).replace(/[^a-zA-Z0-9_-]/g,'');var copyBtn='<button type="button" id="'+copyId+'" data-code="'+flmEscHtml(raw)+'" onclick="copyRoiCoupon(this.dataset.code)" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:9px 11px;font-size:10px;font-weight:900;white-space:nowrap">Copy</button>';return '<div style="background:'+si.bg+';border:1px solid '+si.border+';border-radius:15px;padding:14px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div style="font-weight:900;color:#0f172a;font-size:13px">🎫 ROI Store Coupon</div><div style="font-size:10px;font-weight:900;color:'+si.color+'">'+si.icon+' '+si.label+'</div></div><div style="display:flex;justify-content:space-between;gap:10px;margin-top:10px"><div><div style="font-size:10px;color:#64748b">Amount</div><div style="font-size:20px;font-weight:900;color:#0f172a">'+money(x.amount)+'</div></div><div style="text-align:right"><div style="font-size:10px;color:#64748b">Generated</div><div style="font-size:10px;font-weight:700;color:#334155">'+(x.created_at?new Date(x.created_at).toLocaleString():'')+'</div></div></div><div style="margin-top:10px;font-size:10px;color:#64748b;font-weight:800">COUPON CODE</div><div style="display:flex;gap:7px;align-items:center;margin-top:5px"><div style="flex:1;background:#fff;border:1px dashed '+si.border+';border-radius:9px;padding:10px;font-size:12px;font-weight:900;letter-spacing:.5px;word-break:break-all;color:#14532d">'+code+'</div>'+copyBtn+'</div><div style="font-size:10px;color:#64748b;margin-top:7px">Show this code to the FLM store/admin. Once redeemed, it will disappear from this list.</div></div>';}).join('');
+ }catch(e){el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px;font-size:11px;color:#9a3412">Unable to load coupons: '+flmEscHtml(e.message)+'</div>';}
+}
 function refreshRoiCouponsPage(){loadRoiCouponsPage();}
 
 async function submitRoiRedeem(){
@@ -2445,9 +2457,9 @@ async function claimReward(pairs, name){
       var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
       if(!text){box.style.display='none';return;}
       track.innerText=text+'   *   '+text;
-      track.style.transition='none';track.style.transform='translateX(100%)';
+      track.style.transition='none';track.style.transform='translateX(0)';
       if(flmScrollTimer)clearTimeout(flmScrollTimer);
-      requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(20,distance/32);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
+      requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(14,distance/48);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+100);});
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
 
@@ -2463,7 +2475,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-width:100%;max-height:calc(100vh - 250px);height:auto;object-fit:contain;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
@@ -2508,7 +2520,7 @@ async function claimReward(pairs, name){
   }
   var oldShow=window.showSec;
   window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,650);setTimeout(loadScrolls,400);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);});
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,650);setTimeout(loadScrolls,0);setTimeout(loadRoiCouponCount,150);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);});
 })();
 </script>
 <div id="roiCouponSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:100000;align-items:center;justify-content:center;padding:18px">
