@@ -32,7 +32,7 @@ function initFlmNavigation(){
  if(!history.state||!history.state.flmSection) history.replaceState({flmSection:saved},'',window.location.href.split('#')[0]);
  showSec(saved,true);
  FLM_NAV_READY=true;
- window.addEventListener('popstate',function(e){if(!getFlId())return;var target=(e&&e.state&&e.state.flmSection)||localStorage.getItem('flm_last_section')||'dashboard';showSec(target,true);localStorage.setItem('flm_last_section',target);});
+ window.addEventListener('popstate',function(){if(getFlId()){showSec('dashboard',true);localStorage.setItem('flm_last_section','dashboard');history.replaceState({flmSection:'dashboard'},'',window.location.href.split('#')[0]);}});
 }
 function logout(){localStorage.removeItem('flm_session');location.href='./login.html';}
 </script>
@@ -143,17 +143,17 @@ body{background:#eef2f7;color:#0f172a}
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
 <div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
-  <div style="width:min(100%,430px);max-height:90vh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:auto;animation:flmAnnPop .22s ease-out">
+  <div style="width:min(100%,430px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;animation:flmAnnPop .22s ease-out">
     <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
       <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
     </div>
     <div id="flmAnnMessage" style="padding:20px 18px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
-    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px;max-height:58vh;overflow:auto;background:#fff"></div>
+    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
     <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
-<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes flmTickerMove{0%{transform:translateX(100%)}82%{transform:translateX(-100%)}100%{transform:translateX(-100%)}}#flmDashboardScroll{white-space:nowrap;overflow:hidden}#flmScrollTrack{display:inline-block;white-space:nowrap;animation:flmTickerMove 45s linear infinite;will-change:transform}</style>
+<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -167,6 +167,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="menu-item" onclick="showSec('tokens')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">🎫</span> My Pins</div>
 
 <div class="menu-item" onclick="showSec('wallets')"><span style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center">💰</span> My Wallets</div>
+<div class="menu-item" onclick="showSec('fixedReturns')"><span style="width:32px;height:32px;background:#fef3c7;border-radius:8px;display:flex;align-items:center;justify-content:center">📈</span> Fixed Returns (FD)</div>
 <div class="menu-item" onclick="showSec('coupons')"><span style="width:32px;height:32px;background:#ecfdf5;border-radius:8px;display:flex;align-items:center;justify-content:center">🎫</span> My ROI Coupons</div>
 <div class="menu-section">STORE & FINANCE</div>
 <div class="menu-item" onclick="showSec('stores')"><span style="width:32px;height:32px;background:#ffedd5;border-radius:8px;display:flex;align-items:center;justify-content:center">🏪</span> Store Network</div>
@@ -239,6 +240,25 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 
 <div id="sec-stores" style="display:none"><div class="card" style="border:2px solid #2563eb"><h3 style="color:#1e3a8a">🏪 Store Network - Nearest FLM Store</h3><div style="font-size:11px;color:#64748b;margin-top:5px">Search by pincode / town or use your current location. Nearby stores are shown within 25 KM.</div><div style="margin-top:10px;display:grid;grid-template-columns:2fr 1fr;gap:8px"><input id="sp" placeholder="Pincode or Town" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px"><button style="background:#0f172a;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:700;cursor:pointer" onclick="findS()">🔎 Find Stores</button></div><button type="button" onclick="findMyStore()" style="width:100%;margin-top:8px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:10px;padding:11px;font-weight:800">📍 Use My Current Location</button><div id="sRes" style="margin-top:10px">Enter pincode or town</div></div></div>
+<div id="sec-fixedReturns" style="display:none">
+<div class="card" style="background:linear-gradient(135deg,#0f766e,#1d4ed8);color:#fff;border-radius:20px;padding:18px">
+  <div style="font-size:11px;opacity:.85">FLM FINANCE</div><div style="font-size:22px;font-weight:900;margin-top:4px">📈 Fixed Returns (FD)</div>
+  <div style="font-size:11px;opacity:.9;margin-top:6px">Select multiple active plans. Each plan is tracked separately and daily returns are credited at 10:00 PM IST after approval.</div>
+</div>
+<div class="card" style="border:2px solid #2563eb">
+  <div style="display:flex;justify-content:space-between;align-items:center"><b>💰 FD Summary</b><button onclick="loadFixedReturns()" style="border:0;border-radius:9px;background:#eff6ff;color:#1d4ed8;padding:8px 10px;font-weight:800">🔄 Refresh</button></div>
+  <div class="grid2" style="margin-top:10px">
+    <div style="background:#f8fafc;border-radius:12px;padding:11px"><div style="font-size:10px;color:#64748b">Total Invested</div><b id="fdTotalInvested" style="font-size:20px">Rs. 0.00</b></div>
+    <div style="background:#f0fdf4;border-radius:12px;padding:11px"><div style="font-size:10px;color:#64748b">Today's Return</div><b id="fdTodayReturn" style="font-size:20px;color:#059669">Rs. 0.00</b></div>
+    <div style="background:#eff6ff;border-radius:12px;padding:11px"><div style="font-size:10px;color:#64748b">Total Return Earned</div><b id="fdEarned" style="font-size:20px;color:#1d4ed8">Rs. 0.00</b></div>
+    <div style="background:#fefce8;border-radius:12px;padding:11px"><div style="font-size:10px;color:#64748b">Withdrawable</div><b id="fdWithdrawable" style="font-size:20px;color:#a16207">Rs. 0.00</b></div>
+  </div>
+  <button id="fdWithdrawBtn" onclick="requestFixedReturnWithdrawal()" disabled style="width:100%;margin-top:10px;background:#cbd5e1;color:#64748b;border:0;border-radius:11px;padding:13px;font-weight:900">Withdraw (Minimum ₹200)</button>
+  <div id="fdWithdrawMsg" style="font-size:10px;text-align:center;margin-top:7px;color:#64748b"></div>
+</div>
+<div class="card" style="border:2px solid #059669"><div style="font-weight:900;font-size:16px">📋 Available Plans</div><div id="fdPlansList" style="margin-top:10px">Loading plans...</div></div>
+<div class="card" style="border:2px solid #7c3aed"><div style="font-weight:900;font-size:16px">📚 My Fixed Return Plans</div><div style="font-size:10px;color:#64748b;margin-top:4px">Tap a plan to expand its date-wise daily return history.</div><div id="fdMyPlansList" style="margin-top:10px">Loading my plans...</div></div>
+</div>
 <div id="sec-withdraw" style="display:none"><div class="card" style="text-align:center;padding:28px 18px"><div style="font-size:42px">💸</div><h3 style="margin-top:8px">Withdraw & Redeem</h3><p style="color:#64748b;font-size:12px;margin-top:6px">All withdrawals and ROI redemption are now handled inside <b>My Wallets</b>.</p><button onclick="showSec('wallets')" style="margin-top:14px;width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">Open My Wallets</button></div></div>
 <div id="sec-profile" style="display:none"><div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Profile</b></div><div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#c17a2a,#9c4a4a);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👤</div><b style="color:#fff">Profile</b></div><div style="text-align:center;padding:8px 0;color:#64748b;font-size:12px" id="profFlId">FL ID</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profName" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profPhone" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profEmail" disabled type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#4338ca,#7c3aed);padding:14px;color:#fff;text-align:center"><b>🏦 Bank & USDT (BEP20) Details</b></div><div style="padding:16px;display:flex;flex-direction:column;gap:10px"><div style="font-size:11px;color:#64748b">You can save Bank details, USDT details, or both. These are used for eligible withdrawals.</div><input id="bankHolder" placeholder="Bank account holder name" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><input id="bankName" placeholder="Bank name" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><input id="bankAccount" placeholder="Account number" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><input id="bankIfsc" placeholder="IFSC" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;text-transform:uppercase"><input id="usdtAddress" placeholder="USDT BEP-20 wallet address" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><button onclick="savePayoutDetails()" style="width:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">Save payout details</button><div id="payoutMsg" style="font-size:11px;text-align:center"></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#059669,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📦</div><b style="color:#fff">Delivery Address - One Time Entry</b></div><div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px">Enter once. After saving, address is locked; contact admin for changes.</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Full Address</div><textarea id="profAddress" placeholder="Enter full address" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;min-height:80px;resize:none"></textarea></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Pincode</div><input id="profPincode" placeholder="Eg: 506101" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">City</div><input id="profCity" placeholder="Eg: Mahbubabad" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div></div><div id="profStoreHint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px;font-size:11px;color:#1e3a8a;margin-top:2px"></div><button id="saveProfBtn" onclick="saveProfile()" style="width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;margin-top:8px;cursor:pointer">Save address</button><div id="profMsg" style="font-size:11px;text-align:center;margin-top:8px"></div><div id="addrLockedMsg" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:12px;font-weight:700;color:#166534">🔒 Address locked</div></div></div></div></div>
@@ -315,7 +335,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-products" style="display:none">
   <div class="card" style="background:linear-gradient(135deg,#047857,#0e7490);color:#fff;border-radius:20px;padding:18px">
     <div style="font-size:11px;opacity:.8">FLM STORE</div><div style="font-size:22px;font-weight:900;margin-top:4px">🛍️ Products</div>
-    <div style="font-size:11px;opacity:.9;margin-top:5px">Select products and quantity. Your total bill will update automatically.</div><div id="flmUplinerBadge" style="display:none;margin-top:8px;background:#fff;color:#1e3a8a;border-radius:999px;padding:5px 10px;font-size:10px;font-weight:900;width:max-content">0</div>
+    <div style="font-size:11px;opacity:.9;margin-top:5px">Select products and quantity. Your total bill will update automatically.</div>
   </div>
   <div id="flmProductsList" style="margin-top:10px">Loading products...</div>
   <div class="card" style="border:2px solid #2563eb;background:#eff6ff">
@@ -325,7 +345,8 @@ body{background:#eef2f7;color:#0f172a}
     <div style="margin-top:12px;font-size:12px;font-weight:800">Delivery / Collection Option</div>
     <select id="flmOrderMethod" onchange="flmOrderMethodChanged()" style="width:100%;margin-top:6px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff">
       <option value="mega_store_courier">Courier through Mega Store Point</option>
-      <option value="appliener">👤 Select from Upliner</option>
+      <option value="store_point">Collect at Store Point</option>
+      <option value="appliener">Collect from Upliner</option>
     </select>
     <div id="flmOrderExtra" style="margin-top:10px"></div>
     <div id="flmOrderAddress" style="margin-top:10px;background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px">Loading saved address...</div>
@@ -385,11 +406,10 @@ function copyLeft(){if(window.leftLink) navigator.clipboard.writeText(window.lef
 function copyRight(){if(window.rightLink) navigator.clipboard.writeText(window.rightLink);alert('Right link copied');}
 function escStore(v){return String(v??'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});}
 function storeDistanceKm(a,b,c,d){var R=6371,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,z=Math.sin(x/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)**2;return R*2*Math.atan2(Math.sqrt(z),Math.sqrt(1-z));}
-function mapsUrl(lat,lng,originLat,originLng){var u='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng);if(Number.isFinite(Number(originLat))&&Number.isFinite(Number(originLng)))u+='&origin='+encodeURIComponent(originLat+','+originLng);return u;}
-function flmNavigateToStore(lat,lng){lat=Number(lat);lng=Number(lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;if(!navigator.geolocation){window.open(mapsUrl(lat,lng),'_blank');return;}navigator.geolocation.getCurrentPosition(function(pos){window.open(mapsUrl(lat,lng,pos.coords.latitude,pos.coords.longitude),'_blank');},function(){window.open(mapsUrl(lat,lng),'_blank');},{enableHighAccuracy:true,timeout:8000,maximumAge:120000});}
+function mapsUrl(lat,lng){return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng);}
 function osmMapUrl(lat,lng){var d=.008;return 'https://www.openstreetmap.org/export/embed.html?bbox='+(lng-d)+'%2C'+(lat-d)+'%2C'+(lng+d)+'%2C'+(lat+d)+'&layer=mapnik&marker='+lat+'%2C'+lng;}
 async function geocodeStoreSearch(q){try{var r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q='+encodeURIComponent(q+', India'),{headers:{Accept:'application/json'}}),d=await r.json();return d&&d[0]?{lat:Number(d[0].lat),lng:Number(d[0].lon),label:d[0].display_name}:null;}catch(e){return null;}}
-function renderStoreResults(rows,label){var el=document.getElementById('sRes');if(!el)return;if(!rows.length){el.innerHTML='<div style="padding:14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;color:#9a3412">🏪 No FLM store found within 25 KM.<br><span style="font-size:11px">No nearby store means Bank / USDT can be used where applicable.</span></div>';return;}rows.sort((a,b)=>(a.distance_km??9999)-(b.distance_km??9999));var h='<div style="font-size:12px;font-weight:800;margin-bottom:8px">📍 Stores near '+escStore(label||'your location')+'</div>';rows.slice(0,10).forEach(function(st,i){var lat=Number(st.latitude),lng=Number(st.longitude),addr=[st.address,st.town,st.pincode].filter(Boolean).join(', ');h+='<div style="background:#fff;border:1px solid '+(i===0?'#10b981':'#e2e8f0')+';border-radius:16px;padding:12px;margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>🏪 '+escStore(st.name||st.store_name||'FLM Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">Store Code: '+escStore(st.store_code||'--')+'</div></div>'+(st.distance_km!=null?'<b style="color:#059669;font-size:12px">'+Number(st.distance_km).toFixed(1)+' KM</b>':'')+'</div>';if(addr)h+='<div style="font-size:12px;margin-top:8px">📍 '+escStore(addr)+'</div>';if(st.phone||st.mobile)h+='<div style="font-size:12px;margin-top:5px">📞 '+escStore(st.phone||st.mobile)+'</div>';if(Number.isFinite(lat)&&Number.isFinite(lng))h+='<iframe loading="lazy" title="Store map" style="width:100%;height:170px;border:0;border-radius:12px;margin-top:9px" src="'+osmMapUrl(lat,lng)+'"></iframe><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button type="button" onclick="flmNavigateToStore('+lat+','+lng+')" style="text-decoration:none;text-align:center;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:10px;font-weight:800;font-size:12px;cursor:pointer">🗺️ Navigate</button>'+(st.phone||st.mobile?'<a href="tel:'+escStore(st.phone||st.mobile)+'" style="text-decoration:none;text-align:center;background:#059669;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">📞 Call Store</a>':'<span></span>')+'</div>';h+='</div>';});el.innerHTML=h;}
+function renderStoreResults(rows,label){var el=document.getElementById('sRes');if(!el)return;if(!rows.length){el.innerHTML='<div style="padding:14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;color:#9a3412">🏪 No FLM store found within 25 KM.<br><span style="font-size:11px">No nearby store means Bank / USDT can be used where applicable.</span></div>';return;}rows.sort((a,b)=>(a.distance_km??9999)-(b.distance_km??9999));var h='<div style="font-size:12px;font-weight:800;margin-bottom:8px">📍 Stores near '+escStore(label||'your location')+'</div>';rows.slice(0,10).forEach(function(st,i){var lat=Number(st.latitude),lng=Number(st.longitude),addr=[st.address,st.town,st.pincode].filter(Boolean).join(', ');h+='<div style="background:#fff;border:1px solid '+(i===0?'#10b981':'#e2e8f0')+';border-radius:16px;padding:12px;margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>🏪 '+escStore(st.name||st.store_name||'FLM Store')+'</b><div style="font-size:11px;color:#64748b;margin-top:3px">Store Code: '+escStore(st.store_code||'--')+'</div></div>'+(st.distance_km!=null?'<b style="color:#059669;font-size:12px">'+Number(st.distance_km).toFixed(1)+' KM</b>':'')+'</div>';if(addr)h+='<div style="font-size:12px;margin-top:8px">📍 '+escStore(addr)+'</div>';if(st.phone||st.mobile)h+='<div style="font-size:12px;margin-top:5px">📞 '+escStore(st.phone||st.mobile)+'</div>';if(Number.isFinite(lat)&&Number.isFinite(lng))h+='<iframe loading="lazy" title="Store map" style="width:100%;height:170px;border:0;border-radius:12px;margin-top:9px" src="'+osmMapUrl(lat,lng)+'"></iframe><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><a href="'+mapsUrl(lat,lng)+'" target="_blank" style="text-decoration:none;text-align:center;background:#2563eb;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">🗺️ Navigate</a>'+(st.phone||st.mobile?'<a href="tel:'+escStore(st.phone||st.mobile)+'" style="text-decoration:none;text-align:center;background:#059669;color:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:12px">📞 Call Store</a>':'<span></span>')+'</div>';h+='</div>';});el.innerHTML=h;}
 async function findS(){
   var q=(document.getElementById('sp')?.value||'').trim();
   var el=document.getElementById('sRes');
@@ -532,25 +552,82 @@ async function findS(){
 function findMyStore(){var el=document.getElementById('sRes');if(!navigator.geolocation){el.innerHTML='Location unavailable on this device.';return;}el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">📍 Getting your location…</div>';navigator.geolocation.getCurrentPosition(async function(pos){try{var r=await supabaseClient.from('stores').select('*').eq('status','active');if(r.error)throw r.error;var near=(r.data||[]).filter(st=>st.latitude!=null&&st.longitude!=null).map(st=>{st.distance_km=storeDistanceKm(pos.coords.latitude,pos.coords.longitude,Number(st.latitude),Number(st.longitude));return st;}).filter(st=>st.distance_km<=25);renderStoreResults(near,'your current location');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626">Unable to find stores: '+escStore(e.message)+'</div>'; }},function(){el.innerHTML='<div style="padding:12px;color:#b45309">Location permission denied. Enter your pincode or town instead.</div>';},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});}
 let flmPincodeTimer=null;
 async function flmLookupPincode(pin){
- pin=String(pin||'').replace(/\D/g,'').slice(0,6);
- var cityEl=document.getElementById('profCity'),msg=document.getElementById('profMsg'),hint=document.getElementById('profStoreHint');
- if(pin.length!==6)return;
- if(hint){hint.style.display='block';hint.innerHTML='🔎 Checking nearest FLM Store Point within 25 KM...';}
- try{
-  if(!supabaseClient)throw new Error('Database not available');
-  var sr=await supabaseClient.from('stores').select('*').eq('status','active');if(sr.error)throw sr.error;var all=sr.data||[];
-  var exact=all.filter(function(st){return String(st.pincode||st.pin||st.postal_code||st.pin_code||'').trim()===pin;});
-  var town=exact.length?String(exact[0].town||exact[0].city||'').trim():'';if(cityEl&&town)cityEl.value=town;
-  var centre=null,exactCoord=exact.find(function(st){return Number.isFinite(Number(st.latitude))&&Number.isFinite(Number(st.longitude));});
-  if(exactCoord)centre={lat:Number(exactCoord.latitude),lng:Number(exactCoord.longitude)};
-  else{var geo=null;try{geo=await geocodeStoreSearch((town?town+' ':'')+pin);}catch(e){}if(geo&&Number.isFinite(geo.lat)&&Number.isFinite(geo.lng))centre=geo;}
-  var near=[];
-  if(centre)near=all.filter(function(st){return Number.isFinite(Number(st.latitude))&&Number.isFinite(Number(st.longitude));}).map(function(st){st.distance_km=storeDistanceKm(centre.lat,centre.lng,Number(st.latitude),Number(st.longitude));return st;}).filter(function(st){return st.distance_km<=25;});
-  exact.forEach(function(st){if(!near.some(function(x){return String(x.id||'')===String(st.id||'');})){st.distance_km=null;near.push(st);}});
-  if(near.length){near.sort(function(a,b){return (a.distance_km==null?9999:a.distance_km)-(b.distance_km==null?9999:b.distance_km);});var st=near[0],dist=st.distance_km!=null?Number(st.distance_km).toFixed(1)+' KM':'within 25 KM';if(hint)hint.innerHTML='🏪 Nearest FLM Store Point: <b>'+escStore(st.name||st.store_name||'FLM Store')+'</b><br><span style="font-size:10px">'+escStore([st.address,st.town||st.city,st.pincode].filter(Boolean).join(', '))+' • '+dist+'</span>';} 
-  else{if(hint)hint.innerHTML='🏪 No FLM Store Point found within 25 KM. You can use <b>Mega Store Point</b> or <b>Collect from Upliner</b>.';if(!cityEl||!cityEl.value){try{var resp=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(pin),{headers:{Accept:'application/json'}}),data=await resp.json(),po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];if(po.length&&cityEl)cityEl.value=String(po[0].District||po[0].Division||po[0].Block||'').trim();}catch(e){}}}
-  if(typeof flmRefreshOrderOptions==='function')await flmRefreshOrderOptions();
- }catch(e){if(hint){hint.style.display='block';hint.innerHTML='⚠️ Store check failed. Please try again or use Mega Store Point / Upliner.';}if(msg){msg.style.color='#b45309';msg.innerText='Store lookup: '+(e.message||e);}console.log('pincode lookup:',e.message||e);}
+  pin=String(pin||'').replace(/\D/g,'').slice(0,6);
+  var cityEl=document.getElementById('profCity');
+  var hint=document.getElementById('profStoreHint');
+  if(pin.length!==6)return;
+  try{
+    /* Load all active stores and normalize pincode in JS. This handles
+       text/number/space formatted pincode values consistently. */
+    var activeStores=[];
+    if(supabaseClient){
+      var sr=await supabaseClient.from('stores').select('*').eq('status','active');
+      if(!sr.error) activeStores=sr.data||[];
+    }
+    var normPin=function(v){return String(v==null?'':v).replace(/\D/g,'');};
+    var exact=activeStores.filter(function(st){
+      return normPin(st.pincode||st.pin||st.pin_code||st.postal_code)===pin;
+    });
+
+    /* Exact store pincode always wins. */
+    if(exact.length){
+      var st=exact[0];
+      var town=String(st.town||st.city||st.locality||st.area||'').trim();
+      if(cityEl&&town)cityEl.value=town;
+      if(hint){
+        hint.style.display='block';
+        hint.innerHTML='🏪 <b>FLM Store Point available</b><br>'+
+          '<b>'+escStore(st.name||st.store_name||'FLM Store')+'</b>'+
+          (st.address?'<br><span style="font-size:10px">'+escStore(st.address)+'</span>':'')+
+          '<br><span style="font-size:10px">Pincode: '+escStore(st.pincode||pin)+'</span>';
+      }
+      if(typeof flmRefreshOrderOptions==='function')await flmRefreshOrderOptions();
+      return;
+    }
+
+    /* No exact store: get the most useful locality name from India Post.
+       Prefer Block, then Division, then Post Office name; District is last. */
+    var resp=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(pin),{headers:{Accept:'application/json'}});
+    var data=await resp.json();
+    var po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];
+    var city='';
+    if(po.length){
+      city=String(po[0].Block||po[0].Division||po[0].Name||po[0].District||'').trim();
+    }
+    if(cityEl&&city)cityEl.value=city;
+
+    /* If there is no exact store, find the nearest active FLM store within 25 KM. */
+    var nearest=null;
+    if(activeStores.length && typeof geocodeStoreSearch==='function'){
+      var geo=await geocodeStoreSearch((city?city+' ':'')+pin);
+      if(!geo && city)geo=await geocodeStoreSearch(city);
+      if(geo){
+        activeStores.forEach(function(store){
+          var lat=Number(store.latitude),lng=Number(store.longitude);
+          if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+          var d=storeDistanceKm(geo.lat,geo.lng,lat,lng);
+          if(d<=25 && (!nearest||d<nearest.distance_km)){
+            nearest=Object.assign({},store,{distance_km:d});
+          }
+        });
+      }
+    }
+    if(hint){
+      hint.style.display='block';
+      if(nearest){
+        hint.innerHTML='🏪 <b>Nearest FLM Store Point</b><br>'+
+          '<b>'+escStore(nearest.name||nearest.store_name||'FLM Store')+'</b> — <b>'+Number(nearest.distance_km).toFixed(1)+' KM</b><br>'+
+          '<span style="font-size:10px">'+escStore(nearest.address||'')+'</span>'+
+          '<br><span style="font-size:10px">Your pincode: '+escStore(pin)+' • '+escStore(city)+'</span>';
+      }else{
+        hint.innerHTML='🏪 No FLM Store Point found within 25 KM for this pincode. You can use <b>Mega Store Point</b> or <b>Collect from Upliner</b>.';
+      }
+    }
+    if(typeof flmRefreshOrderOptions==='function')await flmRefreshOrderOptions();
+  }catch(e){
+    console.log('pincode lookup:',e.message||e);
+    if(hint){hint.style.display='block';hint.innerHTML='⚠️ Unable to check store for this pincode. Please try again.';}
+  }
 }
 function flmBindPincodeLookup(){
  var p=document.getElementById('profPincode');if(!p||p.dataset.lookupBound==='1')return;
@@ -2457,61 +2534,15 @@ async function claimReward(pairs, name){
   window.flmQty=function(id,d){setQty(id,d);};
   async function flmFindNearestStore(){
     try{
-      var p=await flmGetProfile();
-      var pin=String((p||{}).pincode||'').trim();
-      var town=String((p||{}).city||(p||{}).town||'').trim();
+      var p=await flmGetProfile(),pin=String((p||{}).pincode||'').trim(),town=String((p||{}).city||(p||{}).town||'').trim().toLowerCase();
       var r=await supabaseClient.from('stores').select('*').eq('status','active');
       if(r.error)throw r.error;
       var arr=r.data||[];
-      if(!arr.length)return null;
-
-      /*
-        Store availability for product collection is based on the SAME
-        25 KM rule used by Store Network. Do not require an exact pincode
-        match: e.g. Bangarupalem 517416 can use the Palamaner store 517408
-        when the calculated distance is within 25 KM.
-      */
       var exact=arr.filter(function(st){
-        var sp=String(st.pincode||st.pin||st.postal_code||st.pin_code||'').trim();
-        var stTown=String(st.town||st.city||'').trim().toLowerCase();
-        return (pin && sp===pin) || (town && stTown===town.toLowerCase());
+        var sp=String(st.pincode||'').trim(),stTown=String(st.town||st.city||'').trim().toLowerCase();
+        return (pin && sp===pin) || (town && stTown===town);
       });
-
-      /* Exact store with coordinates is the most reliable centre. */
-      var exactWithCoords=exact.find(function(st){
-        return Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
-      });
-      if(exactWithCoords){
-        var centre={lat:Number(exactWithCoords.latitude),lng:Number(exactWithCoords.longitude)};
-        var nearby=arr.filter(function(st){
-          return Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
-        }).map(function(st){
-          st.distance_km=storeDistanceKm(centre.lat,centre.lng,Number(st.latitude),Number(st.longitude));
-          return st;
-        }).filter(function(st){return st.distance_km<=25;})
-          .sort(function(a,b){return a.distance_km-b.distance_km;});
-        return nearby[0]||exactWithCoords;
-      }
-
-      /*
-        No exact store: geocode the member's town + pincode together so the
-        pincode is not resolved to an unrelated locality. Then calculate
-        distance to every active store.
-      */
-      var geoQuery=[town,pin].filter(Boolean).join(' ').trim();
-      var g=geoQuery && typeof geocodeStoreSearch==='function' ? await geocodeStoreSearch(geoQuery) : null;
-      if(g && Number.isFinite(g.lat) && Number.isFinite(g.lng)){
-        var nearby2=arr.filter(function(st){
-          return Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
-        }).map(function(st){
-          st.distance_km=storeDistanceKm(g.lat,g.lng,Number(st.latitude),Number(st.longitude));
-          return st;
-        }).filter(function(st){return st.distance_km<=25;})
-          .sort(function(a,b){return a.distance_km-b.distance_km;});
-        return nearby2[0]||null;
-      }
-
-      return null;
+      return exact[0]||null;
     }catch(e){console.log('nearest store lookup:',e.message||e);return null;}
   }
   async function flmRefreshOrderOptions(){
@@ -2566,31 +2597,26 @@ async function claimReward(pairs, name){
     var msg=document.getElementById('flmOrderMsg');msg.innerText='Placing order...';
     try{var r=await supabaseClient.from('orders').insert(payload).select().single();if(r.error)throw r.error;cart={};renderCart();msg.style.color='#059669';msg.innerText='✅ Order placed successfully. Order ID: '+String(r.data.id).slice(0,8);await loadMyOrders();}catch(e){msg.style.color='#dc2626';msg.innerText='Order failed: '+e.message;}
   };
-  async function loadMyOrders(){var el=document.getElementById('flmMyOrders');if(!el)return;try{var r=await supabaseClient.from('orders').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders yet.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];var upl=String(o.appliener_fl_id||'').trim();var uplHtml=(String(o.fulfillment_method||'')==='appliener'&&upl)?'<div style="margin-top:7px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:8px;font-size:11px;color:#1e3a8a"><b>Upliner ID:</b> '+esc(upl)+'</div>':'';return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-weight:800;color:#2563eb">'+esc(o.status||'pending')+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><div style="font-weight:900;margin-top:5px">'+money2(o.total_amount)+'</div>'+uplHtml+'<div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(o.fulfillment_method||'')+' • '+(o.created_at?new Date(o.created_at).toLocaleString():'')+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">Orders unavailable: '+esc(e.message)+'</div>';}}
+  async function loadMyOrders(){var el=document.getElementById('flmMyOrders');if(!el)return;try{var r=await supabaseClient.from('orders').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders yet.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-weight:800;color:#2563eb">'+esc(o.status||'pending')+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><div style="font-weight:900;margin-top:5px">'+money2(o.total_amount)+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(o.fulfillment_method||'')+' • '+(o.created_at?new Date(o.created_at).toLocaleString():'')+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">Orders unavailable: '+esc(e.message)+'</div>';}}
   var flmUplinerChannel=null;
-  function flmCloseUplinerRequests(){var m=document.getElementById('flmUplinerRequestsModal');if(m)m.remove();}
-  function flmOpenUplinerRequests(rows){
-    var old=document.getElementById('flmUplinerRequestsModal');if(old)old.remove();
-    var box=document.createElement('div');box.id='flmUplinerRequestsModal';box.style.cssText='position:fixed;inset:0;z-index:13000;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;padding:14px;';
-    var cards=(rows||[]).map(function(o){var items=Array.isArray(o.items)?o.items:[];return '<div style="border:1px solid #dbeafe;border-radius:14px;padding:12px;margin-top:10px;background:#f8fbff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-size:10px;font-weight:900;color:#b45309">'+esc(String(o.status||'pending').toUpperCase())+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">Member: '+esc(o.user_name||o.fl_id||'')+' • '+esc(o.mobile||'')+'</div><div style="font-size:12px;font-weight:800;margin-top:7px">'+items.map(function(i){return '📦 '+esc(i.name)+' × '+Number(i.qty||0);}).join('<br>')+'</div><div style="font-size:11px;color:#475569;margin-top:7px">Total: '+money2(o.total_amount||0)+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px"><button data-order-id="'+esc(o.id)+'" onclick="flmConfirmUplinerDelivered(this.dataset.orderId)" style="background:#059669;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:900">✓ Delivered</button><button data-order-id="'+esc(o.id)+'" onclick="flmRejectUplinerOrder(this.dataset.orderId)" style="background:#dc2626;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:900">✕ Reject</button></div></div>';}).join('');
-    box.innerHTML='<div style="width:100%;max-width:440px;max-height:86vh;overflow:auto;background:#fff;border-radius:18px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.3)"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:17px;font-weight:900;color:#1e3a8a">📦 Upliner Product Requests</div><div style="font-size:10px;color:#64748b;margin-top:3px">All pending requests are shown here.</div></div><button type="button" onclick="flmCloseUplinerRequests()" style="border:0;background:#e2e8f0;color:#334155;width:34px;height:34px;border-radius:50%;font-size:18px">×</button></div>'+cards+'</div>';
-    document.body.appendChild(box);
-  }
   async function loadUplinerDeliveryRequests(showToast){
     var flId=String(typeof getFlId==='function'?getFlId()||'':'').trim().toUpperCase();if(!flId||!supabaseClient)return;
     try{
-      var r=await supabaseClient.from('orders').select('*').eq('appliener_fl_id',flId).eq('fulfillment_method','appliener').not('status','in','(delivered,cancelled,rejected)').order('created_at',{ascending:false}).limit(50);
-      if(r.error)throw r.error;var rows=r.data||[];
-      var badge=document.getElementById('flmUplinerBadge');if(badge){badge.innerText=rows.length;badge.style.display=rows.length?'inline-flex':'none';}
-      if(!showToast||!rows.length)return;
-      var old=document.getElementById('flmUplinerDeliveryToast');if(old)old.remove();
-      var box=document.createElement('div');box.id='flmUplinerDeliveryToast';box.style.cssText='position:fixed;right:12px;bottom:76px;z-index:12050;background:#fff;border:1px solid #2563eb;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.22);padding:12px;max-width:340px;width:calc(100% - 24px);cursor:pointer;';
-      box.onclick=function(){flmOpenUplinerRequests(rows);};
-      box.innerHTML='<div style="font-weight:900;color:#1e3a8a;font-size:14px">🔔 '+rows.length+' Upliner Product Request'+(rows.length>1?'s':'')+'</div><div style="font-size:11px;color:#475569;margin-top:4px">Tap here to view all requests and choose Delivered or Reject.</div>';
+      var r=await supabaseClient.from('orders').select('*').eq('appliener_fl_id',flId).eq('fulfillment_method','appliener').not('status','in','(delivered,cancelled)').order('created_at',{ascending:false}).limit(20);
+      if(r.error)throw r.error;var rows=r.data||[];if(!rows.length)return;
+      // Keep a small bell/card instead of repeatedly covering the screen.
+      var badge=document.getElementById('flmUplinerBadge');if(badge){badge.innerText=rows.length;badge.style.display='inline-flex';}
+      var seen=JSON.parse(localStorage.getItem('flm_upliner_seen_orders')||'[]');
+      var fresh=rows.filter(function(o){return seen.indexOf(String(o.id))<0;});
+      if(!showToast||!fresh.length)return;
+      var o=fresh[0],items=Array.isArray(o.items)?o.items:[];
+      var box=document.createElement('div');box.id='flmUplinerDeliveryToast';box.style.cssText='position:fixed;right:12px;bottom:76px;z-index:12050;background:#fff;border:1px solid #2563eb;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.22);padding:12px;max-width:340px;width:calc(100% - 24px);';
+      box.innerHTML='<div style="font-weight:900;color:#1e3a8a;font-size:14px">🔔 New Upliner Product Request</div><div style="font-size:11px;color:#475569;margin-top:4px">Order #'+esc(String(o.id).slice(0,8))+' • '+esc(o.user_name||o.fl_id)+'</div><div style="font-size:11px;margin-top:4px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><button data-order-id="'+esc(o.id)+'" onclick="flmConfirmUplinerDelivered(this.dataset.orderId)" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:9px;padding:9px;font-weight:900">✓ Upliner Product Delivered</button><button onclick="this.parentElement.remove()" style="width:100%;margin-top:6px;background:#e2e8f0;color:#334155;border:0;border-radius:9px;padding:7px;font-weight:800">Later</button>';
       document.body.appendChild(box);
+      seen=seen.concat(fresh.map(function(x){return String(x.id);}));
+      localStorage.setItem('flm_upliner_seen_orders',JSON.stringify(seen.slice(-100)));
     }catch(e){console.log('upliner delivery check:',e.message||e);}
   }
-
   function initUplinerRealtime(){
     var flId=String(typeof getFlId==='function'?getFlId()||'':'').trim().toUpperCase();if(!flId||!supabaseClient||flmUplinerChannel)return;
     try{
@@ -2601,11 +2627,7 @@ async function claimReward(pairs, name){
   }
   window.flmConfirmUplinerDelivered=async function(id){
     if(!id||!confirm('Confirm that the product was delivered to the member?'))return;
-    try{var r=await supabaseClient.from('orders').update({status:'delivered',updated_at:new Date().toISOString()}).eq('id',id).eq('appliener_fl_id',String(getFlId()).toUpperCase()).eq('fulfillment_method','appliener');if(r.error)throw r.error;alert('✅ Product delivery marked as delivered.');var t=document.getElementById('flmUplinerDeliveryToast');if(t)t.remove();flmCloseUplinerRequests();await loadUplinerDeliveryRequests(false);if(document.getElementById('flmMyOrders'))await loadMyOrders();}catch(e){alert('❌ Could not update delivery: '+(e.message||e));}
-  };
-  window.flmRejectUplinerOrder=async function(id){
-    if(!id||!confirm('Product not available? Reject this order request?'))return;
-    try{var r=await supabaseClient.from('orders').update({status:'rejected',updated_at:new Date().toISOString()}).eq('id',id).eq('appliener_fl_id',String(getFlId()).toUpperCase()).eq('fulfillment_method','appliener');if(r.error)throw r.error;alert('❌ Order request rejected.');flmCloseUplinerRequests();var t=document.getElementById('flmUplinerDeliveryToast');if(t)t.remove();await loadUplinerDeliveryRequests(false);}catch(e){alert('❌ Could not reject order: '+(e.message||e));}
+    try{var r=await supabaseClient.from('orders').update({status:'delivered',updated_at:new Date().toISOString()}).eq('id',id).eq('appliener_fl_id',String(getFlId()).toUpperCase()).eq('fulfillment_method','appliener');if(r.error)throw r.error;alert('✅ Product delivery marked as delivered.');var t=document.getElementById('flmUplinerDeliveryToast');if(t)t.remove();await loadUplinerDeliveryRequests();if(document.getElementById('flmMyOrders'))await loadMyOrders();}catch(e){alert('❌ Could not update delivery: '+(e.message||e));}
   };
 
   var flmScrollTimer=null,flmMediaTimer=null;
@@ -2615,15 +2637,13 @@ async function claimReward(pairs, name){
       var r=await supabaseClient.from('site_scrolls').select('message,sort_order').eq('active',true).order('sort_order',{ascending:true});
       if(r.error)throw r.error;var rows=r.data||[];
       if(!rows.length){box.style.display='none';return;}
+      box.style.display='block';
       var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
       if(!text){box.style.display='none';return;}
-      box.style.display='block';
       track.innerText=text+'   *   '+text;
-      track.style.animation='none';
-      void track.offsetWidth;
-      track.style.animation='flmTickerMove 45s linear infinite';
+      track.style.transition='none';track.style.transform='translateX(100%)';
       if(flmScrollTimer)clearTimeout(flmScrollTimer);
-      flmScrollTimer=setTimeout(loadScrolls,60000);
+      requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(20,distance/32);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
 
@@ -2639,7 +2659,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;height:auto;max-height:55vh;object-fit:contain;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;height:auto;max-height:55vh;object-fit:contain;object-position:center;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
@@ -2706,4 +2726,99 @@ async function claimReward(pairs, name){
   </div>
 </div>
 
+
+<script>
+/* FLM PINCODE STARTUP FIX: if a saved pincode exists, resolve city/store automatically. */
+(function(){
+  function flmAutoPincode(){
+    try{
+      var p=document.getElementById('profPincode');
+      if(p && /^\d{6}$/.test(String(p.value||'')) && typeof flmLookupPincode==='function') flmLookupPincode(p.value);
+    }catch(e){}
+  }
+  window.addEventListener('load',function(){setTimeout(flmAutoPincode,700);});
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(flmAutoPincode,1200);});
+})();
+</script>
+
+<script>
+/* FLM FIXED RETURNS (FD) - additive module; existing features remain untouched. */
+(function(){
+  function fdEsc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  function fdMoney(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function fdNum(v){return Number(v||0);}
+  function fdPct(v){return Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:4})+'%';}
+  function fdToday(){var d=new Date();return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
+  async function fdSettings(){try{var r=await supabaseClient.from('fixed_return_settings').select('*').limit(1).maybeSingle();return r.data||{};}catch(e){return {};}}
+  async function loadFixedReturns(){
+    if(!requireLogin()||!supabaseClient)return;
+    var plansEl=document.getElementById('fdPlansList'),myEl=document.getElementById('fdMyPlansList');
+    if(plansEl)plansEl.innerHTML='<div style="padding:15px;text-align:center;color:#64748b">Loading plans...</div>';
+    if(myEl)myEl.innerHTML='<div style="padding:15px;text-align:center;color:#64748b">Loading my plans...</div>';
+    try{
+      var fl=getFlId();
+      var p=await supabaseClient.from('fixed_return_plans').select('*').eq('active',true).order('created_at',{ascending:false});
+      if(p.error)throw p.error;
+      var plans=p.data||[];
+      var s=await fdSettings();
+      if(plansEl){
+        if(!plans.length)plansEl.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">No Fixed Returns plans are active right now.</div>';
+        else plansEl.innerHTML=plans.map(function(x){
+          var inv=fdNum(x.investment_amount),daily=fdNum(x.daily_percent),days=parseInt(x.duration_days||0,10),dayAmt=inv*daily/100,totalRet=dayAmt*days,totalVal=inv+totalRet;
+          var img=x.image_data?'<img src="'+fdEsc(x.image_data)+'" style="width:58px;height:58px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;flex:none">':'';
+          return '<div style="border:1px solid #dbeafe;border-radius:16px;padding:12px;margin-bottom:10px;background:#fff">'+
+            '<div style="display:flex;gap:10px;align-items:flex-start">'+img+'<div style="min-width:0;flex:1"><div style="font-weight:900;color:#0f172a">'+fdEsc(x.plan_name||('FD Plan ₹'+inv.toLocaleString('en-IN')) )+'</div><div style="font-size:10px;color:#64748b;margin-top:3px">Investment • '+fdMoney(inv)+'</div></div></div>'+
+            '<div class="grid2" style="margin-top:10px"><div style="background:#f8fafc;border-radius:10px;padding:9px"><small>Daily Return</small><b style="display:block">'+fdPct(daily)+' = '+fdMoney(dayAmt)+'</b></div><div style="background:#f8fafc;border-radius:10px;padding:9px"><small>Duration</small><b style="display:block">'+days+' Days</b></div><div style="background:#f0fdf4;border-radius:10px;padding:9px"><small>Total Return</small><b style="display:block;color:#059669">'+fdMoney(totalRet)+'</b></div><div style="background:#eff6ff;border-radius:10px;padding:9px"><small>Total Value</small><b style="display:block;color:#1d4ed8">'+fdMoney(totalVal)+'</b></div></div>'+
+            '<button onclick="fdOpenInvest(\''+fdEsc(x.id)+'\')" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:11px;padding:12px;font-weight:900">Invest '+fdMoney(inv)+'</button></div>';
+        }).join('');
+      }
+      var mine=await supabaseClient.from('fixed_return_investments').select('*,fixed_return_plans(plan_name,investment_amount,daily_percent,duration_days,image_data)').eq('fl_id',fl).order('created_at',{ascending:false});
+      if(mine.error)throw mine.error;
+      var invs=mine.data||[];
+      var tx=await supabaseClient.from('fixed_return_transactions').select('*').eq('fl_id',fl).order('credit_date',{ascending:false}).order('created_at',{ascending:false});
+      if(tx.error)throw tx.error;
+      var txs=tx.data||[];
+      var totalInv=invs.reduce((a,x)=>a+fdNum(x.investment_amount),0), earned=txs.reduce((a,x)=>a+fdNum(x.amount),0), today=txs.filter(x=>String(x.credit_date||'')===fdToday()).reduce((a,x)=>a+fdNum(x.amount),0);
+      var wd=await supabaseClient.from('fixed_return_withdrawals').select('*').eq('fl_id',fl).in('status',['pending','approved','processing','completed']);
+      var pendingWd=(wd.data||[]).reduce((a,x)=>a+fdNum(x.amount),0);
+      var available=Math.max(0,earned-pendingWd);
+      [['fdTotalInvested',totalInv],['fdTodayReturn',today],['fdEarned',earned],['fdWithdrawable',available]].forEach(function(a){var e=document.getElementById(a[0]);if(e)e.innerText=fdMoney(a[1]);});
+      var wb=document.getElementById('fdWithdrawBtn');if(wb){wb.disabled=available<200;wb.style.background=available>=200?'#059669':'#cbd5e1';wb.style.color=available>=200?'#fff':'#64748b';}
+      if(document.getElementById('fdWithdrawMsg'))document.getElementById('fdWithdrawMsg').innerText=available>=200?'Withdrawal available. No tax/deduction in this FD flow.':'Minimum withdrawal is ₹200.';
+      if(myEl){
+        if(!invs.length)myEl.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">No FD plans selected yet.</div>';
+        else myEl.innerHTML=invs.map(function(x){
+          var plan=x.fixed_return_plans||{}, list=txs.filter(t=>String(t.investment_id)===String(x.id));
+          var inv=fdNum(x.investment_amount), daily=fdNum(x.daily_amount), totalReturn=fdNum(x.total_return_amount), earnedThis=list.reduce((a,t)=>a+fdNum(t.amount),0),days=parseInt(x.duration_days||0,10),status=String(x.status||'pending').toUpperCase();
+          var left=Math.max(0,days-list.length);
+          var rows=list.length?list.map(function(t){return '<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #f1f5f9"><span>'+fdEsc(t.credit_date||'')+'</span><b style="color:#059669">+ '+fdMoney(t.amount)+'</b></div>';}).join(''):'<div style="padding:10px;color:#94a3b8;font-size:11px">No daily credits yet. First credit is processed at 10:00 PM IST after approval.</div>';
+          return '<details style="border:1px solid #e2e8f0;border-radius:14px;padding:11px;margin-bottom:9px;background:#fff"><summary style="cursor:pointer;list-style:none"><div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:14px">'+fdEsc(plan.plan_name||('FD Plan '+fdMoney(inv)))+'</b><div style="font-size:10px;color:#64748b;margin-top:3px">Investment '+fdMoney(inv)+' • '+fdPct(x.daily_percent)+' • '+days+' days</div></div><span style="font-size:9px;padding:4px 7px;border-radius:999px;background:'+(status==='ACTIVE'?'#dcfce7':status==='COMPLETED'?'#dbeafe':'#fef3c7')+';color:'+(status==='ACTIVE'?'#166534':status==='COMPLETED'?'#1d4ed8':'#92400e')+'">'+status+'</span></div></summary><div style="margin-top:10px"><div class="grid2"><div style="background:#f8fafc;padding:9px;border-radius:9px"><small>Daily</small><b style="display:block">'+fdMoney(daily)+'</b></div><div style="background:#f0fdf4;padding:9px;border-radius:9px"><small>Earned</small><b style="display:block;color:#059669">'+fdMoney(earnedThis)+'</b></div><div style="background:#eff6ff;padding:9px;border-radius:9px"><small>Target Return</small><b style="display:block;color:#1d4ed8">'+fdMoney(totalReturn)+'</b></div><div style="background:#fefce8;padding:9px;border-radius:9px"><small>Days Left</small><b style="display:block">'+left+'</b></div></div><div style="margin-top:10px;font-size:11px;font-weight:900;color:#334155">Date-wise Daily Transactions</div>'+rows+'</div></details>';
+        }).join('');
+      }
+    }catch(e){if(plansEl)plansEl.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">FD plans unavailable: '+fdEsc(e.message)+'</div>';if(myEl)myEl.innerHTML='';}
+  }
+  window.loadFixedReturns=loadFixedReturns;
+  window.fdOpenInvest=async function(planId){
+    try{
+      var r=await supabaseClient.from('fixed_return_plans').select('*').eq('id',planId).eq('active',true).single();if(r.error)throw r.error;var x=r.data;
+      var s=await fdSettings();var inv=fdNum(x.investment_amount),daily=inv*fdNum(x.daily_percent)/100,total=daily*parseInt(x.duration_days||0,10);
+      var old=document.getElementById('fdInvestModal');if(old)old.remove();
+      var modal=document.createElement('div');modal.id='fdInvestModal';modal.style='position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px';
+      modal.innerHTML='<div style="width:min(520px,100%);max-height:92dvh;overflow:auto;background:#fff;border-radius:20px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Invest in '+fdEsc(x.plan_name||'Fixed Return Plan')+'</b><button onclick="document.getElementById(\'fdInvestModal\').remove()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:9px;padding:7px 10px">✕</button></div><div style="margin-top:10px;background:#f8fafc;border-radius:12px;padding:11px;font-size:11px;line-height:1.7"><b>Investment:</b> '+fdMoney(inv)+'<br><b>Daily:</b> '+fdPct(x.daily_percent)+' = '+fdMoney(daily)+'<br><b>Days:</b> '+x.duration_days+'<br><b>Total Return:</b> '+fdMoney(total)+'<br><b>Total Value:</b> '+fdMoney(inv+total)+'</div><div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px"><b>💳 Payment</b><div style="font-size:12px;margin-top:7px">UPI ID: <b>'+fdEsc(s.upi_id||'Admin UPI not configured')+'</b></div><button onclick="navigator.clipboard&&navigator.clipboard.writeText('+JSON.stringify(String(s.upi_id||''))+');alert(\'UPI ID copied\')" style="margin-top:7px;border:0;background:#dbeafe;color:#1d4ed8;border-radius:8px;padding:7px 10px;font-weight:800">📋 Copy UPI</button></div><div style="margin-top:12px"><label style="font-size:11px;font-weight:800">Payment Screenshot</label><input id="fdPayShot" type="file" accept="image/*" style="width:100%;margin-top:6px;padding:9px;border:1px dashed #cbd5e1;border-radius:10px"><label style="display:block;font-size:11px;font-weight:800;margin-top:10px">UTR / Transaction Hash</label><input id="fdPayUtr" placeholder="Enter UTR / Hash" style="width:100%;margin-top:6px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><button id="fdSubmitInvest" onclick="fdSubmitInvestment(\''+fdEsc(x.id)+'\')" style="width:100%;margin-top:12px;background:#059669;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:900">Submit Investment</button><div id="fdInvestMsg" style="font-size:10px;text-align:center;margin-top:7px"></div></div></div>';
+      document.body.appendChild(modal);
+    }catch(e){alert('Unable to open plan: '+e.message);}
+  };
+  window.fdSubmitInvestment=async function(planId){
+    var btn=document.getElementById('fdSubmitInvest'),msg=document.getElementById('fdInvestMsg'),file=document.getElementById('fdPayShot')?.files?.[0],utr=(document.getElementById('fdPayUtr')?.value||'').trim();
+    if(!utr){if(msg)msg.innerText='Enter UTR / transaction hash.';return;}if(!file){if(msg)msg.innerText='Upload payment screenshot.';return;}if(file.size>3*1024*1024){if(msg)msg.innerText='Screenshot must be 3 MB or smaller.';return;}
+    if(btn)btn.disabled=true;
+    try{var data=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(String(r.result||''));};r.onerror=rej;r.readAsDataURL(file);});var fl=getFlId(),p=await supabaseClient.from('fixed_return_plans').select('*').eq('id',planId).eq('active',true).single();if(p.error)throw p.error;var x=p.data,inv=fdNum(x.investment_amount),daily=inv*fdNum(x.daily_percent)/100,total=daily*parseInt(x.duration_days||0,10);var ins=await supabaseClient.from('fixed_return_investments').insert({fl_id:fl,plan_id:planId,investment_amount:inv,daily_percent:x.daily_percent,daily_amount:daily,duration_days:x.duration_days,total_return_amount:total,status:'pending',payment_utr:utr,payment_screenshot:data}).select().single();if(ins.error)throw ins.error;alert('✅ Investment submitted. Waiting for admin approval.');var m=document.getElementById('fdInvestModal');if(m)m.remove();loadFixedReturns();}catch(e){if(msg)msg.innerText='Submit failed: '+e.message;else alert(e.message);if(btn)btn.disabled=false;}
+  };
+  window.requestFixedReturnWithdrawal=async function(){
+    var fl=getFlId();if(!fl)return;try{var tx=await supabaseClient.from('fixed_return_transactions').select('amount').eq('fl_id',fl);if(tx.error)throw tx.error;var wd=await supabaseClient.from('fixed_return_withdrawals').select('amount').eq('fl_id',fl).in('status',['pending','approved','processing','completed']);if(wd.error)throw wd.error;var earned=(tx.data||[]).reduce((a,x)=>a+fdNum(x.amount),0),reserved=(wd.data||[]).reduce((a,x)=>a+fdNum(x.amount),0),available=Math.max(0,earned-reserved);if(available<200){alert('Minimum FD withdrawal is ₹200.');return;}if(!confirm('Withdraw '+fdMoney(available)+' to your saved bank account?'))return;var u=await supabaseClient.from('users').select('full_name,bank_account_holder,bank_name,bank_account_number,bank_ifsc').eq('fl_id',fl).single();if(u.error)throw u.error;var d=u.data||{};if(!d.bank_account_number||!d.bank_ifsc){alert('Please add your bank account details in My Profile first.');return;}var r=await supabaseClient.from('fixed_return_withdrawals').insert({fl_id:fl,amount:available,status:'pending',bank_account_holder:d.bank_account_holder||d.full_name||'',bank_name:d.bank_name||'',bank_account_number:d.bank_account_number||'',bank_ifsc:d.bank_ifsc||''}).select().single();if(r.error)throw r.error;alert('✅ FD withdrawal request submitted.');loadFixedReturns();}catch(e){alert('Withdrawal failed: '+e.message);}
+  };
+  var oldShowFR=window.showSec;window.showSec=function(id,fromPop){oldShowFR(id,fromPop);if(id==='fixedReturns')setTimeout(loadFixedReturns,50);};
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if((localStorage.getItem('flm_last_section')||'')==='fixedReturns')loadFixedReturns();},300);});
+})();
+</script>
 </body></html>
