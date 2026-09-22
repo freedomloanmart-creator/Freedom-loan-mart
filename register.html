@@ -77,17 +77,25 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
       if(pinData.status!=='unused') return {success:false,message:'❌ Pin Wrong - Status: '+pinData.status};
 
       const flId='FL'+Math.floor(100000+Math.random()*900000);
-      const {data:userData,error:userError}=await supabaseClient.from('users').insert({
-        fl_id:flId,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
-        left_own:0,right_own:0,left_spillover:0,right_spillover:0
-      }).select().single();
-      if(userError) throw userError;
-      const w=await supabaseClient.from('wallets').insert({fl_id:flId,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
-      if(w.error) throw w.error;
-      const b=await supabaseClient.from('binary_summary').insert({fl_id:flId,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
-      if(b.error) throw b.error;
-      const pinUpdate=await supabaseClient.from('pins').update({status:'used',used_by_mobile:mobile,used_at:new Date().toISOString()}).eq('id',pinData.id).eq('status','unused');
-      if(pinUpdate.error) throw pinUpdate.error;
+      /* ATOMIC ONE-TIME PIN CLAIM: reserve the unused PIN before creating the member. */
+      const claimAt=new Date().toISOString();
+      const pinClaim=await supabaseClient.from('pins').update({status:'used',used_by_mobile:mobile,used_at:claimAt}).eq('id',pinData.id).eq('status','unused').select('id,status,used_by_mobile,used_at').maybeSingle();
+      if(pinClaim.error) throw pinClaim.error;
+      if(!pinClaim.data) return {success:false,message:'⚠️ This Pin Already Used - another registration claimed this token first. Use another unused pin.'};
+      try{
+        const {data:userData,error:userError}=await supabaseClient.from('users').insert({
+          fl_id:flId,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+          left_own:0,right_own:0,left_spillover:0,right_spillover:0
+        }).select().single();
+        if(userError) throw userError;
+        const w=await supabaseClient.from('wallets').insert({fl_id:flId,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
+        if(w.error) throw w.error;
+        const b=await supabaseClient.from('binary_summary').insert({fl_id:flId,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
+        if(b.error) throw b.error;
+      }catch(createErr){
+        try{await supabaseClient.from('pins').update({status:'unused',used_by_mobile:null,used_at:null}).eq('id',pinData.id).eq('status','used').eq('used_by_mobile',mobile);}catch(rollbackErr){console.log('Pin rollback:',rollbackErr.message||rollbackErr);}
+        throw createErr;
+      }
       if(sponsorId) await updateSponsorBinary(sponsorId,side);
       try{
         if(window.localStorage){
@@ -245,10 +253,10 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
 <div class="tabs"><div class="tab active" id="tabUPI" onclick="setPay('UPI')">UPI Payment</div><div class="tab usdt" id="tabUSDT" onclick="setPay('USDT')">USDT BEP20</div></div>
 <div id="upiBox"><div class="qrbox"><b>UPI Payment - Rs.2000</b><br><span id="registerUpiId" style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><img id="registerUpiQr" src="./upi_qr.jpeg" alt="UPI Payment QR" style="display:block;width:100%;max-width:360px;height:auto;margin:12px auto 10px;border-radius:10px;border:1px solid #e2e8f0"><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
-<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b id="registerUsdtTitle" style="color:#059669">USDT BEP20 - $12</b><br><span id="registerUsdtAddress" style="display:block;font-size:9px;font-family:monospace;word-break:break-all">0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7</span><img id="registerUsdtQr" src="./usdt_qr.jpeg" alt="USDT BEP20 Payment QR" style="display:block;width:100%;max-width:360px;height:auto;margin:12px auto 10px;border-radius:10px;border:1px solid #e2e8f0"><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
+<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b id="registerUsdtTitle" style="color:#059669">USDT BEP20 - ₹2000 equivalent</b><br><span id="registerUsdtAddress" style="display:block;font-size:9px;font-family:monospace;word-break:break-all">0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7</span><img id="registerUsdtQr" src="./usdt_qr.jpeg" alt="USDT BEP20 Payment QR" style="display:block;width:100%;max-width:360px;height:auto;margin:12px auto 10px;border-radius:10px;border:1px solid #e2e8f0"><div id="registerUsdtAmount" style="font-size:11px;color:#059669;font-weight:800;margin:6px 0">Loading live USDT/INR rate…</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 </div>
 <div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 36 pairs=Rs.4000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Payment cheste screenshot + UTR/Hash mandatory</div>
-<button class="btn" onclick="register()">Register Now - Rs.2000</button>
+<button id="registerBtn" class="btn" onclick="register()">Register Now - Rs.2000</button>
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
 <div style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
   <b style="font-size:12px">Registration Status</b>
@@ -315,9 +323,10 @@ function showMobileValidation(){
   else if(m.length===10){box.style.color='#059669';box.textContent='✓ 10-digit mobile number';}
   else {box.style.color='#dc2626';box.textContent='❌ Mobile number must contain exactly 10 digits.';}
 }
-let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
+let payMethod='UPI';function setPay(m){payMethod=m;if(m==='USDT')loadRegisterUsdtRate();document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
 
 // Payment QR settings: reads the latest client values from Supabase when the optional
+async function loadRegisterUsdtRate(){var el=document.getElementById('registerUsdtAmount');if(!el)return;try{var q=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=inr&precision=6',{cache:'no-store'});var d=await q.json();var rate=Number(d&&d.tether&&d.tether.inr||0);if(rate>0){el.textContent='Pay approx '+(2000/rate).toFixed(2)+' USDT • 1 USDT ≈ ₹'+rate.toFixed(2);}else el.textContent='Live USDT/INR rate unavailable.';}catch(e){el.textContent='Live USDT/INR rate unavailable.';}}
 // payment_settings table exists. If the table is not created yet, the bundled QR files
 // and current values above remain the fallback, so registration continues to work.
 async function loadPaymentSettings(){
@@ -394,7 +403,10 @@ function applyReferralFromUrl(){
 }
 window.addEventListener('DOMContentLoaded', applyReferralFromUrl);
 
+var registerSubmitLock=false;
+function resetRegisterButton(){registerSubmitLock=false;var b=document.getElementById('registerBtn')||document.querySelector('button[onclick="register()"]');if(b){b.disabled=false;b.innerText=b.dataset.prevText||'Register Now - Rs.2000';b.style.opacity='1';b.style.cursor='pointer';}}
 async function register(){
+if(registerSubmitLock)return;registerSubmitLock=true;var registerButton=document.getElementById('registerBtn')||document.querySelector('button[onclick="register()"]');if(registerButton){registerButton.disabled=true;registerButton.dataset.prevText=registerButton.innerText;registerButton.innerText='⏳ Registering...';registerButton.style.opacity='.65';}
   const params=new URLSearchParams(window.location.search);
   const urlSponsor=(params.get('sponsor')||'').trim().toUpperCase();
   const urlSide=(params.get('side')||'').trim().toLowerCase();
@@ -414,21 +426,21 @@ async function register(){
   const hash=document.getElementById('usdtHash').value.trim();
   const file=payMethod==='UPI'?document.getElementById('upiScreenshot')?.files?.[0]:document.getElementById('usdtScreenshot')?.files?.[0];
   const msg=document.getElementById('msg');
-  if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
+  if(!name||!mobile||!email){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
   const identityError=validateRegistrationIdentity(mobile,email);
-  if(identityError){msg.innerHTML='<span style=color:#dc2626>❌ '+identityError+'</span>';return;}
+  if(identityError){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>❌ '+identityError+'</span>';return;}
   if(!pinToken){
-    if(payMethod==='UPI'&&!utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
-    if(payMethod==='USDT'&&!hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
-    if(!file){msg.innerHTML='<span style=color:#dc2626>Payment screenshot upload cheyyali</span>';return;}
+    if(payMethod==='UPI'&&!utr){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
+    if(payMethod==='USDT'&&!hash){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
+    if(!file){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>Payment screenshot upload cheyyali</span>';return;}
   }
   msg.innerHTML='<span style=color:#2563eb>⏳ Checking registration details...</span>';
   try{
     const lim=await checkIdentityLimit(mobile,email);
     const mobileUsed=lim.mobileCount+lim.mobilePending;
     const emailUsed=lim.emailCount+lim.emailPending;
-    if(mobileUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This mobile number has already completed 7 IDs. Please use a different mobile number.</span>';return;}
-    if(emailUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This email address has already completed 7 IDs. Please use a different email address.</span>';return;}
+    if(mobileUsed>=7){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>❌ This mobile number has already completed 7 IDs. Please use a different mobile number.</span>';return;}
+    if(emailUsed>=7){resetRegisterButton();msg.innerHTML='<span style=color:#dc2626>❌ This email address has already completed 7 IDs. Please use a different email address.</span>';return;}
     if(mobileUsed>0 || emailUsed>0){
       msg.innerHTML='<span style=color:#2563eb>ℹ️ Mobile IDs used: '+mobileUsed+'/7 • Email IDs used: '+emailUsed+'/7</span>';
     }
