@@ -23,11 +23,11 @@ function showSec(id,fromPop){
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();try{loadActiveRoiCoupons();}catch(e){}}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans') loadLoanPanel();
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();loadActiveRoiCoupons();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans') loadLoanPanel();
 }
 function initFlmNavigation(){
  if(!requireLogin()) return;
- var saved=localStorage.getItem('flm_last_section')||'dashboard'; try{ if(saved==='dashboard' || saved==='wallets'){ setTimeout(function(){ try{loadActiveRoiCoupons();}catch(e){} },500);} }catch(e){}
+ var saved=localStorage.getItem('flm_last_section')||'dashboard';
  FLM_NAV_READY=false;
  if(!history.state||!history.state.flmSection) history.replaceState({flmSection:saved},'',window.location.href.split('#')[0]);
  showSec(saved,true);
@@ -142,20 +142,23 @@ body{background:#eef2f7;color:#0f172a}
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:48px;bottom:10px;overflow:hidden;border-radius:14px;background:rgba(15,23,42,.18);z-index:3"></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
-<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.65);z-index:99999;align-items:center;justify-content:center;padding:14px">
-  <div style="width:min(100%,440px);max-height:90vh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.32);display:flex;flex-direction:column;overflow:hidden;animation:flmAnnPop .22s ease-out">
-    <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0">
-      <div><div id="flmAnnTitle" style="font-size:18px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:2px">FLM Member Update</div></div>
-      <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer;flex-shrink:0">×</button>
+<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
+  <div style="width:min(100%,430px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;animation:flmAnnPop .22s ease-out">
+    <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
+      <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
     </div>
-    <div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;max-height:70vh">
-      <div id="flmAnnMessage" style="padding:18px;color:#334155;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word"></div>
-      <div id="flmAnnMedia" style="display:none;padding:0 14px 14px"></div>
-    </div>
-    <div style="padding:12px 18px 18px;flex-shrink:0;background:#fff;border-top:1px solid #f1f5f9"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:12px;padding:13px;background:#2563eb;color:#fff;font-weight:900;font-size:14px;cursor:pointer">✓ Got it</button></div>
+    <div id="flmAnnMessage" style="padding:20px 18px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word"></div>
+    <div id="flmAnnMedia" style="display:none;padding:0 18px 16px"></div>
+    <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
-<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes flmMarquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}</style>
+<style>
+@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+#flmLoginAnnouncement>div{width:min(100%,430px)!important;max-height:92vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
+#flmAnnMessage{max-height:32vh!important;overflow-y:auto!important}
+#flmAnnMedia img,#flmAnnMedia video{display:block!important;width:100%!important;max-width:100%!important;max-height:55vh!important;height:auto!important;object-fit:contain!important;object-position:center!important;border-radius:12px!important;background:#f1f5f9!important}
+</style>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -533,7 +536,6 @@ async function findS(){
 }
 function findMyStore(){var el=document.getElementById('sRes');if(!navigator.geolocation){el.innerHTML='Location unavailable on this device.';return;}el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">📍 Getting your location…</div>';navigator.geolocation.getCurrentPosition(async function(pos){try{var r=await supabaseClient.from('stores').select('*').eq('status','active');if(r.error)throw r.error;var near=(r.data||[]).filter(st=>st.latitude!=null&&st.longitude!=null).map(st=>{st.distance_km=storeDistanceKm(pos.coords.latitude,pos.coords.longitude,Number(st.latitude),Number(st.longitude));return st;}).filter(st=>st.distance_km<=25);renderStoreResults(near,'your current location');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626">Unable to find stores: '+escStore(e.message)+'</div>'; }},function(){el.innerHTML='<div style="padding:12px;color:#b45309">Location permission denied. Enter your pincode or town instead.</div>';},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});}
 let flmPincodeTimer=null;
-var flmPincodeTimer=null;
 async function flmLookupPincode(pin){
  pin=String(pin||'').replace(/\D/g,'').slice(0,6);
  var cityEl=document.getElementById('profCity');
@@ -546,7 +548,7 @@ async function flmLookupPincode(pin){
    var stores=sr.data||[];
    if(stores.length){
     var town=String(stores[0].town||stores[0].city||'').trim();
-    if(town){ if(cityEl) cityEl.value=town; document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=town; }); }
+    if(cityEl&&town)cityEl.value=town;
     var hint=document.getElementById('profStoreHint');
     if(hint){hint.style.display='block';hint.innerHTML='🏪 Store Point available: <b>'+escStore(stores[0].name||stores[0].store_name||'FLM Store')+'</b><br><span style="font-size:10px">'+escStore(stores[0].address||'')+'</span>';}
     if(typeof flmRefreshOrderOptions==='function')flmRefreshOrderOptions();
@@ -558,12 +560,8 @@ async function flmLookupPincode(pin){
   var data=await resp.json();
   var po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];
   if(po.length){
-   var city=String(po[0].District||po[0].Block||po[0].Division||'').trim();
-   if(city){
-     if(cityEl) cityEl.value=city;
-     // Also fill any other city input on page (delivery address form)
-     document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=city; });
-   }
+   var city=String(po[0].District||po[0].Division||po[0].Block||'').trim();
+   if(cityEl&&city)cityEl.value=city;
    var hint=document.getElementById('profStoreHint');
    if(hint){hint.style.display='block';hint.innerHTML='🏪 No FLM Store Point found for this pincode yet. You can use <b>Mega Store Point</b> or <b>Collect from Upliner</b>.';}
    if(typeof flmRefreshOrderOptions==='function')flmRefreshOrderOptions();
@@ -571,24 +569,14 @@ async function flmLookupPincode(pin){
  }catch(e){console.log('pincode lookup:',e.message||e);}
 }
 function flmBindPincodeLookup(){
- var inputs=document.querySelectorAll('#profPincode, input[id*="Pincode" i], input[placeholder*="pincode" i]');
- if(!inputs.length){ inputs=[document.getElementById('profPincode')]; }
- inputs.forEach(function(p){
-   if(!p||p.dataset.lookupBound==='1') return;
-   p.dataset.lookupBound='1';
-   p.addEventListener('input',function(){
-     var v=String(this.value||'').replace(/\D/g,'').slice(0,6);this.value=v;
-     clearTimeout(flmPincodeTimer);if(v.length!==6)return;
-     flmPincodeTimer=setTimeout(function(){flmLookupPincode(v);},350);
-   });
-   p.addEventListener('blur',function(){
-     var v=String(this.value||'').replace(/\D/g,'').slice(0,6);
-     if(v.length===6) flmLookupPincode(v);
-   });
+ var p=document.getElementById('profPincode');if(!p||p.dataset.lookupBound==='1')return;
+ p.dataset.lookupBound='1';
+ p.addEventListener('input',function(){
+  var v=String(this.value||'').replace(/\D/g,'').slice(0,6);this.value=v;
+  clearTimeout(flmPincodeTimer);if(v.length!==6)return;
+  flmPincodeTimer=setTimeout(function(){flmLookupPincode(v);},350);
  });
 }
-var flmPincodeTimer=null;
-
 
 async function loadProfile(){
  if(!requireLogin()) return;
@@ -614,6 +602,7 @@ async function loadProfile(){
   var pce=document.getElementById('profPincode'); if(pce) pce.value=pincode;
   var ce=document.getElementById('profCity'); if(ce) ce.value=city;
   flmBindPincodeLookup();
+  if(pincode.length===6 && !city) setTimeout(function(){flmLookupPincode(pincode);},50);
 
   var save=document.getElementById('saveProfBtn');
   var lock=document.getElementById('addrLockedMsg');
@@ -1125,24 +1114,33 @@ async function copyRoiCoupon(code){
 }
 async function loadRoiCouponRows(limit){
  var flId=getFlId();if(!flId||!supabaseClient)return [];
+ var max=limit||100;
  try{
-  var r=await supabaseClient.from('roi_coupons').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(limit||100);
-  if(!r.error)return r.data||[];
-  // Fallback: show member-owned ROI coupon transactions when direct coupon-table RLS blocks the read.
-  var wr=await supabaseClient.from('wallet_transactions').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).eq('transaction_type','roi_coupon').not('coupon_code','is',null).order('created_at',{ascending:false}).limit(limit||100);
-  if(wr.error)throw r.error;
-  return (wr.data||[]).map(function(x){return {id:x.id,coupon_code:x.coupon_code,amount:x.amount,status:x.status||'processing',created_at:x.created_at};});
+  var r=await supabaseClient.from('roi_coupons').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(max);
+  var direct=(!r.error&&Array.isArray(r.data))?r.data:[];
+  var wr=await supabaseClient.from('wallet_transactions').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).eq('transaction_type','roi_coupon').not('coupon_code','is',null).order('created_at',{ascending:false}).limit(max);
+  if(wr.error && r.error)throw wr.error;
+  var fallback=(wr.data||[]).map(function(x){return {id:x.id,coupon_code:x.coupon_code,amount:x.amount,status:x.status||'processing',created_at:x.created_at};});
+  var merged=direct.concat(fallback),seen={};
+  merged=merged.filter(function(x){
+    var code=String(x.coupon_code||'').trim();if(!code)return false;
+    var key=code.toUpperCase();if(seen[key])return false;seen[key]=true;return true;
+  });
+  merged.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
+  return merged.slice(0,max);
  }catch(e){throw e;}
 }
 function flmUnusedCouponRows(rows){
  return (rows||[]).filter(function(x){var st=String(x.status||'issued').trim().toLowerCase();return st!=='redeemed'&&st!=='used'&&st!=='completed'&&st!=='rejected'&&st!=='cancelled';});
 }
 async function loadActiveRoiCoupons(){
- var el=document.getElementById('roiCouponBox');if(!el||!supabaseClient)return;
+ var el=document.getElementById('roiCouponBox');
+ if(!supabaseClient)return;
  var flId=getFlId();if(!flId)return;
  try{
-  var rows=flmUnusedCouponRows(await loadRoiCouponRows(50));
+  var rows=flmUnusedCouponRows(await loadRoiCouponRows(100));
   var count=document.getElementById('roiCouponCount');if(count)count.innerText=rows.length;
+  if(!el)return;
   if(!rows.length){el.innerHTML='';return;}
   var cards=rows.map(function(x){var code=flmEscHtml(x.coupon_code),raw=String(x.coupon_code||'');return '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:12px;margin-top:8px"><div style="font-weight:900;color:#166534;font-size:13px">✅ Coupon Generated — One-time Store Redemption</div><div style="font-size:11px;color:#475569;margin-top:5px">Amount: <b>'+money(x.amount)+'</b> • Issued: '+new Date(x.created_at).toLocaleString()+'</div><div style="display:flex;gap:7px;align-items:center;margin-top:9px"><div style="flex:1;background:#fff;border:1px dashed #16a34a;border-radius:9px;padding:10px;font-weight:900;letter-spacing:.6px;font-size:13px;word-break:break-all">'+code+'</div><button type="button" data-code="'+flmEscHtml(raw)+'" onclick="copyRoiCoupon(this.dataset.code)" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:10px 12px;font-weight:800;white-space:nowrap">Copy</button></div><div style="font-size:10px;color:#64748b;margin-top:7px">Show this code to the store/admin. It can be redeemed only once.</div></div>';}).join('');
   el.innerHTML=cards;
@@ -2559,22 +2557,15 @@ async function claimReward(pairs, name){
       var badge=document.getElementById('flmUplinerBadge');if(badge){badge.innerText=rows.length;badge.style.display='inline-flex';}
       var seen=JSON.parse(localStorage.getItem('flm_upliner_seen_orders')||'[]');
       var fresh=rows.filter(function(o){return seen.indexOf(String(o.id))<0;});
-      // Always save seen so it won't spam again
-      if(fresh.length){
-        seen=seen.concat(fresh.map(function(x){return String(x.id);}));
-        localStorage.setItem('flm_upliner_seen_orders',JSON.stringify(seen.slice(-100)));
-      }
       if(!showToast||!fresh.length)return;
-      // Respect mute setting
-      if(localStorage.getItem('flm_upliner_mute')==='1') return;
       var o=fresh[0],items=Array.isArray(o.items)?o.items:[];
-      // Remove old toast if any
-      var old=document.getElementById('flmUplinerDeliveryToast'); if(old) old.remove();
-      var box=document.createElement('div');box.id='flmUplinerDeliveryToast';box.style.cssText='position:fixed;right:10px;bottom:78px;z-index:12050;background:#fff;border:1px solid #0e7490;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.22);padding:12px;width:min(92vw,360px);';
-      box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:900;color:#0f766e;font-size:13px">🔔 New Upliner Request ('+fresh.length+')</div><button onclick="this.closest(\'#flmUplinerDeliveryToast\').remove()" style="border:0;background:#f1f5f9;width:24px;height:24px;border-radius:50%;font-weight:800;cursor:pointer">×</button></div><div style="font-size:11px;color:#475569;margin-top:5px">Order #'+esc(String(o.id).slice(0,8))+' • '+esc(o.user_name||o.fl_id)+'</div><div style="font-size:11px;margin-top:4px;color:#334155">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><button data-order-id="'+esc(o.id)+'" onclick="flmConfirmUplinerDelivered(this.dataset.orderId)" style="width:100%;margin-top:9px;background:#059669;color:#fff;border:0;border-radius:9px;padding:9px;font-weight:900;cursor:pointer">✓ Delivered</button><div style="display:flex;gap:6px;margin-top:6px"><button onclick="this.parentElement.parentElement.remove()" style="flex:1;background:#e2e8f0;color:#334155;border:0;border-radius:8px;padding:7px;font-weight:800;cursor:pointer">Later</button><button onclick="localStorage.setItem(\'flm_upliner_mute\',\'1\'); this.closest(\'#flmUplinerDeliveryToast\').remove(); alert(\'Upliner notifications muted. Unmute from Products page.\')" style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:7px;font-size:10px;font-weight:700;cursor:pointer">Mute</button></div>';
-      document.body.appendChild(box);
-      setTimeout(function(){var t=document.getElementById('flmUplinerDeliveryToast'); if(t) t.remove();}, 8000);
-
+       var old=document.getElementById('flmUplinerDeliveryToast');if(old)old.remove();
+       var box=document.createElement('div');box.id='flmUplinerDeliveryToast';box.style.cssText='position:fixed;right:12px;bottom:82px;z-index:12050;background:#fff;border:1px solid #93c5fd;border-radius:12px;box-shadow:0 8px 22px rgba(15,23,42,.16);padding:10px;max-width:300px;width:calc(100% - 24px);font-size:12px;';
+       box.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="font-weight:900;color:#1e3a8a">🔔 New product request</div><button type="button" onclick="this.parentElement.parentElement.remove()" style="border:0;background:#f1f5f9;color:#475569;border-radius:50%;width:26px;height:26px;font-size:16px">×</button></div><div style="font-size:10px;color:#64748b;margin-top:4px">Order #'+esc(String(o.id).slice(0,8))+' • '+esc(o.user_name||o.fl_id)+'</div><div style="font-size:10px;margin-top:4px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><button data-order-id="'+esc(o.id)+'" onclick="flmConfirmUplinerDelivered(this.dataset.orderId)" style="width:100%;margin-top:8px;background:#059669;color:#fff;border:0;border-radius:8px;padding:8px;font-weight:900">✓ Mark Delivered</button>';
+       document.body.appendChild(box);
+       seen=seen.concat(fresh.map(function(x){return String(x.id);}));
+       localStorage.setItem('flm_upliner_seen_orders',JSON.stringify(seen.slice(-100)));
+       setTimeout(function(){if(box&&box.parentNode)box.remove();},12000);
     }catch(e){console.log('upliner delivery check:',e.message||e);}
   }
   function initUplinerRealtime(){
@@ -2597,26 +2588,22 @@ async function claimReward(pairs, name){
       var r=await supabaseClient.from('site_scrolls').select('message,sort_order').eq('active',true).order('sort_order',{ascending:true});
       if(r.error)throw r.error;var rows=r.data||[];
       if(!rows.length){box.style.display='none';return;}
-      var combined=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   •   ');
-      if(!combined){box.style.display='none';return;}
-      var text=combined;
-      // Duplicate for seamless loop
-      track.innerText=text+'   •   '+text+'   •   '+text;
+      var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
+      if(!text){box.style.display='none';return;}
       box.style.display='block';
-      // Force reflow and start CSS marquee immediately - no delay
-      track.style.animation='none';
-      track.offsetHeight;
-      var len=text.length;
-      var duration=Math.max(25, Math.min(90, len*0.35)); // 25s to 90s based on length - slower, readable
-      track.style.whiteSpace='nowrap';
-      track.style.display='inline-block';
-      track.style.animation='flmMarquee '+duration+'s linear infinite';
+      track.innerText=text+'   *   '+text+'   *   ';
+      track.style.transition='none';
+      track.style.transform='translateX(100%)';
       if(flmScrollTimer)clearTimeout(flmScrollTimer);
-      // reload data after animation completes to get new messages without interrupting
-      flmScrollTimer=setTimeout(loadScrolls,(duration*1000)+1000);
-    }catch(e){var b=document.getElementById('flmDashboardScroll');if(b) b.style.display='none';console.log('scrolls:',e.message);}
+      requestAnimationFrame(function(){
+        var distance=Math.max(track.scrollWidth/2,window.innerWidth*1.15);
+        var sec=Math.max(35,distance/24);
+        track.style.transition='transform '+sec+'s linear';
+        track.style.transform='translateX(-'+distance+'px)';
+        flmScrollTimer=setTimeout(function(){loadScrolls();},(sec*1000)+200);
+      });
+    }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
-
   function flmTodayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
   window.closeFlmLoginAnnouncement=function(){var box=document.getElementById('flmLoginAnnouncement');if(box)box.style.display='none';};
   async function loadFlmLoginAnnouncement(){
@@ -2629,7 +2616,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:min(52vh,420px);border-radius:12px;background:#0f172a;object-fit:contain"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:min(52vh,420px);object-fit:contain;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
@@ -2662,7 +2649,7 @@ async function claimReward(pairs, name){
       if(!rows.length){box.innerHTML='';box.style.display='none';return;}
       var m=rows[0];var src=String(m.media_data||m.media_url||'').trim();if(!src){box.innerHTML='';box.style.display='none';return;}
       var html='';
-      var mediaStyle='display:block;width:100%;height:auto;max-height:520px;object-fit:contain;object-position:center;border:0;border-radius:12px;background:#0f172a;';
+      var mediaStyle='display:block;width:100%;height:100%;object-fit:cover;object-position:center;border:0;border-radius:0;background:#000;';
       if(String(m.media_type||'').toLowerCase()==='video'){
         html='<video src="'+esc(src)+'" autoplay muted loop playsinline preload="auto" style="'+mediaStyle+'" onloadedmetadata="try{this.play()}catch(e){}"></video>';
       } else {
@@ -2673,8 +2660,19 @@ async function claimReward(pairs, name){
     }catch(e){box.innerHTML='';box.style.display='none';console.log('page media:',e.message);}
   }
   var oldShow=window.showSec;
-  window.showSec=function(id,fromPop){oldShow(id,fromPop); if(id==='dashboard'){ try{loadScrolls();}catch(e){} } loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmRefreshOrderOptions().then(function(){flmOrderMethodChanged();});loadUplinerDeliveryRequests(false);}};
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,400);loadScrolls();setTimeout(function(){try{loadActiveRoiCoupons();}catch(e){} loadUplinerDeliveryRequests(false);initUplinerRealtime();},700);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,120000); // refresh every 2 min, not 1 min - less flickerwindow.addEventListener('focus',function(){loadUplinerDeliveryRequests(false);}); // never show toast on focus - only badge update});
+  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmRefreshOrderOptions().then(function(){flmOrderMethodChanged();});loadUplinerDeliveryRequests(false);}};
+  document.addEventListener('DOMContentLoaded',function(){
+      loadScrolls();
+      loadActiveRoiCoupons();
+      loadFlmLoginAnnouncement();
+      loadUplinerDeliveryRequests(false);
+      initUplinerRealtime();
+      var sec=localStorage.getItem('flm_last_section')||'dashboard';
+      loadPageMedia(sec);
+      if(sec==='documents')loadDocuments();
+      setInterval(loadScrolls,60000);
+      window.addEventListener('focus',function(){loadUplinerDeliveryRequests(false);loadActiveRoiCoupons();});
+    });
 })();
 </script>
 <div id="roiCouponSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:100000;align-items:center;justify-content:center;padding:18px">
