@@ -534,42 +534,84 @@ async function findS(){
 function findMyStore(){var el=document.getElementById('sRes');if(!navigator.geolocation){el.innerHTML='Location unavailable on this device.';return;}el.innerHTML='<div style="padding:14px;text-align:center;color:#64748b">📍 Getting your location…</div>';navigator.geolocation.getCurrentPosition(async function(pos){try{var r=await supabaseClient.from('stores').select('*').eq('status','active');if(r.error)throw r.error;var near=(r.data||[]).filter(st=>st.latitude!=null&&st.longitude!=null).map(st=>{st.distance_km=storeDistanceKm(pos.coords.latitude,pos.coords.longitude,Number(st.latitude),Number(st.longitude));return st;}).filter(st=>st.distance_km<=25);renderStoreResults(near,'your current location');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626">Unable to find stores: '+escStore(e.message)+'</div>'; }},function(){el.innerHTML='<div style="padding:12px;color:#b45309">Location permission denied. Enter your pincode or town instead.</div>';},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});}
 let flmPincodeTimer=null;
 var flmPincodeTimer=null;
+
 async function flmLookupPincode(pin){
  pin=String(pin||'').replace(/\D/g,'').slice(0,6);
  var cityEl=document.getElementById('profCity');
- var msg=document.getElementById('profMsg');
  if(pin.length!==6)return;
  try{
-  // Prefer the FLM store table so the same pincode immediately drives Store Point availability.
+  var townFromStore='', foundStores=[];
   if(supabaseClient){
-   var sr=await supabaseClient.from('stores').select('name,store_name,town,city,pincode,address,phone,status').eq('status','active').eq('pincode',pin).limit(5);
-   var stores=sr.data||[];
-   if(stores.length){
-    var town=String(stores[0].town||stores[0].city||'').trim();
-    if(town){ if(cityEl) cityEl.value=town; document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=town; }); }
-    var hint=document.getElementById('profStoreHint');
-    if(hint){hint.style.display='block';hint.innerHTML='🏪 Store Point available: <b>'+escStore(stores[0].name||stores[0].store_name||'FLM Store')+'</b><br><span style="font-size:10px">'+escStore(stores[0].address||'')+'</span>';}
-    if(typeof flmRefreshOrderOptions==='function')flmRefreshOrderOptions();
-    return;
-   }
+   try{
+     var sr=await supabaseClient.from('stores').select('id,name,store_name,town,city,district,pincode,address,phone,status').eq('status','active');
+     var all=(sr.data||[]);
+     foundStores=all.filter(function(s){
+       var sp=String(s.pincode||'').replace(/\D/g,'').slice(0,6);
+       return sp===pin;
+     });
+     if(!foundStores.length){
+       var prefix4=pin.slice(0,4);
+       foundStores=all.filter(function(s){ return String(s.pincode||'').replace(/\D/g,'').startsWith(prefix4); });
+     }
+     if(foundStores.length){
+       townFromStore=String(foundStores[0].town||foundStores[0].city||foundStores[0].district||'').trim();
+       if(townFromStore){
+         if(cityEl) cityEl.value=townFromStore;
+         document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=townFromStore; });
+       }
+       var hint=document.getElementById('profStoreHint');
+       if(hint){
+         hint.style.display='block';
+         if(String(foundStores[0].pincode||'').replace(/\D/g,'').slice(0,6)===pin){
+           hint.innerHTML='🏪 <b>'+escStore(foundStores.length)+' Store Point(s) found for '+pin+'</b><br>🏬 '+escStore(foundStores[0].name||foundStores[0].store_name||'FLM Store')+'<br><span style="font-size:10px">'+escStore(foundStores[0].address||'')+'</span><br><span style="font-size:10px;color:#059669">Exact pincode match ✅</span>';
+         } else {
+           hint.innerHTML='🏪 Store Point nearby pincode: <b>'+escStore(foundStores[0].name||foundStores[0].store_name||'FLM Store')+'</b> ('+escStore(foundStores[0].pincode||'')+')<br><span style="font-size:10px">'+escStore(foundStores[0].address||'')+'</span>';
+         }
+       }
+       if(typeof flmRefreshOrderOptions==='function') await flmRefreshOrderOptions();
+     }
+   }catch(e){ console.log('store pincode lookup error', e.message); }
   }
-  // If there is no FLM store for that pincode, use India Post to fill the city/district automatically.
-  var resp=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(pin),{headers:{Accept:'application/json'}});
-  var data=await resp.json();
-  var po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];
-  if(po.length){
-   var city=String(po[0].District||po[0].Block||po[0].Division||'').trim();
-   if(city){
-     if(cityEl) cityEl.value=city;
-     // Also fill any other city input on page (delivery address form)
-     document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=city; });
-   }
-   var hint=document.getElementById('profStoreHint');
-   if(hint){hint.style.display='block';hint.innerHTML='🏪 No FLM Store Point found for this pincode yet. You can use <b>Mega Store Point</b> or <b>Collect from Upliner</b>.';}
-   if(typeof flmRefreshOrderOptions==='function')flmRefreshOrderOptions();
-  }
+  try{
+    var resp=await fetch('https://api.postalpincode.in/pincode/'+encodeURIComponent(pin),{headers:{Accept:'application/json'}});
+    var data=await resp.json();
+    var po=data&&data[0]&&Array.isArray(data[0].PostOffice)?data[0].PostOffice:[];
+    if(po.length){
+      var first=po[0];
+      var district=String(first.District||'').trim();
+      var block=String(first.Block||'').trim();
+      var division=String(first.Division||'').trim();
+      var state=String(first.State||'').trim();
+      var bestCity=townFromStore||block||district||division;
+      if(bestCity){
+        if(cityEl) cityEl.value=bestCity;
+        document.querySelectorAll('#profCity, input[id*="City" i]').forEach(function(c){ if(c) c.value=bestCity; });
+      }
+      if(!foundStores.length && supabaseClient && district){
+        try{
+          var sr2=await supabaseClient.from('stores').select('id,name,store_name,town,city,district,pincode,address,phone,status').eq('status','active');
+          var all2=sr2.data||[];
+          var distLower=district.toLowerCase();
+          var nearBy=all2.filter(function(s){
+            var t=String(s.town||s.city||s.district||'').toLowerCase();
+            var d=String(s.district||'').toLowerCase();
+            return t.includes(distLower) || distLower.includes(t) || d===distLower;
+          });
+          if(nearBy.length){
+            var hint2=document.getElementById('profStoreHint');
+            if(hint2){
+              hint2.style.display='block';
+              hint2.innerHTML='🏪 No exact store for '+pin+' ('+escStore(block||district)+'), but nearby store in same district:<br><b>'+escStore(nearBy[0].name||nearBy[0].store_name||'Store')+'</b> - '+escStore(nearBy[0].pincode||'')+' ('+escStore(nearBy[0].town||nearBy[0].city||'')+')<br><span style="font-size:10px">'+escStore(nearBy[0].address||'')+'</span><br><span style="font-size:10px;color:#d97706">~22 km away from Bangarupalem area - you can still select Store Point or use Mega Store / Upliner</span>';
+            }
+          }
+        }catch(e){}
+      }
+      if(typeof flmRefreshOrderOptions==='function') await flmRefreshOrderOptions();
+    }
+  }catch(e){ console.log('postal lookup error', e.message); }
  }catch(e){console.log('pincode lookup:',e.message||e);}
 }
+
 function flmBindPincodeLookup(){
  var inputs=document.querySelectorAll('#profPincode, input[id*="Pincode" i], input[placeholder*="pincode" i]');
  if(!inputs.length){ inputs=[document.getElementById('profPincode')]; }
@@ -2496,7 +2538,7 @@ async function claimReward(pairs, name){
       return exact[0]||null;
     }catch(e){console.log('nearest store lookup:',e.message||e);return null;}
   }
-  async function flmRefreshOrderOptions(){
+  async async function flmRefreshOrderOptions(){
     var sel=document.getElementById('flmOrderMethod');if(!sel)return null;
     var previous=sel.value;
     var store=await flmFindNearestStore();
