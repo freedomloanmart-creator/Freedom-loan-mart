@@ -153,7 +153,7 @@ body{background:#eef2f7;color:#0f172a}
     <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
-<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes flmTickerMove{from{transform:translateX(100%) }to{transform:translateX(-100%)}}#flmDashboardScroll{white-space:nowrap;overflow:hidden}#flmScrollTrack{display:inline-block;white-space:nowrap;animation:flmTickerMove 28s linear infinite;will-change:transform}</style>
+<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes flmTickerMove{0%{transform:translateX(100%)}82%{transform:translateX(-100%)}100%{transform:translateX(-100%)}}#flmDashboardScroll{white-space:nowrap;overflow:hidden}#flmScrollTrack{display:inline-block;white-space:nowrap;animation:flmTickerMove 45s linear infinite;will-change:transform}</style>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -325,7 +325,6 @@ body{background:#eef2f7;color:#0f172a}
     <div style="margin-top:12px;font-size:12px;font-weight:800">Delivery / Collection Option</div>
     <select id="flmOrderMethod" onchange="flmOrderMethodChanged()" style="width:100%;margin-top:6px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff">
       <option value="mega_store_courier">Courier through Mega Store Point</option>
-      <option value="store_point">Collect at Store Point</option>
       <option value="appliener">👤 Select from Upliner</option>
     </select>
     <div id="flmOrderExtra" style="margin-top:10px"></div>
@@ -2458,15 +2457,61 @@ async function claimReward(pairs, name){
   window.flmQty=function(id,d){setQty(id,d);};
   async function flmFindNearestStore(){
     try{
-      var p=await flmGetProfile(),pin=String((p||{}).pincode||'').trim(),town=String((p||{}).city||(p||{}).town||'').trim().toLowerCase();
+      var p=await flmGetProfile();
+      var pin=String((p||{}).pincode||'').trim();
+      var town=String((p||{}).city||(p||{}).town||'').trim();
       var r=await supabaseClient.from('stores').select('*').eq('status','active');
       if(r.error)throw r.error;
       var arr=r.data||[];
+      if(!arr.length)return null;
+
+      /*
+        Store availability for product collection is based on the SAME
+        25 KM rule used by Store Network. Do not require an exact pincode
+        match: e.g. Bangarupalem 517416 can use the Palamaner store 517408
+        when the calculated distance is within 25 KM.
+      */
       var exact=arr.filter(function(st){
-        var sp=String(st.pincode||'').trim(),stTown=String(st.town||st.city||'').trim().toLowerCase();
-        return (pin && sp===pin) || (town && stTown===town);
+        var sp=String(st.pincode||st.pin||st.postal_code||st.pin_code||'').trim();
+        var stTown=String(st.town||st.city||'').trim().toLowerCase();
+        return (pin && sp===pin) || (town && stTown===town.toLowerCase());
       });
-      return exact[0]||null;
+
+      /* Exact store with coordinates is the most reliable centre. */
+      var exactWithCoords=exact.find(function(st){
+        return Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
+      });
+      if(exactWithCoords){
+        var centre={lat:Number(exactWithCoords.latitude),lng:Number(exactWithCoords.longitude)};
+        var nearby=arr.filter(function(st){
+          return Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
+        }).map(function(st){
+          st.distance_km=storeDistanceKm(centre.lat,centre.lng,Number(st.latitude),Number(st.longitude));
+          return st;
+        }).filter(function(st){return st.distance_km<=25;})
+          .sort(function(a,b){return a.distance_km-b.distance_km;});
+        return nearby[0]||exactWithCoords;
+      }
+
+      /*
+        No exact store: geocode the member's town + pincode together so the
+        pincode is not resolved to an unrelated locality. Then calculate
+        distance to every active store.
+      */
+      var geoQuery=[town,pin].filter(Boolean).join(' ').trim();
+      var g=geoQuery && typeof geocodeStoreSearch==='function' ? await geocodeStoreSearch(geoQuery) : null;
+      if(g && Number.isFinite(g.lat) && Number.isFinite(g.lng)){
+        var nearby2=arr.filter(function(st){
+          return Number.isFinite(Number(st.latitude)) && Number.isFinite(Number(st.longitude));
+        }).map(function(st){
+          st.distance_km=storeDistanceKm(g.lat,g.lng,Number(st.latitude),Number(st.longitude));
+          return st;
+        }).filter(function(st){return st.distance_km<=25;})
+          .sort(function(a,b){return a.distance_km-b.distance_km;});
+        return nearby2[0]||null;
+      }
+
+      return null;
     }catch(e){console.log('nearest store lookup:',e.message||e);return null;}
   }
   async function flmRefreshOrderOptions(){
@@ -2521,7 +2566,7 @@ async function claimReward(pairs, name){
     var msg=document.getElementById('flmOrderMsg');msg.innerText='Placing order...';
     try{var r=await supabaseClient.from('orders').insert(payload).select().single();if(r.error)throw r.error;cart={};renderCart();msg.style.color='#059669';msg.innerText='✅ Order placed successfully. Order ID: '+String(r.data.id).slice(0,8);await loadMyOrders();}catch(e){msg.style.color='#dc2626';msg.innerText='Order failed: '+e.message;}
   };
-  async function loadMyOrders(){var el=document.getElementById('flmMyOrders');if(!el)return;try{var r=await supabaseClient.from('orders').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders yet.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-weight:800;color:#2563eb">'+esc(o.status||'pending')+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><div style="font-weight:900;margin-top:5px">'+money2(o.total_amount)+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(o.fulfillment_method||'')+' • '+(o.created_at?new Date(o.created_at).toLocaleString():'')+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">Orders unavailable: '+esc(e.message)+'</div>';}}
+  async function loadMyOrders(){var el=document.getElementById('flmMyOrders');if(!el)return;try{var r=await supabaseClient.from('orders').select('*').eq('fl_id',getFlId()).order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="color:#64748b">No orders yet.</div>';return;}el.innerHTML=rows.map(function(o){var items=Array.isArray(o.items)?o.items:[];var upl=String(o.appliener_fl_id||'').trim();var uplHtml=(String(o.fulfillment_method||'')==='appliener'&&upl)?'<div style="margin-top:7px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:8px;font-size:11px;color:#1e3a8a"><b>Upliner ID:</b> '+esc(upl)+'</div>':'';return '<div style="border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Order #'+esc(String(o.id).slice(0,8))+'</b><span style="font-weight:800;color:#2563eb">'+esc(o.status||'pending')+'</span></div><div style="font-size:11px;color:#475569;margin-top:5px">'+items.map(function(i){return esc(i.name)+' × '+i.qty;}).join(', ')+'</div><div style="font-weight:900;margin-top:5px">'+money2(o.total_amount)+'</div>'+uplHtml+'<div style="font-size:10px;color:#64748b;margin-top:4px">'+esc(o.fulfillment_method||'')+' • '+(o.created_at?new Date(o.created_at).toLocaleString():'')+'</div></div>';}).join('');}catch(e){el.innerHTML='<div style="color:#991b1b">Orders unavailable: '+esc(e.message)+'</div>';}}
   var flmUplinerChannel=null;
   function flmCloseUplinerRequests(){var m=document.getElementById('flmUplinerRequestsModal');if(m)m.remove();}
   function flmOpenUplinerRequests(rows){
@@ -2573,10 +2618,10 @@ async function claimReward(pairs, name){
       var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
       if(!text){box.style.display='none';return;}
       box.style.display='block';
-      track.innerText=text+'   *   '+text+'   *   '+text;
+      track.innerText=text+'   *   '+text;
       track.style.animation='none';
       void track.offsetWidth;
-      track.style.animation='flmTickerMove 28s linear infinite';
+      track.style.animation='flmTickerMove 45s linear infinite';
       if(flmScrollTimer)clearTimeout(flmScrollTimer);
       flmScrollTimer=setTimeout(loadScrolls,60000);
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
