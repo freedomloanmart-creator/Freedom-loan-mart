@@ -29,7 +29,12 @@ function showSec(id,fromPop){
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans') loadLoanPanel();
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans'){
+   // Company Fund release/sync can update wallets.loan_wallet during loadLoanPanel().
+   // Refresh My Wallets only after that work completes so the new Fund Wallet
+   // amount is visible immediately without requiring the user to click Open Fund Wallet.
+   loadLoanPanel().then(function(){return loadWalletData();}).catch(function(e){console.log('fund wallet refresh:',e.message||e);});
+  }
 }
 function initFlmNavigation(){
  if(!requireLogin()) return;
@@ -152,8 +157,8 @@ body{background:#eef2f7;color:#0f172a}
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:48px;bottom:10px;overflow:hidden;border-radius:14px;background:rgba(15,23,42,.18);z-index:3"></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
-<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
-  <div style="width:min(100%,430px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;animation:flmAnnPop .22s ease-out">
+<div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:12px;overflow:auto">
+  <div style="width:min(100%,430px);max-height:92dvh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow-y:auto;animation:flmAnnPop .22s ease-out">
     <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
       <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
@@ -163,7 +168,7 @@ body{background:#eef2f7;color:#0f172a}
     <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
-<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
+<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}#flmAnnMedia img,#flmAnnMedia video{max-width:100%;height:auto;object-fit:contain}</style>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -1143,7 +1148,21 @@ async function loadWalletData(){
     }catch(e){}
 
   }catch(e){}
-  var b=await supabaseClient.from('binary_summary').select('total_pairs,daily_pairs_today,daily_income_today').eq('fl_id',flId).single();var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
+  var b=await supabaseClient.from('binary_summary').select('total_pairs,daily_pairs_today,daily_income_today').eq('fl_id',flId).single();var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);
+  // MATCHING WALLET DISPLAY FIX: one completed binary pair = Rs.200.
+  // If an old/duplicate wallet value is higher than the member's real pair
+  // entitlement, cap the visible matching balance to the live pair count.
+  // This fixes cases where transaction history shows Rs.200 for Pair 1 but
+  // the wallet card incorrectly shows Rs.400. Withdrawals are still governed
+  // by the database wallet/withdrawal RPC; this is a display reconciliation.
+  var pairCap=Math.max(0,Number(liveStats.pairs||0))*200;
+  if(Number.isFinite(pairCap) && Number(ma)>pairCap){
+    ma=pairCap;
+    FLM_WALLET.matching=pairCap;
+    FLM_WALLET.rawMatching=pairCap;
+  }
+  FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
+  FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0);
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
   var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
   try{var t=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).in('status',['approved','completed']);var sum=(t.data||[]).reduce(function(a,x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase();var isWithdrawal=(tt==='withdrawal'&&['roi','matching','loan'].indexOf(wt)>=0)||(tt==='roi_coupon'&&wt==='roi')||(tt==='pin_purchase'&&['matching','loan'].indexOf(wt)>=0);return isWithdrawal?a+Number(x.amount||0):a;},0);FLM_WALLET.totalWithdrawn=sum;var te=document.getElementById('totalWithdrawn');if(te)te.innerText=money(sum);}catch(e){}
@@ -2669,7 +2688,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;height:auto;max-height:60dvh;object-fit:contain;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;height:auto;max-height:60dvh;object-fit:contain;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
