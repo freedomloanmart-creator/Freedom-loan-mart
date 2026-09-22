@@ -27,8 +27,8 @@ function showSec(id,fromPop){
  var menu=document.getElementById('menu');var overlay=document.getElementById('overlay');if(menu) menu.classList.remove('open');if(overlay) overlay.classList.remove('show');
  var titleMap={'dashboard':'Dashboard','profile':'My Profile','invite':'Invite & Share Links','downline':'My Team - Downline','tokens':'My Pins - Tokens','wallets':'My Wallets','stores':'Store Network','loans':'Company Fund','products':'Products','rewards':'Rewards Club','withdraw':'Withdraw','support':'Help Center','coupons':'My ROI Coupons','documents':'Documents','coupons':'My ROI Coupons'};
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
- if(!fromPop)localStorage.setItem('flm_last_section',id);var menuItems=document.querySelectorAll('.menu-item');for(var mi=0;mi<menuItems.length;mi++){menuItems[mi].classList.remove('active');var oc=menuItems[mi].getAttribute('onclick')||'';if(oc.indexOf("showSec('"+id+"'")>=0)menuItems[mi].classList.add('active');}if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
- if(id==='rewards') loadRewards();if(id==='dashboard')setTimeout(loadScrolls,0);
+ if(!fromPop)localStorage.setItem('flm_last_section',id);if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
+ if(id==='rewards') loadRewards();
  if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans'){
    // Company Fund release/sync can update wallets.loan_wallet during loadLoanPanel().
    // Read the wallet again immediately and paint the Fund Wallet card; the member
@@ -55,8 +55,19 @@ function initFlmNavigation(){
  if(!history.state||!history.state.flmSection) history.replaceState({flmSection:saved},'',window.location.href.split('#')[0]);
  showSec(saved,true);
  FLM_NAV_READY=true;
- window.addEventListener('popstate',function(ev){if(getFlId()){var sec=ev.state&&ev.state.flmSection;if(!sec)sec=localStorage.getItem('flm_last_section')||'dashboard';showSec(sec,true);localStorage.setItem('flm_last_section',sec);}});
+ window.addEventListener('popstate',function(e){if(!getFlId())return;var sec=(e.state&&e.state.flmSection)||'dashboard';showSec(sec,true);localStorage.setItem('flm_last_section',sec);});
 }
+var flmRoiRefreshTimer=null;
+function startFlmRoiAutoRefresh(){
+  if(flmRoiRefreshTimer)clearInterval(flmRoiRefreshTimer);
+  flmRoiRefreshTimer=setInterval(function(){
+    try{
+      var sec=document.getElementById('sec-loans');
+      if(sec&&getComputedStyle(sec).display!=='none'&&typeof loadLoanPanel==='function') loadLoanPanel();
+    }catch(e){console.log('ROI auto refresh:',e.message||e);}
+  },30000);
+}
+startFlmRoiAutoRefresh();
 function logout(){localStorage.removeItem('flm_session');location.href='./login.html';}
 </script>
 <style>
@@ -180,7 +191,7 @@ body{background:#eef2f7;color:#0f172a}
     <div style="padding:0 18px 18px"><button type="button" onclick="closeFlmLoginAnnouncement()" style="width:100%;border:0;border-radius:11px;padding:12px;background:#2563eb;color:#fff;font-weight:900;font-size:14px">✓ Got it</button></div>
   </div>
 </div>
-<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}#flmAnnMedia{width:100%;box-sizing:border-box;text-align:center}#flmAnnMedia img,#flmAnnMedia video{display:block;width:100%;max-width:100%;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center;border-radius:10px}#flmLoginAnnouncement{align-items:flex-start!important;padding:8px!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch}#flmLoginAnnouncement>div{width:min(100%,520px)!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important;overflow-x:hidden!important}@media(max-width:520px){#flmLoginAnnouncement>div{width:100%!important;border-radius:16px!important}#flmAnnMessage{padding:16px 14px!important}#flmAnnMedia{padding:0 12px 12px!important}}</style>
+<style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}#flmAnnMedia{width:100%;box-sizing:border-box}#flmAnnMedia img,#flmAnnMedia video{display:block;width:100%;max-width:100%;height:auto!important;max-height:none!important;object-fit:contain!important;border-radius:10px}</style>
 <div class="menu" id="menu">
 <div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
 <div style="padding:8px 0">
@@ -298,18 +309,22 @@ body{background:#eef2f7;color:#0f172a}
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px;border:2px solid #2563eb"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">💳</div><b style="color:#fff">Purchase Pins - Deposit</b></div><div style="text-align:center;padding:6px 0;color:#dbeafe;font-size:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8)">1 Pin = Rs. 2000 - Extra bonus: 25 pins=1 extra, 50 pins=4 extra, 100 pins=10 extra + Bangkok Trip</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">How many pins you want? (1 pin also allowed)</div><input id="pinsWant" type="number" min="1" placeholder="Eg: 10" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px" oninput="calcPins()"></div><div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#64748b">Payable Amount (pins × 2000):</span><b style="font-size:13px" id="payableAmount">Rs. 0</b></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-size:11px;color:#64748b">Extra Bonus Pins:</span><b style="font-size:13px;color:#059669" id="extraPins">0 extra</b></div><div style="display:flex;justify-content:space-between;margin-top:6px;border-top:1px dashed #bfdbfe;padding-top:6px"><span style="font-size:12px;font-weight:700">You Get Total:</span><b style="font-size:14px;color:#1e40af" id="totalPinsGet">0 pins</b></div><div style="margin-top:6px;font-size:10px;color:#2563eb" id="bonusMsg">Enter pins - 25 pins=1 extra (26 total), 50 pins=4 extra (54 total), 100 pins=10 extra (110 total) + Bangkok Trip</div></div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px"><div style="font-weight:800;font-size:13px">💳 Payment Options - UPI / USDT BEP20</div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
 <div style="background:#fff;border-radius:12px;padding:10px;text-align:center;border:1px solid #e2e8f0">
-<div style="font-size:11px;font-weight:700">PhonePe UPI</div><div style="font-size:11px;margin-top:4px">UPI ID: <b id="userPinUpiId">freedomloanmart@nyes</b></div>
-<img id="userPinUpiQr" src="./phonepe_qr.jpeg" style="width:100%;max-width:180px;margin-top:8px;border-radius:8px;border:1px solid #e2e8f0">
-<div style="margin-top:6px"><span style="background:#dbeafe;padding:4px 10px;border-radius:999px;font-size:11px;cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('userPinUpiId').innerText);alert('UPI ID copied')">📋 Copy UPI ID</span></div>
+<div style="font-size:11px;font-weight:700">PhonePe UPI</div>
+<div style="font-size:11px;margin-top:4px">UPI ID: <b>freedomloanmart@nyes</b></div>
+<div style="font-size:10px;color:#64748b;margin-top:2px">Name: KUSU SANTHOSHI</div>
+<img src="./phonepe_qr.jpeg" style="width:100%;max-width:180px;margin-top:8px;border-radius:8px;border:1px solid #e2e8f0">
+<div style="margin-top:6px"><span style="background:#dbeafe;padding:4px 10px;border-radius:999px;font-size:11px;cursor:pointer" onclick="navigator.clipboard.writeText('freedomloanmart@nyes');alert('UPI ID copied: freedomloanmart@nyes')">📋 Copy UPI ID</span></div>
 </div>
 <div style="background:#fff;border-radius:12px;padding:10px;text-align:center;border:1px solid #e2e8f0">
-<div style="font-size:11px;font-weight:700">USDT BEP20</div><div id="userPinUsdtAddress" style="font-size:9px;margin-top:4px;word-break:break-all"><b>0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7</b></div>
-<img id="userPinUsdtQr" src="./usdt_qr.jpeg" style="width:100%;max-width:180px;margin-top:8px;border-radius:8px;border:1px solid #e2e8f0">
-<div style="font-size:10px;color:#059669;margin-top:6px" id="userPinUsdtAmount">USDT amount will be calculated from the live INR rate.</div>
-<div style="margin-top:6px"><span style="background:#dcfce7;padding:4px 10px;border-radius:999px;font-size:11px;cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('userPinUsdtAddress').innerText);alert('USDT Address copied')">📋 Copy Address</span></div>
+<div style="font-size:11px;font-weight:700">USDT BEP20</div>
+<div style="font-size:9px;margin-top:4px;word-break:break-all"><b>0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7</b></div>
+<img src="./usdt_qr.jpeg" style="width:100%;max-width:180px;margin-top:8px;border-radius:8px;border:1px solid #e2e8f0">
+<div style="margin-top:6px"><span style="background:#dcfce7;padding:4px 10px;border-radius:999px;font-size:11px;cursor:pointer" onclick="navigator.clipboard.writeText('0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7');alert('USDT Address copied')">📋 Copy Address</span></div>
 <div style="font-size:8px;color:#94a3b8;margin-top:4px">Only BEP20 assets. Other tokens will be lost.</div>
-</div></div>
-<div style="font-size:10px;color:#92400e;margin-top:8px;text-align:center">Pay exact payable amount - Same UPI/USDT for registration & registration payments</div></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Payment Screenshot Upload</div><input id="payScreenshot" type="file" accept="image/*" style="width:100%;padding:10px;border:1px dashed #cbd5e1;border-radius:10px;font-size:12px"></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">UTR / Transaction Hash</div><input id="payUTR" placeholder="Enter UTR number or USDT Tx Hash" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><button id="submitDepositBtn" onclick="submitPinPurchase()" style="width:100%;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Submit Deposit - Enter Pins Count</button><div id="purchaseMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div></div>
+</div>
+</div>
+<div style="font-size:10px;color:#92400e;margin-top:8px;text-align:center">Pay exact payable amount - Same UPI/USDT for registration & pin purchase</div>
+</div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">Payment Screenshot Upload</div><input id="payScreenshot" type="file" accept="image/*" style="width:100%;padding:10px;border:1px dashed #cbd5e1;border-radius:10px;font-size:12px"></div><div><div style="font-size:12px;font-weight:700;margin-bottom:6px">UTR / Transaction Hash</div><input id="payUTR" placeholder="Enter UTR number or USDT Tx Hash" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><button id="submitDepositBtn" onclick="submitPinPurchase()" style="width:100%;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;cursor:pointer">Submit Deposit - Enter Pins Count</button><div id="purchaseMsg" style="font-size:11px;text-align:center;margin-top:8px"></div></div></div>
 <div class="card" style="border:2px solid #2563eb;background:#f8fafc"><div style="font-weight:800;color:#1e40af">📋 Pin Purchase Status</div><div id="purchaseStatus" style="margin-top:10px;padding:12px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;color:#64748b">Checking latest submission...</div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎟️</div><b style="color:#fff">Unused pins</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:11px;background:linear-gradient(135deg,#0f766e,#0e7490)">Ready to use - Green</div><div style="padding:0"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;background:#f0f9ff;padding:10px 16px;font-size:12px;font-weight:700;color:#1e3a5a;border-bottom:1px solid #e2e8f0"><div>TOKEN</div><div>AMOUNT</div></div><div id="unusedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No unused pins available.</div></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🎫</div><b style="color:#fff">Used pins</b></div><div style="text-align:center;padding:6px 0;color:#fef3c7;font-size:11px;background:linear-gradient(135deg,#b45309,#9f1239)">Already consumed - Brown</div><div style="padding:0"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff7ed;padding:10px 16px;font-size:12px;font-weight:700;color:#7c2d12;border-bottom:1px solid #fed7aa"><div>TOKEN</div><div>AMOUNT</div><div>USED IN</div></div><div id="usedPinsList" style="max-height:300px;overflow:auto"><div style="padding:20px;text-align:center;color:#64748b">No used pins yet.</div></div></div></div>
 </div>
@@ -369,8 +384,7 @@ body{background:#eef2f7;color:#0f172a}
     <select id="flmOrderMethod" onchange="flmOrderMethodChanged()" style="width:100%;margin-top:6px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff">
       <option value="mega_store_courier">Courier through Mega Store Point</option>
       <option value="store_point">Collect at Store Point</option>
-      
-    </select>
+          </select>
     <div id="flmOrderExtra" style="margin-top:10px"></div>
     <div id="flmOrderAddress" style="margin-top:10px;background:#fff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px">Loading saved address...</div>
     <button onclick="flmPlaceOrder()" style="width:100%;margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:900">📦 Place Order</button>
@@ -643,7 +657,7 @@ async function flmLookupPincode(pin){
           '<span style="font-size:10px">'+escStore(nearest.address||'')+'</span>'+
           '<br><span style="font-size:10px">Your pincode: '+escStore(pin)+' • '+escStore(city)+'</span>';
       }else{
-        hint.innerHTML='🏪 No FLM Store Point found within 25 KM for this pincode. You can use <b>Mega Store Point</b>.';
+        hint.innerHTML='🏪 No FLM Store Point found within 25 KM for this pincode. You can use <b>Mega Store Point</b> or <b>Collect from Upliner</b>.';
       }
     }
     if(typeof flmRefreshOrderOptions==='function')await flmRefreshOrderOptions();
@@ -1070,7 +1084,7 @@ async function copyUserPin(pinCode){
   document.body.removeChild(ta);
  }
 }
-async function loadPins(){if(window.flmLoadUserPaymentSettings)await window.flmLoadUserPaymentSettings();
+async function loadPins(){
  if(!requireLogin()) return;
  var flId=getFlId();
  loadPurchaseStatus();
@@ -1218,15 +1232,15 @@ async function loadRoiCouponRows(limit){
  var flId=getFlId();if(!flId||!supabaseClient)return [];
  try{
   var r=await supabaseClient.from('roi_coupons').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(limit||100);
-  if(!r.error && r.data && r.data.length)return r.data;
-  // Fallback on both RLS errors and an empty direct coupon-table result.
-  var wr=await supabaseClient.from('wallet_transactions').select('id,amount,status,created_at,title,remarks,transaction_type,wallet_type').eq('fl_id',flId).order('created_at',{ascending:false}).limit(limit||100);
-  if(wr.error)throw (r.error||wr.error);
-  var seen={};return (wr.data||[]).filter(function(x){var tt=String(x.transaction_type||'').toLowerCase(),wt=String(x.wallet_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),rm=String(x.remarks||'').toLowerCase();return tt==='roi_coupon'||ti.indexOf('roi coupon')>=0||ti.indexOf('coupon')>=0||rm.indexOf('coupon')>=0;}).map(function(x){var blob=String(x.title||'')+' '+String(x.remarks||'');var mm=blob.match(/(?:coupon(?:\s*code)?|code)\s*[:#-]?\s*([A-Za-z0-9_-]{6,})/i);var code=mm?mm[1]:'';var key=code||String(x.id||'');if(seen[key])return null;seen[key]=1;return {id:x.id,coupon_code:code,amount:Math.abs(Number(x.amount||0)),status:x.status||'issued',created_at:x.created_at};}).filter(Boolean);
+  if(!r.error)return r.data||[];
+  // Fallback: show member-owned ROI coupon transactions when direct coupon-table RLS blocks the read.
+  var wr=await supabaseClient.from('wallet_transactions').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).eq('transaction_type','roi_coupon').not('coupon_code','is',null).order('created_at',{ascending:false}).limit(limit||100);
+  if(wr.error)throw r.error;
+  return (wr.data||[]).map(function(x){return {id:x.id,coupon_code:x.coupon_code,amount:x.amount,status:x.status||'processing',created_at:x.created_at};});
  }catch(e){throw e;}
 }
 function flmUnusedCouponRows(rows){
- return (rows||[]).filter(function(x){var st=String(x.status||'issued').trim().toLowerCase();return st!=='redeemed'&&st!=='used'&&st!=='rejected'&&st!=='cancelled';});
+ return (rows||[]).filter(function(x){var st=String(x.status||'issued').trim().toLowerCase();return st!=='redeemed'&&st!=='used'&&st!=='completed'&&st!=='rejected'&&st!=='cancelled';});
 }
 async function loadActiveRoiCoupons(){
  var el=document.getElementById('roiCouponBox');if(!el||!supabaseClient)return;
@@ -1792,8 +1806,9 @@ async function loadLoanPanel(){
         var syncStart= currentRoi ? firstVal(currentRoi,['start_date','started_at','created_at'],null) : null;
         var syncStartMs=syncStart ? new Date(syncStart).getTime() : 0;
         if(syncStartMs && !isNaN(syncStartMs)){
-          var sdt=new Date(syncStartMs+330*60000);var startKey=sdt.getUTCFullYear()+'-'+String(sdt.getUTCMonth()+1).padStart(2,'0')+'-'+String(sdt.getUTCDate()).padStart(2,'0');
-          roiSyncTxs=roiSyncTxs.filter(function(tx){var tm=new Date(tx.created_at).getTime();if(isNaN(tm))return false;var cdt=new Date(tm+330*60000);var creditKey=cdt.getUTCFullYear()+'-'+String(cdt.getUTCMonth()+1).padStart(2,'0')+'-'+String(cdt.getUTCDate()).padStart(2,'0');return creditKey>=startKey;});
+          roiSyncTxs=roiSyncTxs.filter(function(tx){
+            return new Date(tx.created_at).getTime()>=syncStartMs;
+          });
         }
 
         if(roiSyncTxs.length){
@@ -2592,6 +2607,7 @@ async function claimReward(pairs, name){
     var store=await flmFindNearestStore();
     var html='<option value="mega_store_courier">Courier through Mega Store Point</option>';
     if(store)html+='<option value="store_point">Collect at Store Point</option>';
+    html+='<option value="appliener">Collect from Upliner</option>';
     sel.innerHTML=html;
     if(previous==='store_point' && !store)sel.value='mega_store_courier';
     else if(previous && Array.from(sel.options).some(function(o){return o.value===previous;}))sel.value=previous;
@@ -2609,9 +2625,21 @@ async function claimReward(pairs, name){
         box.dataset.storeId=st.id||'';box.dataset.storeName=st.name||st.store_name||'Store';box.dataset.storeCode=st.code||st.store_code||'';
       }else{
         await flmRefreshOrderOptions();
-        box.innerHTML='<div style="color:#92400e">No nearest Store Point is available for your location. Please use Mega Store Point.</div>';
+        box.innerHTML='<div style="color:#92400e">No nearest Store Point is available for your location. Please use Mega Store Point or Upliner.</div>';
         return;
       }
+    }else if(method==='appliener'){
+      var p2=await flmGetProfile(),sponsor=String((p2||{}).sponsor_id||'').trim();
+      if(sponsor){
+        try{
+          var r2=await supabaseClient.from('users').select('fl_id,full_name,mobile').eq('fl_id',sponsor.toUpperCase()).single(),ap=r2.data||{};
+          box.innerHTML='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px"><b>Upliner Details</b><br>User ID: <b>'+esc(ap.fl_id||sponsor)+'</b><br>Name: '+esc(ap.full_name||'')+'<br>Mobile: '+esc(ap.mobile||'')+'<br><span style="color:#1d4ed8;font-weight:800">Your upliner will receive a product delivery request.</span></div>';
+          box.dataset.applienerId=ap.fl_id||sponsor;box.dataset.applienerMobile=ap.mobile||'';
+        }catch(e){
+          box.innerHTML='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;font-size:11px"><b>Upliner User ID:</b> '+esc(sponsor)+'<br>Mobile details unavailable.<br><span style="color:#1d4ed8;font-weight:800">Your upliner will receive a product delivery request.</span></div>';
+          box.dataset.applienerId=sponsor;box.dataset.applienerMobile='';
+        }
+      }else box.innerHTML='<div style="color:#92400e">Upliner details are not available for this account.</div>';
     }else{
       box.innerHTML='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px">Admin will courier the order through Mega Store Point.</div>';
     }
@@ -2658,25 +2686,25 @@ async function claimReward(pairs, name){
     try{var r=await supabaseClient.from('orders').update({status:'delivered',updated_at:new Date().toISOString()}).eq('id',id).eq('appliener_fl_id',String(getFlId()).toUpperCase()).eq('fulfillment_method','appliener');if(r.error)throw r.error;alert('✅ Product delivery marked as delivered.');var t=document.getElementById('flmUplinerDeliveryToast');if(t)t.remove();await loadUplinerDeliveryRequests();if(document.getElementById('flmMyOrders'))await loadMyOrders();}catch(e){alert('❌ Could not update delivery: '+(e.message||e));}
   };
 
-  var flmScrollTimer=null,flmMediaTimer=null;
+  var flmScrollTimer=null,flmScrollPauseTimer=null,flmMediaTimer=null;
   async function loadScrolls(){
     var box=document.getElementById('flmDashboardScroll'),track=document.getElementById('flmScrollTrack');if(!box||!track)return;
     try{
       var r=await supabaseClient.from('site_scrolls').select('message,sort_order').eq('active',true).order('sort_order',{ascending:true});
       if(r.error)throw r.error;var rows=r.data||[];
       if(!rows.length){box.style.display='none';return;}
-      var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');if(!text){box.style.display='none';return;}
-      box.style.display='block';if(flmScrollTimer)clearTimeout(flmScrollTimer);track.style.transition='none';track.style.transform='translateX(100%)';track.innerText=text+'   *   '+text;
+      var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
+      if(!text){box.style.display='none';return;}
+      box.style.display='block';
+      if(flmScrollTimer)clearTimeout(flmScrollTimer);if(flmScrollPauseTimer)clearTimeout(flmScrollPauseTimer);
+      track.style.transition='none';track.style.transform='translateX(0)';track.innerText=text;
       requestAnimationFrame(function(){
-        var distance=Math.max(track.scrollWidth,window.innerWidth*1.25);
-        var sec=Math.max(26,distance/22);
-        track.style.transition='transform '+sec+'s linear';
-        track.style.transform='translateX(-'+distance+'px)';
+        var distance=Math.max(track.scrollWidth+window.innerWidth,window.innerWidth*1.4),sec=Math.max(18,distance/28);
+        track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';
         flmScrollTimer=setTimeout(function(){
-          track.style.transition='none';
-          track.style.transform='translateX(100%)';
-          flmScrollTimer=setTimeout(function(){loadScrolls();},5000);
-        },sec*1000+50);
+          track.style.transition='none';track.style.transform='translateX(0)';
+          flmScrollPauseTimer=setTimeout(loadScrolls,5000);
+        },sec*1000);
       });
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
@@ -2737,8 +2765,8 @@ async function claimReward(pairs, name){
     }catch(e){box.innerHTML='';box.style.display='none';console.log('page media:',e.message);}
   }
   var oldShow=window.showSec;
-  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmRefreshOrderOptions().then(function(){flmOrderMethodChanged();});}};
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,650);loadScrolls();setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);});
+  window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmRefreshOrderOptions().then(function(){flmOrderMethodChanged();});loadUplinerDeliveryRequests(false);}};
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,650);setTimeout(loadScrolls,400);setTimeout(function(){loadUplinerDeliveryRequests(false);initUplinerRealtime();},900);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);window.addEventListener('focus',function(){loadUplinerDeliveryRequests(false);});});
 })();
 </script>
 <div id="roiCouponSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:100000;align-items:center;justify-content:center;padding:18px">
@@ -2791,7 +2819,6 @@ async function claimReward(pairs, name){
     try{var p=await supabaseClient.from('payment_settings').select('upi_id,upi_qr,usdt_address,usdt_qr,usdt_label').eq('id',1).maybeSingle();if(p.data)out=Object.assign(out,p.data);}catch(e){console.log('FD payment_settings:',e.message);}
     return out;
   }
-  async function fdLiveUsdtInr(){try{var r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=inr&precision=6',{cache:'no-store'});var d=await r.json();var rate=Number(d&&d.tether&&d.tether.inr||0);return rate>0?rate:0;}catch(e){return 0;}}
   async function loadFixedReturns(){
     if(!requireLogin()||!supabaseClient)return;
     var plansEl=document.getElementById('fdPlansList'),myEl=document.getElementById('fdMyPlansList');
@@ -2855,7 +2882,6 @@ async function claimReward(pairs, name){
       var modal=document.createElement('div');modal.id='fdInvestModal';modal.style='position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:12000;display:flex;align-items:center;justify-content:center;padding:16px';
       modal.innerHTML=`<div style="width:min(520px,100%);max-height:92dvh;overflow:auto;background:#fff;border-radius:20px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Invest in ${fdEsc(x.plan_name||'Fixed Return Plan')}</b><button onclick="document.getElementById('fdInvestModal').remove()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:9px;padding:7px 10px">✕</button></div><div style="margin-top:10px;background:#f8fafc;border-radius:12px;padding:11px;font-size:11px;line-height:1.7"><b>Investment:</b> ${fdMoney(inv)}<br><b>Daily:</b> ${fdPct(x.daily_percent)} = ${fdMoney(daily)}<br><b>Days:</b> ${x.duration_days}<br><b>Total Return:</b> ${fdMoney(total)}<br><b>Total Value:</b> ${fdMoney(total)}</div><div style="margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px"><b>💳 Payment</b><div style="display:flex;gap:8px;margin-top:9px"><button id="fdPayTabUpi" type="button" onclick="fdSetPayMethod('UPI')" style="flex:1;border:2px solid #2563eb;background:#2563eb;color:#fff;border-radius:10px;padding:9px;font-weight:900">UPI Payment</button><button id="fdPayTabUsdt" type="button" onclick="fdSetPayMethod('USDT')" style="flex:1;border:2px solid #10b981;background:#fff;color:#047857;border-radius:10px;padding:9px;font-weight:900">USDT BEP20</button></div><div id="fdPayUpiBox" style="margin-top:10px;text-align:center"><div style="font-size:12px">UPI ID: <b id="fdPayUpiId">${fdEsc(s.upi_id||'freedomloans@upi')}</b></div><img id="fdPayUpiQr" src="${fdEsc(s.upi_qr||'./upi_qr.jpeg')}" alt="UPI Payment QR" style="display:block;width:100%;max-width:300px;height:auto;margin:10px auto;border-radius:10px;border:1px solid #e2e8f0"><button type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('fdPayUpiId').innerText);alert('UPI ID copied')" style="border:0;background:#dbeafe;color:#1d4ed8;border-radius:8px;padding:7px 10px;font-weight:800">📋 Copy UPI ID</button></div><div id="fdPayUsdtBox" style="display:none;margin-top:10px;text-align:center"><div style="font-size:12px;color:#047857"><b id="fdPayUsdtLabel">${fdEsc(s.usdt_label||'USDT BEP20')}</b></div><div id="fdPayUsdtAddress" style="font-size:10px;font-family:monospace;word-break:break-all;margin-top:5px">${fdEsc(s.usdt_address||'0xCc6b7635e196b53A5a329a9E750D6b2AF81167A7')}</div><img id="fdPayUsdtQr" src="${fdEsc(s.usdt_qr||'./usdt_qr.jpeg')}" alt="USDT BEP20 Payment QR" style="display:block;width:100%;max-width:300px;height:auto;margin:10px auto;border-radius:10px;border:1px solid #e2e8f0"><button type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('fdPayUsdtAddress').innerText);alert('USDT address copied')" style="border:0;background:#dcfce7;color:#047857;border-radius:8px;padding:7px 10px;font-weight:800">📋 Copy Address</button><div style="font-size:9px;color:#64748b;margin-top:5px">Only BEP20 assets.</div></div></div><div style="margin-top:12px"><label style="font-size:11px;font-weight:800">Payment Screenshot</label><input id="fdPayShot" type="file" accept="image/*" style="width:100%;margin-top:6px;padding:9px;border:1px dashed #cbd5e1;border-radius:10px"><label style="display:block;font-size:11px;font-weight:800;margin-top:10px">UTR / Transaction Hash</label><input id="fdPayUtr" placeholder="Enter UTR / Hash" style="width:100%;margin-top:6px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><button id="fdSubmitInvest" onclick="fdSubmitInvestment('${fdEsc(x.id)}')" style="width:100%;margin-top:12px;background:#059669;color:#fff;border:0;border-radius:11px;padding:13px;font-weight:900">Submit Investment</button><div id="fdInvestMsg" style="font-size:10px;text-align:center;margin-top:7px"></div></div></div>`;
       document.body.appendChild(modal);
-      try{var usdtNode=document.getElementById('fdPayUsdtAmount');if(usdtNode){usdtNode.innerText='Loading live USDT/INR rate…';var q=await fdLiveUsdtInr();if(q>0)usdtNode.innerText='Pay approx '+(inv/q).toFixed(2)+' USDT • 1 USDT ≈ ₹'+q.toFixed(2);else usdtNode.innerText='Live USDT/INR rate unavailable. Check current rate before payment.';}}catch(_q){var qn=document.getElementById('fdPayUsdtAmount');if(qn)qn.innerText='Live USDT/INR rate unavailable.';}
     }catch(e){alert('Unable to open plan: '+e.message);}
   };
   window.fdSubmitInvestment=async function(planId){
@@ -2869,32 +2895,6 @@ async function claimReward(pairs, name){
   };
   var oldShowFR=window.showSec;window.showSec=function(id,fromPop){oldShowFR(id,fromPop);if(id==='fixedReturns')setTimeout(loadFixedReturns,50);};
   document.addEventListener('DOMContentLoaded',function(){setTimeout(function(){if((localStorage.getItem('flm_last_section')||'')==='fixedReturns')loadFixedReturns();},300);});
-})();
-</script>
-<script>
-(function(){async function loadUserPaymentSettings(){if(!window.supabaseClient)return;try{var r=await supabaseClient.from('payment_settings').select('upi_id,upi_qr,usdt_address,usdt_qr,usdt_label').eq('id',1).maybeSingle();if(r.error||!r.data)return;var d=r.data,u=document.getElementById('userPinUpiId'),uq=document.getElementById('userPinUpiQr'),a=document.getElementById('userPinUsdtAddress'),sq=document.getElementById('userPinUsdtQr');if(u&&d.upi_id)u.innerText=d.upi_id;if(uq&&d.upi_qr)uq.src=d.upi_qr;if(a&&d.usdt_address)a.innerText=d.usdt_address;if(sq&&d.usdt_qr)sq.src=d.usdt_qr;window.__flmPaymentSettings=d;}catch(e){console.log('payment settings:',e.message||e);}}window.flmLoadUserPaymentSettings=loadUserPaymentSettings;document.addEventListener('DOMContentLoaded',function(){setTimeout(loadUserPaymentSettings,300);});})();
-</script>
-<script>
-/* FLM ROI DISPLAY RECONCILIATION - credit-day based, IST formatted */
-(function(){
-  function istDayKey(v){var d=new Date(v);if(isNaN(d.getTime()))return '';d=new Date(d.getTime()+330*60000);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
-  function istText(v){if(!v)return '—';try{return new Date(v).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'});}catch(e){return '—';}}
-  async function reconcileRoiDisplay(){
-    try{
-      if(!window.supabaseClient||!getFlId())return;
-      var fl=getFlId(),c=await supabaseClient.rpc('flm_get_current_roi',{p_fl_id:fl});
-      var cycle=Array.isArray(c.data)?(c.data[0]||{}):(c.data||{});if(c.error||!cycle||!Object.keys(cycle).length)return;
-      var totalDays=Number(cycle.total_days||cycle.days||50)||50,daily=Number(cycle.daily_amount||cycle.amount_per_day||cycle.daily_roi||40)||40,start=cycle.start_date||cycle.started_at||cycle.created_at;
-      var tx=await supabaseClient.from('wallet_transactions').select('amount,created_at,wallet_type,transaction_type,title,status').eq('fl_id',fl).in('status',['completed','approved']).order('created_at',{ascending:true});if(tx.error)return;
-      var startKey=istDayKey(start),days={},credited=0,last=null;
-      (tx.data||[]).forEach(function(x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);if(amt<=0||tt==='withdrawal')return;if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;var k=istDayKey(x.created_at);if(!k|| (startKey&&k<startKey))return;days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;});
-      var done=Math.min(totalDays,Object.keys(days).length),remaining=Math.max(0,totalDays-done),creditTotal=credited||done*daily;
-      var rb=document.getElementById('loanRoiCycleBox');if(rb){rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+istText(start)+'<br>End: '+istText(cycle.end_date||cycle.ends_at)+'<br>Last Credit: '+istText(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';}
-      var note=document.getElementById('selfRenewNote');if(note)note.innerText=done<totalDays?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until '+totalDays+' days complete.':'✅ ROI cycle completed. Renewal can be started with a valid unused PIN.';
-    }catch(e){console.log('ROI reconcile:',e.message||e);}
-  }
-  window.flmReconcileRoiDisplay=reconcileRoiDisplay;
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(reconcileRoiDisplay,1200);});
 })();
 </script>
 </body></html>
