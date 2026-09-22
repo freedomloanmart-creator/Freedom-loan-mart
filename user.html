@@ -143,7 +143,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
 <div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:18px">
-  <div style="width:min(100%,430px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden;animation:flmAnnPop .22s ease-out">
+  <div style="width:min(100%,430px);max-height:calc(100vh - 36px);background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:auto;animation:flmAnnPop .22s ease-out">
     <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);color:#fff;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><div id="flmAnnTitle" style="font-size:19px;font-weight:900">📢 Update</div><div style="font-size:10px;opacity:.86;margin-top:3px">FLM Member Update</div></div>
       <button type="button" onclick="closeFlmLoginAnnouncement()" style="border:0;background:rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;cursor:pointer">×</button>
@@ -1174,7 +1174,13 @@ async function loadRoiCouponsPage(){
  el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:18px">Loading coupons...</div>';
  try{
   var r=await supabaseClient.from('roi_coupons').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);
-  if(r.error)throw r.error;var rows=r.data||[];
+  if(r.error){
+    /* Some deployments keep roi_coupons protected by RLS. wallet_transactions already exposes the member's own coupon transactions, so use it as a safe fallback. */
+    var wr=await supabaseClient.from('wallet_transactions').select('id,coupon_code,amount,status,created_at').eq('fl_id',flId).eq('transaction_type','roi_coupon').not('coupon_code','is',null).order('created_at',{ascending:false}).limit(100);
+    if(wr.error)throw r.error;
+    r={data:(wr.data||[]).map(function(x){return {id:x.id,coupon_code:x.coupon_code,amount:x.amount,status:x.status||'processing',created_at:x.created_at};}),error:null};
+  }
+  var rows=r.data||[];
   var active=rows.filter(function(x){return String(x.status||'').toLowerCase()==='issued';}).length;
   var count=document.getElementById('roiCouponCount');if(count)count.innerText=active;
   if(!rows.length){el.innerHTML='<div style="text-align:center;padding:28px 12px;color:#64748b"><div style="font-size:38px">🎫</div><div style="font-weight:800;margin-top:8px;color:#334155">No ROI coupons yet</div><div style="font-size:11px;margin-top:5px">Generate a coupon from your ROI Wallet.</div><button type="button" onclick="showSec(\'wallets\');setTimeout(function(){openWalletAction(\'roi\');},80)" style="margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:800">Open ROI Wallet</button></div>';return;}
@@ -2442,9 +2448,10 @@ async function claimReward(pairs, name){
       var text=rows.map(function(x){return String(x.message||'').trim();}).filter(Boolean).join('   *   ');
       if(!text){box.style.display='none';return;}
       track.innerText=text+'   *   '+text;
-      track.style.transition='none';track.style.transform='translateX(100%)';
+      track.style.transition='none';track.style.transform='translateX(0)';
       if(flmScrollTimer)clearTimeout(flmScrollTimer);
-      requestAnimationFrame(function(){var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(20,distance/32);track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
+      var distance=Math.max(track.scrollWidth,window.innerWidth*1.2),sec=Math.max(20,distance/32);
+      requestAnimationFrame(function(){track.style.transition='transform '+sec+'s linear';track.style.transform='translateX(-'+distance+'px)';flmScrollTimer=setTimeout(loadScrolls,(sec*1000)+300);});
     }catch(e){box.style.display='none';console.log('scrolls:',e.message);}
   }
 
@@ -2460,7 +2467,7 @@ async function claimReward(pairs, name){
       if(localStorage.getItem(key)===day)return;
       if(title)title.innerText='📢 '+String(row.title||'Update');
       if(message)message.innerText=String(row.message||'');
-      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:240px;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:240px;object-fit:cover;border-radius:12px">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
+      if(mediaBox){var src=String(row.media_data||row.media_url||'').trim(),mt=String(row.media_type||'').toLowerCase();if(src){mediaBox.style.display='block';mediaBox.innerHTML=mt==='video'?'<video src="'+esc(src)+'" controls muted playsinline preload="metadata" style="display:block;width:100%;max-height:60vh;height:auto;object-fit:contain;border-radius:12px;background:#000"></video>':'<img src="'+esc(src)+'" alt="Announcement" style="display:block;width:100%;max-height:60vh;height:auto;object-fit:contain;border-radius:12px;background:#f8fafc">';}else{mediaBox.style.display='none';mediaBox.innerHTML='';}}
       box.style.display='flex';localStorage.setItem(key,day);
     }catch(e){console.log('login announcement:',e.message||e);}
   }
@@ -2505,7 +2512,7 @@ async function claimReward(pairs, name){
   }
   var oldShow=window.showSec;
   window.showSec=function(id,fromPop){oldShow(id,fromPop);loadPageMedia(id);if(id==='documents')loadDocuments();if(id==='products'){document.getElementById('topTitle')&&(document.getElementById('topTitle').innerText='Products');loadProducts();renderAddress();loadMyOrders();flmOrderMethodChanged();} };
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(loadFlmLoginAnnouncement,650);setTimeout(loadScrolls,400);setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);});
+  document.addEventListener('DOMContentLoaded',function(){loadFlmLoginAnnouncement();loadScrolls();setTimeout(function(){var sec=localStorage.getItem('flm_last_section')||'dashboard';loadPageMedia(sec);if(sec==='documents')loadDocuments();},500);setInterval(loadScrolls,60000);});
 })();
 </script>
 <div id="roiCouponSuccessModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:100000;align-items:center;justify-content:center;padding:18px">
