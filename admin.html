@@ -382,9 +382,22 @@ function flmUserRow(u){
  const left=Number(u.binary_left??u.left_tokens??0)||0;
  const right=Number(u.binary_right??u.right_tokens??0)||0;
  return `<div class="user-admin-row">
-   <div class="user-admin-main"><div class="user-admin-avatar">${escapeHtml(String(u.full_name||'?').trim().charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><div class="user-admin-name">${escapeHtml(u.full_name||'Unnamed')}</div><div class="user-admin-id">${escapeHtml(u.fl_id||'No FL ID')}</div></div><button class="user-edit-btn" onclick='openUserEditor(${safe})'>✏️ Edit</button></div>
+   <div class="user-admin-main"><div class="user-admin-avatar">${escapeHtml(String(u.full_name||'?').trim().charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><div class="user-admin-name">${escapeHtml(u.full_name||'Unnamed')}</div><div class="user-admin-id">${escapeHtml(u.fl_id||'No FL ID')}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="user-edit-btn" onclick='adminViewAsUser(${JSON.stringify(u.fl_id||'')},${JSON.stringify(u.full_name||'')})'>👤 Open User</button><button class="user-edit-btn" onclick='openUserEditor(${safe})'>✏️ Edit</button></div></div>
    <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml(u.sponsor_id||'—')}</b></div><div><span>🌳 Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
  </div>`;
+}
+function adminViewAsUser(flId, fullName){
+ const id=String(flId||'').trim().toUpperCase();
+ if(!id)return alert('Invalid FL ID.');
+ if(!confirm('Open '+id+' User Panel in Admin View?'))return;
+ try{
+   localStorage.setItem('flm_session',JSON.stringify({flId:id,fl_id:id,name:fullName||id,full_name:fullName||id,admin_view:true}));
+   localStorage.setItem('flm_admin_view_as',JSON.stringify({flId:id,name:fullName||id}));
+   localStorage.setItem('flm_last_section','dashboard');
+   const url='./user.html';
+   const w=window.open(url,'_blank');
+   if(!w) location.href=url;
+ }catch(e){alert('Unable to open User Panel: '+(e.message||e));}
 }
 function openUserEditor(u){
  document.getElementById('userEditModal').classList.add('show');
@@ -651,7 +664,7 @@ body{background:#eef2f7;color:#0f172a}
 <div class="user-two-col"><div><label>Mobile Number</label><input id="editUserMobile" class="input" inputmode="numeric" maxlength="10" placeholder="10-digit mobile"></div><div><label>Email ID</label><input id="editUserEmail" class="input" type="email" placeholder="Email address"></div></div>
 <label>Password</label><div class="password-edit-wrap"><input id="editUserPassword" class="input" type="password" placeholder="Enter new password only if changing"><button type="button" onclick="toggleUserPassword()">👁</button></div>
 <div class="password-help">Leave password blank to keep the current password. Use Reset Password to generate a new temporary password.</div>
-<div class="user-edit-actions"><button onclick="resetUserPassword()" class="reset-password-btn">🔐 Reset Password</button><button id="saveUserBtn" onclick="saveUserAdmin()" class="save-user-btn">💾 Save Member Changes</button></div>
+<div class="user-edit-actions"><button type="button" onclick="adminViewAsUser(document.getElementById('editUserFlId').value,document.getElementById('editUserName').value)" style="flex:1;border:0;border-radius:12px;padding:13px;font-weight:900;cursor:pointer;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">👤 Open User Panel</button><button onclick="resetUserPassword()" class="reset-password-btn">🔐 Reset Password</button><button id="saveUserBtn" onclick="saveUserAdmin()" class="save-user-btn">💾 Save Member Changes</button></div>
 </div></div>
 <div id="sec-registrationPayments" style="display:none"><div class="card" style="border:3px solid #f59e0b;background:#fffbeb"><div style="font-weight:800;color:#92400e;font-size:16px">💳 Registration Payment Approvals</div><div style="font-size:11px;color:#78350f;margin-top:6px">Direct ₹2,000 payment registrations. Verify UTR/Hash + screenshot, then approve to create the member account and FL ID.</div><div style="margin-top:8px;padding:9px;border-radius:10px;background:#ecfdf5;border:1px solid #86efac;color:#166534;font-size:11px;font-weight:700">📧 7-ID Rule: Same mobile/email can be used for up to 7 FL IDs. Email #2–#7 will be accepted after the database UNIQUE constraint has been removed.</div><button onclick="loadRegistrationRequests()" style="width:100%;margin-top:12px;background:#f59e0b;color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">🔄 Load Pending Registrations</button><div class="grid2" style="margin-top:12px"><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Total</div><div id="regTodayTotal" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Pending</div><div id="regTodayPending" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Approved</div><div id="regTodayApproved" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Rejected</div><div id="regTodayRejected" style="font-size:24px;font-weight:900">0</div></div></div><div id="registrationHistoryList" style="margin-top:12px"></div><div id="registrationRequestsList" style="margin-top:12px"></div></div></div>
   <div id="sec-pins" style="display:none">

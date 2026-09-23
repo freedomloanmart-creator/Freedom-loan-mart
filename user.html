@@ -57,7 +57,21 @@ function initFlmNavigation(){
  FLM_NAV_READY=true;
  window.addEventListener('popstate',function(ev){if(getFlId()){var sec=ev.state&&ev.state.flmSection;if(!sec)sec=localStorage.getItem('flm_last_section')||'dashboard';showSec(sec,true);localStorage.setItem('flm_last_section',sec);}});
 }
-function logout(){localStorage.removeItem('flm_session');location.href='./login.html';}
+function logout(){localStorage.removeItem('flm_session');localStorage.removeItem('flm_admin_view_as');location.href='./login.html';}
+function flmAdminReturn(){
+ try{localStorage.removeItem('flm_session');localStorage.removeItem('flm_admin_view_as');}catch(e){}
+ location.href='./admin.html';
+}
+function flmInitAdminView(){
+ try{
+  var raw=localStorage.getItem('flm_admin_view_as');
+  if(!raw)return;
+  var x=JSON.parse(raw)||{};
+  if(!x.flId)return;
+  var bar=document.getElementById('flmAdminViewBar');
+  if(bar){bar.style.display='flex';var n=document.getElementById('flmAdminViewName');if(n)n.innerText=(x.name||x.flId)+' • '+x.flId;}
+ }catch(e){}
+}
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui,Segoe UI}
@@ -167,6 +181,7 @@ body{background:#eef2f7;color:#0f172a}
 <body><!-- FLM_MATCHING_FINAL_BUILD_20260918 -->
 <div style="padding:12px" id="main">
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:48px;bottom:10px;overflow:hidden;border-radius:14px;background:rgba(15,23,42,.18);z-index:3"></div></div>
+<div id="flmAdminViewBar" style="display:none;position:sticky;top:0;z-index:200;background:#0f172a;color:#fff;padding:8px 12px;align-items:center;justify-content:space-between;gap:8px;font-size:11px"><div>🔐 Admin View: <b id="flmAdminViewName">User</b></div><button type="button" onclick="flmAdminReturn()" style="border:0;background:#fff;color:#0f172a;border-radius:8px;padding:7px 10px;font-weight:800">← Back to Admin</button></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
 <div id="flmDashboardScroll" style="display:none;margin:10px 0 12px;background:rgba(15,23,42,.92);color:#fff;border-radius:10px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(15,23,42,.12);white-space:nowrap;overflow:hidden;text-align:left"><span style="font-weight:900;margin-right:8px">📢</span><span id="flmScrollTrack" style="display:inline-block;white-space:nowrap;will-change:transform"></span></div>
 <div id="flmLoginAnnouncement" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,.58);z-index:99999;align-items:center;justify-content:center;padding:12px;overflow:auto">
@@ -1168,12 +1183,12 @@ async function loadWalletData(){
       if(tt!=='withdrawal' && (tt==='matching_bonus'||tt==='matching_income'||ti.indexOf('matching bonus')>=0||ti.indexOf('matching income')>=0)) completedBonusCount++;
     });
   }catch(e){console.log('matching bonus entitlement:',e.message);}
-  /* Matching wallet is the authoritative available balance.
-     Do not reduce it based on the number of visible transaction rows;
-     doing so caused 2 pairs / Rs.400 to fall back to Rs.200 after refresh. */
-  ma=Math.max(0,Number(ma||0));
-  FLM_WALLET.matching=ma;
-  FLM_WALLET.rawMatching=ma;
+  var pairCap=(completedBonusCount>0?completedBonusCount:Math.max(0,Number(liveStats.pairs||0)))*200;
+  if(Number.isFinite(pairCap) && Number(ma)>pairCap){
+    ma=pairCap;
+    FLM_WALLET.matching=pairCap;
+    FLM_WALLET.rawMatching=pairCap;
+  }
   FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
   FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0);
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
@@ -2100,7 +2115,7 @@ async function loadLoanPanel(){
     var done=Math.max(dbDone, walletDays);
     if(done>totalDays) done=totalDays;
     var completed=roiStatus==='completed'||done>=totalDays||(end&&new Date(end).getTime()<=Date.now());
-    if(note)note.innerText=currentRoi&&!completed?'🔒 Current ROI cycle: '+done+'/'+totalDays+' days • '+remaining+' days remaining. Self Renewal is locked until '+totalDays+' days complete.':'✅ ROI cycle completed ('+done+'/'+totalDays+'). Self Renewal is available when the database marks the cycle eligible.';
+    if(note)note.innerText=currentRoi&&!completed?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until 50 days complete.':'✅ No active ROI lock. If the database marks renewal as eligible, you can use any valid unused PIN.';
     if(rb)rb.disabled=currentRoi&&!completed;
     var rbbox=document.getElementById('loanRoiCycleBox');
     if(rbbox){if(currentRoi){
@@ -2229,6 +2244,12 @@ async function loadLoanPanel(){
   }catch(err){if(status)status.innerHTML='<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b">Fund status error: '+loanEsc(err.message)+'</div>';console.log('loan panel',err);}
 }
 async function submitLoanSelfRenewal(){
+  try{
+    if(typeof window.flmReconcileRoiDisplay==='function') await window.flmReconcileRoiDisplay();
+    var _renewBtn=document.getElementById('loanRenewBtn');
+    if(_renewBtn&&_renewBtn.disabled){alert('Self Renewal is locked until the current 50-day ROI cycle end date.');return;}
+  }catch(_gateErr){}
+
   var pin=(document.getElementById('loanRenewPin')?.value||'').trim();var msg=document.getElementById('loanRenewMsg');
   if(!pin){if(msg){msg.style.color='#dc2626';msg.innerText='Enter a valid unused PIN.';}return;}
   var btn=document.getElementById('loanRenewBtn');if(btn)btn.disabled=true;if(msg){msg.style.color='#2563eb';msg.innerText='Checking PIN and renewal eligibility...';}
@@ -2875,76 +2896,105 @@ async function claimReward(pairs, name){
 (function(){async function loadUserPaymentSettings(){if(!window.supabaseClient)return;try{var r=await supabaseClient.from('payment_settings').select('upi_id,upi_qr,usdt_address,usdt_qr,usdt_label').eq('id',1).maybeSingle();if(r.error||!r.data)return;var d=r.data,u=document.getElementById('userPinUpiId'),uq=document.getElementById('userPinUpiQr'),a=document.getElementById('userPinUsdtAddress'),sq=document.getElementById('userPinUsdtQr');if(u&&d.upi_id)u.innerText=d.upi_id;if(uq&&d.upi_qr)uq.src=d.upi_qr;if(a&&d.usdt_address)a.innerText=d.usdt_address;if(sq&&d.usdt_qr)sq.src=d.usdt_qr;window.__flmPaymentSettings=d;}catch(e){console.log('payment settings:',e.message||e);}}window.flmLoadUserPaymentSettings=loadUserPaymentSettings;document.addEventListener('DOMContentLoaded',function(){setTimeout(loadUserPaymentSettings,300);});})();
 </script>
 <script>
-/* FLM ROI DISPLAY RECONCILIATION - credit-day based, IST formatted */
+/* FLM ROI DISPLAY RECONCILIATION - IST date based cycle + renewal lock */
 (function(){
-  function istDayKey(v){var d=new Date(v);if(isNaN(d.getTime()))return '';d=new Date(d.getTime()+330*60000);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
-  function istText(v){if(!v)return '—';try{return new Date(v).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Kolkata'});}catch(e){return '—';}}
+  function istDayKey(v){
+    if(!v)return '';
+    var d=new Date(v);
+    if(isNaN(d.getTime())){
+      var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m?m[1]+'-'+m[2]+'-'+m[3]:'';
+    }
+    try{
+      return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+    }catch(e){
+      d=new Date(d.getTime()+330*60000);
+      return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+    }
+  }
+  function istTodayKey(){return istDayKey(new Date());}
+  function addDaysKey(key,days){
+    var p=String(key||'').split('-');
+    if(p.length!==3)return '';
+    var d=new Date(Date.UTC(Number(p[0]),Number(p[1])-1,Number(p[2])));
+    if(isNaN(d.getTime()))return '';
+    d.setUTCDate(d.getUTCDate()+Number(days||0));
+    return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+  }
+  function dateOnly(v){
+    var k=istDayKey(v);
+    if(!k)return '—';
+    var p=k.split('-');
+    try{return new Date(Date.UTC(Number(p[0]),Number(p[1])-1,Number(p[2]))).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});}catch(e){return k;}
+  }
   async function reconcileRoiDisplay(){
     try{
       if(!window.supabaseClient||!getFlId())return;
-      var fl=getFlId(),c=await supabaseClient.rpc('flm_get_current_roi',{p_fl_id:fl});
-      var cycle=Array.isArray(c.data)?(c.data[0]||{}):(c.data||{});if(c.error||!cycle||!Object.keys(cycle).length)return;
-      var totalDays=Number(cycle.total_days||cycle.days||50)||50,daily=Number(cycle.daily_amount||cycle.amount_per_day||cycle.daily_roi||40)||40,start=cycle.start_date||cycle.started_at||cycle.created_at;
-      var tx=await supabaseClient.from('wallet_transactions').select('amount,created_at,wallet_type,transaction_type,title,status').eq('fl_id',fl).in('status',['completed','approved']).order('created_at',{ascending:true});if(tx.error)return;
-      var startKey=istDayKey(start),days={},credited=0,last=null;
-      (tx.data||[]).forEach(function(x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);if(amt<=0||tt==='withdrawal')return;if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;var k=istDayKey(x.created_at);if(!k|| (startKey&&k<startKey))return;days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;});
-      var done=Math.min(totalDays,Object.keys(days).length),remaining=Math.max(0,totalDays-done),creditTotal=credited||done*daily;
-      var rb=document.getElementById('loanRoiCycleBox');if(rb){rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+istText(start)+'<br>End: '+istText(cycle.end_date||cycle.ends_at)+'<br>Last Credit: '+istText(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';}
-      var note=document.getElementById('selfRenewNote');if(note)note.innerText=done<totalDays?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until '+totalDays+' days complete.':'✅ ROI cycle completed. Renewal can be started with a valid unused PIN.';
+      var fl=getFlId();
+      var c=await supabaseClient.rpc('flm_get_current_roi',{p_fl_id:fl});
+      var cycle=Array.isArray(c.data)?(c.data[0]||{}):(c.data||{});
+      if(c.error||!cycle||!Object.keys(cycle).length)return;
+
+      var totalDays=Number(cycle.total_days||cycle.days||50)||50;
+      var daily=Number(cycle.daily_amount||cycle.amount_per_day||cycle.daily_roi||40)||40;
+      var cycleStart=cycle.start_date||cycle.started_at||cycle.created_at;
+
+      /*
+       * The current ROI cycle's start date is the member's cycle/joining date.
+       * If the ROI record has no start date, fall back to the users.created_at date.
+       */
+      if(!cycleStart){
+        try{
+          var ur=await supabaseClient.from('users').select('created_at').eq('fl_id',fl).maybeSingle();
+          if(!ur.error&&ur.data)cycleStart=ur.data.created_at;
+        }catch(_e){}
+      }
+
+      var startKey=istDayKey(cycleStart);
+      /* 50 calendar days are inclusive: Day 1 = start date, Day 50 = start + 49 days. */
+      var endKey=startKey?addDaysKey(startKey,totalDays-1):istDayKey(cycle.end_date||cycle.ends_at);
+      var todayKey=istTodayKey();
+
+      var tx=await supabaseClient.from('wallet_transactions').select('amount,created_at,wallet_type,transaction_type,title,status').eq('fl_id',fl).in('status',['completed','approved']).order('created_at',{ascending:true});
+      if(tx.error)return;
+      var days={},credited=0,last=null;
+      (tx.data||[]).forEach(function(x){
+        var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);
+        if(amt<=0||tt==='withdrawal')return;
+        if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;
+        var k=istDayKey(x.created_at);
+        if(!k|| (startKey&&k<startKey) || (endKey&&k>endKey))return;
+        days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;
+      });
+
+      var done=Math.min(totalDays,Object.keys(days).length);
+      var remaining=Math.max(0,totalDays-done);
+      var creditTotal=credited||done*daily;
+      var cycleDateComplete=!!endKey && todayKey>endKey;
+      var rb=document.getElementById('loanRoiCycleBox');
+      if(rb){
+        rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div>'+ 
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div>'+ 
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">'+
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div>'+ 
+          '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div>'+ 
+          '<div style="margin-top:8px;font-size:11px;color:#64748b">Start Date: '+dateOnly(startKey)+'<br>End Date: '+dateOnly(endKey)+'<br>Last Credit: '+dateOnly(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';
+      }
+      var note=document.getElementById('selfRenewNote');
+      var btn=document.getElementById('loanRenewBtn');
+      if(cycleDateComplete){
+        if(note)note.innerText='✅ 50-day ROI cycle completed. Self Renewal is now available with a valid unused PIN.';
+        if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
+      }else{
+        if(note)note.innerText='🔒 Self Renewal is locked until the 50-day cycle end date ('+dateOnly(endKey)+'). Renewal opens after that date.';
+        if(btn){btn.disabled=true;btn.style.opacity='.55';btn.style.cursor='not-allowed';}
+      }
     }catch(e){console.log('ROI reconcile:',e.message||e);}
   }
   window.flmReconcileRoiDisplay=reconcileRoiDisplay;
-  document.addEventListener('DOMContentLoaded',function(){setTimeout(reconcileRoiDisplay,1200);});
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(reconcileRoiDisplay,1200);setInterval(reconcileRoiDisplay,30000);});
 })();
 </script>
-<script>
-/* FLM USER LIVE ROI + DAILY PAIR SYNC
-   Keeps each logged-in member's own ROI cycle and today's pair count current.
-   Does not alter database values. */
-(function(){
-  var FLM_LIVE_SYNC_TIMER=null;
-  async function flmLiveMemberSync(){
-    try{
-      if(!window.supabaseClient||typeof getFlId!=='function')return;
-      var fl=String(getFlId()||'').trim().toUpperCase();
-      if(!fl)return;
-
-      /* Daily pairs: always query for the logged-in FL ID. */
-      var ds=await flmFetchTodayMatchingStats(fl);
-      var dm=document.getElementById('dailyMatching');
-      if(dm)dm.innerText=String(ds.pairs||0)+' / 25 pairs';
-      var bar=document.getElementById('dailyBar');
-      if(bar)bar.style.width=Math.min(100,(Number(ds.pairs||0)/25)*100)+'%';
-      var rem=document.getElementById('remainingToday');
-      if(rem)rem.innerText='Rs. '+Math.max(0,5000-Number(ds.income||0)).toLocaleString('en-IN')+' remaining today';
-      var tp=document.getElementById('todayPairs');if(tp)tp.innerText=String(ds.pairs||0);
-      var ti=document.getElementById('todayIncome');if(ti)ti.innerText='Rs. '+Number(ds.income||0).toLocaleString('en-IN');
-
-      /* ROI: use the logged-in member's own current cycle. */
-      if(typeof window.flmReconcileRoiDisplay==='function'){
-        await window.flmReconcileRoiDisplay();
-      }
-
-      /* Keep wallet's daily pair figure in sync without changing section. */
-      if(window.FLM_WALLET){
-        FLM_WALLET.dailyPairs=Number(ds.pairs||0);
-        FLM_WALLET.dailyIncome=Number(ds.income||0);
-      }
-    }catch(e){console.log('FLM live member sync:',e.message||e);}
-  }
-  window.flmLiveMemberSync=flmLiveMemberSync;
-  document.addEventListener('DOMContentLoaded',function(){
-    setTimeout(flmLiveMemberSync,1800);
-    if(FLM_LIVE_SYNC_TIMER)clearInterval(FLM_LIVE_SYNC_TIMER);
-    FLM_LIVE_SYNC_TIMER=setInterval(flmLiveMemberSync,30000);
-  });
-  var oldShow=window.showSec;
-  if(typeof oldShow==='function'){
-    window.showSec=function(id,fromPop){
-      oldShow(id,fromPop);
-      if(id==='dashboard'||id==='loans'||id==='wallets'||id==='downline')setTimeout(flmLiveMemberSync,250);
-    };
-  }
-})();
-</script>
+<script>document.addEventListener('DOMContentLoaded',function(){setTimeout(flmInitAdminView,250);});</script>
 </body></html>
