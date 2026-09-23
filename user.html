@@ -37,7 +37,7 @@ function showSec(id,fromPop){
      try{
        var fw=await supabaseClient.from('wallets').select('loan_wallet,roi_wallet,matching_wallet').eq('fl_id',getFlId()).single();
        if(!fw.error&&fw.data){
-         var fundNow=Number(fw.data.loan_wallet||0), totalNow=Number(fw.data.roi_wallet||0)+Number(fw.data.matching_wallet||0)+fundNow;
+         var fundNow=Number(fw.data.loan_wallet||0);try{if(fundNow<=0&&typeof FLM_LOAN_V2!=='undefined'&&Number(FLM_LOAN_V2.wallet||0)>0)fundNow=Number(FLM_LOAN_V2.wallet||0);}catch(_e){}var totalNow=Number(fw.data.roi_wallet||0)+Number(fw.data.matching_wallet||0)+fundNow;
          var fwe=document.getElementById('loanWallet');if(fwe)fwe.innerText=money(fundNow);
          var fwn=document.getElementById('loanEligible');if(fwn)fwn.innerText=fundNow>0?'Released fund wallet: '+money(fundNow):'Not currently eligible';
          var fwt=document.getElementById('totalAmount');if(fwt)fwt.innerText=money(totalNow);
@@ -729,7 +729,16 @@ async function saveProfile(){
   if(typeof flmRefreshOrderOptions==='function') flmRefreshOrderOptions();
  }catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}}
 }
-async function loadInvite(){if(!requireLogin()) return;var flId=getFlId();var itName=document.getElementById('inviteTopName');if(itName) itName.innerText=getName()||flId;var itFl=document.getElementById('inviteTopFl');if(itFl) itFl.innerText=flId;var registerBase=new URL('register.html',window.location.href).href.split('?')[0];var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';var leftInput=document.getElementById('leftLinkInput');if(leftInput) leftInput.value=leftLink;var rightInput=document.getElementById('rightLinkInput');if(rightInput) rightInput.value=rightLink;window.leftInviteLink=leftLink;window.rightInviteLink=rightLink;try{if(supabaseClient){var liveStats=await flmFetchTeamStats(flId);var lw=Number(liveStats.left||0),rw=Number(liveStats.right||0);var lwc=document.getElementById('leftWingCount');if(lwc) lwc.innerText=lw;var rwc=document.getElementById('rightWingCount');if(rwc) rwc.innerText=rw;var directLeft=Number(liveStats.directLeft||0),directRight=Number(liveStats.directRight||0);var lp=document.getElementById('leftPlacement');if(lp) lp.innerText=directLeft>0?'Filled':'Open';var rp=document.getElementById('rightPlacement');if(rp) rp.innerText=directRight>0?'Filled':'Open';var lls=document.getElementById('leftLinkStatus');if(lls) lls.innerText=directLeft>0?(directLeft+' members'):'Open';var rls=document.getElementById('rightLinkStatus');if(rls) rls.innerText=directRight>0?(directRight+' members'):'Open';var allSponsoredUsers=await flmLoadAllUsers();var spons=(allSponsoredUsers||[]).filter(function(u){var ds=String(u.direct_sponsor_id||u.sponsor_id||'').trim().toUpperCase();return ds===String(flId||'').trim().toUpperCase();}).sort(function(a,b){return new Date(b.created_at||0).getTime()-new Date(a.created_at||0).getTime();});var st=document.getElementById('sponsoredTotal');if(st) st.innerText=spons.length+' total';var sl=document.getElementById('sponsoredList');if(sl){if(spons.length>0){var html='';for(var i=0;i<spons.length;i++){var u=spons[i];html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><b style="font-size:13px">'+u.full_name+'</b><div style="font-size:11px;color:#64748b">'+u.fl_id+' · '+u.mobile+'</div></div>';}sl.innerHTML=html;}else{sl.innerHTML='No sponsored members yet.';}}}}catch(e){console.log('invite wing stats:',e.message);}}
+async function loadInvite(){if(!requireLogin()) return;var flId=getFlId();var itName=document.getElementById('inviteTopName');if(itName) itName.innerText=getName()||flId;var itFl=document.getElementById('inviteTopFl');if(itFl) itFl.innerText=flId;var registerBase=new URL('register.html',window.location.href).href.split('?')[0];var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';var leftInput=document.getElementById('leftLinkInput');if(leftInput) leftInput.value=leftLink;var rightInput=document.getElementById('rightLinkInput');if(rightInput) rightInput.value=rightLink;window.leftInviteLink=leftLink;window.rightInviteLink=rightLink;try{if(supabaseClient){var liveStats=await flmFetchTeamStats(flId);var lw=Number(liveStats.left||0),rw=Number(liveStats.right||0);var lwc=document.getElementById('leftWingCount');if(lwc) lwc.innerText=lw;var rwc=document.getElementById('rightWingCount');if(rwc) rwc.innerText=rw;var lp=document.getElementById('leftPlacement');if(lp) lp.innerText=lw>0?'Filled':'Open';var rp=document.getElementById('rightPlacement');if(rp) rp.innerText=rw>0?'Filled':'Open';var lls=document.getElementById('leftLinkStatus');if(lls) lls.innerText=Number(liveStats.directLeft||0)>0?(Number(liveStats.directLeft||0)+' members'):'Open';var rls=document.getElementById('rightLinkStatus');if(rls) rls.innerText=Number(liveStats.directRight||0)>0?(Number(liveStats.directRight||0)+' members'):'Open';var allInviteUsers=await flmLoadAllUsers();
+var directMap={};
+try{
+  var rr=await supabaseClient.from('registration_requests').select('approved_fl_id,sponsor_id,status').eq('status','approved').not('approved_fl_id','is',null);
+  (rr.data||[]).forEach(function(x){var k=String(x.approved_fl_id||'').trim().toUpperCase();if(k)directMap[k]=String(x.sponsor_id||'').trim().toUpperCase();});
+}catch(_rr){console.log('sponsor history lookup:',_rr.message||_rr);}
+var spons=(allInviteUsers||[]).filter(function(u){
+  var direct=String(u.direct_sponsor_id||'').trim().toUpperCase() || directMap[String(u.fl_id||'').trim().toUpperCase()] || '';
+  return direct===String(flId).trim().toUpperCase();
+}).sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});var st=document.getElementById('sponsoredTotal');if(st) st.innerText=spons.length+' total';var sl=document.getElementById('sponsoredList');if(sl){if(spons.length>0){var html='';for(var i=0;i<spons.length;i++){var u=spons[i];html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><b style="font-size:13px">'+u.full_name+'</b><div style="font-size:11px;color:#64748b">'+u.fl_id+' · '+u.mobile+'</div></div>';}sl.innerHTML=html;}else{sl.innerHTML='No sponsored members yet.';}}}}catch(e){console.log('invite wing stats:',e.message);}}
 function copyLeftLink(){var v=window.leftInviteLink||document.getElementById('leftLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Left link copied');}
 function copyRightLink(){var v=window.rightInviteLink||document.getElementById('rightLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Right link copied');}
 var treeZoomLevel=42;
@@ -804,12 +813,19 @@ async function flmFetchTeamStats(rootFlId){
     var treeByParent=placement.treeByParent;
     var root=String(rootFlId).trim().toUpperCase();
 
-    // DIRECT REFERRALS: use direct_sponsor_id when available.
-    // Older users may not have that field populated, so sponsor_id is the
-    // fallback. This keeps existing direct referrals visible without treating
-    // a deeper placement member as a direct referral.
+    // DIRECT REFERRALS: direct_sponsor_id is authoritative. For older approved
+    // accounts where that column was not populated, recover the original sponsor
+    // from registration_requests. Never use sponsor_id as a direct-referral
+    // fallback because sponsor_id is the actual binary placement parent and may
+    // point to a spillover parent.
+    var directMap={};
+    try{
+      var rr=await supabaseClient.from('registration_requests').select('approved_fl_id,sponsor_id,status').eq('status','approved').not('approved_fl_id','is',null);
+      (rr.data||[]).forEach(function(x){var k=String(x.approved_fl_id||'').trim().toUpperCase();if(k)directMap[k]=String(x.sponsor_id||'').trim().toUpperCase();});
+    }catch(_rr){console.log('direct sponsor history:',_rr.message||_rr);}
     (users||[]).forEach(function(u){
-      var ds=String(u.direct_sponsor_id||u.sponsor_id||'').trim().toUpperCase();
+      var ds=String(u.direct_sponsor_id||'').trim().toUpperCase();
+      if(!ds) ds=directMap[String(u.fl_id||'').trim().toUpperCase()]||'';
       if(ds!==root)return;
       var side=String(u.side||'').trim().toLowerCase();
       if(side==='left')out.directLeft++;
@@ -846,32 +862,34 @@ async function flmFetchTodayMatchingStats(flId){
   var out={pairs:0,income:0};
   if(!supabaseClient||!flId)return out;
   try{
-    // Use the database's single daily-status function first so Dashboard,
-    // Downline and Wallet all read exactly the same 00:30 IST business day.
     var rpc=await supabaseClient.rpc('flm_get_daily_pair_status',{p_fl_id:flId});
-    if(!rpc.error && rpc.data){
-      var row=Array.isArray(rpc.data)?(rpc.data[0]||{}):rpc.data;
-      out.pairs=Math.min(25,Number(row.daily_pairs_today||0));
-      out.income=Math.min(5000,Number(row.daily_income_today||out.pairs*200));
-      return out;
-    }
+    var row=(!rpc.error&&rpc.data)?(Array.isArray(rpc.data)?(rpc.data[0]||{}):rpc.data):{};
+    var rpcPairs=Math.min(25,Math.max(0,Number(row.daily_pairs_today||0)));
+    var rpcIncome=Math.min(5000,Math.max(0,Number(row.daily_income_today||0)));
 
-    // Safe fallback for older databases where the RPC has not yet been run.
-    var now=new Date();
-    var istText=now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'});
-    var ist=new Date(istText);
-    var y=ist.getFullYear(),m=ist.getMonth(),d=ist.getDate();
-    if(ist.getHours()===0 && ist.getMinutes()<30){var prev=new Date(y,m,d);prev.setDate(prev.getDate()-1);y=prev.getFullYear();m=prev.getMonth();d=prev.getDate();}
-    var utcStart=new Date(Date.UTC(y,m,d,0,30,0)-330*60000);
-    var r=await supabaseClient.from('wallet_transactions').select('amount,wallet_type,transaction_type,status,created_at').eq('fl_id',flId).gte('created_at',utcStart.toISOString());
-    if(r.error)throw r.error;
-    var rows=(r.data||[]).filter(function(x){
-      var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),st=String(x.status||'').toLowerCase();
-      var amt=Number(x.amount||0);
-      return (st==='completed'||st==='approved') && tt!=='withdrawal' && wt==='matching' && amt>0;
-    });
-    out.pairs=Math.min(25,rows.length);
-    out.income=Math.min(5000,rows.reduce(function(a,x){return a+Number(x.amount||0);},0));
+    // UI reconciliation: when the live binary has a completed pair but the
+    // matching-bonus transaction has not yet appeared, show that one pending
+    // pair as today's matching entitlement. Once the DB bonus row appears,
+    // this fallback disappears automatically, so the same pair is never shown twice.
+    var live=await flmFetchTeamStats(flId);
+    var completedBonusCount=0;
+    try{
+      var mb=await supabaseClient.from('wallet_transactions')
+        .select('id,amount,transaction_type,wallet_type,status,title,remarks,created_at')
+        .eq('fl_id',flId).eq('wallet_type','matching')
+        .in('status',['completed','approved']);
+      var now=new Date();var istNow=new Date(now.getTime()+330*60000);
+      var dayStartUtc=Date.UTC(istNow.getUTCFullYear(),istNow.getUTCMonth(),istNow.getUTCDate())-330*60000;
+      (mb.data||[]).forEach(function(x){
+        var xt=new Date(x.created_at||0).getTime();
+        var tt=String(x.transaction_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),rm=String(x.remarks||'').toLowerCase();
+        if(xt<dayStartUtc)return;
+        if(tt!=='withdrawal' && (tt==='matching_bonus'||tt==='matching_income'||ti.indexOf('matching bonus')>=0||ti.indexOf('matching income')>=0||rm.indexOf('matching bonus')>=0||rm.indexOf('matching income')>=0)) completedBonusCount++;
+      });
+    }catch(e){console.log('matching reconciliation:',e.message);}
+    var uncreditedPairs=Math.max(0,Number(live.pairs||0)-completedBonusCount);
+    out.pairs=Math.min(25,Math.max(rpcPairs,uncreditedPairs));
+    out.income=Math.min(5000,Math.max(rpcIncome,uncreditedPairs*200));
   }catch(e){console.log('today matching stats:',e.message);}
   return out;
 }
@@ -1135,6 +1153,13 @@ async function refreshWalletSection(){
 async function loadWalletData(){
  var flId=getFlId();if(!flId||!supabaseClient)return;
  try{
+  // Wallet page must also run the guarded Fund release check. This is what keeps
+  // a valid 1:1 direct LEFT + direct RIGHT release visible even when the member
+  // opens My Wallets before opening Company Fund. The guard prevents duplicates.
+  try{
+    var _liveForWallet=await flmFetchTeamStats(flId);
+    await flmEnsureFundReleaseOnce(flId,_liveForWallet);
+  }catch(_fundOnWallet){console.log('wallet fund release check:',_fundOnWallet.message||_fundOnWallet);}
   var r=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();if(r.error)throw r.error;var w=r.data||{};
   var roi=Number(w.roi_wallet||0),matching=Number(w.matching_wallet||0),loan=Number(w.loan_wallet||0),pm=0,pl=0,pr=0;
   try{var q=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).eq('status','processing');(q.data||[]).forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase(),a=Number(x.amount||0);if(t==='matching'&&y==='withdrawal')pm+=a;if(t==='loan'&&y==='withdrawal')pl+=a;if((t==='roi'||y==='roi_coupon')&&y==='roi_coupon')pr+=a;});}catch(e){}
@@ -1148,6 +1173,21 @@ async function loadWalletData(){
     // The member may withdraw ONLY the currently eligible incremental amount.
     // Example: gross/current loan ₹2,000, previous loan ₹1,000 => available ₹1,000.
     var grossLoan=Math.max(0,Number(lv2.wallet||loan||0));
+    if(grossLoan<=0){
+      try{
+        var lrw=await supabaseClient.from('wallet_transactions').select('amount,net_amount,transaction_type,title,status,remarks,created_at').eq('fl_id',flId).eq('wallet_type','loan').in('status',['completed','approved']).order('created_at',{ascending:true});
+        var hasLoanWd=(lrw.data||[]).some(function(tx){return String(tx.transaction_type||'').toLowerCase()==='withdrawal';});
+        if(!hasLoanWd){
+          var releaseSum=(lrw.data||[]).filter(function(tx){
+            var tt=String(tx.transaction_type||'').toLowerCase(),amt=Number(tx.net_amount!=null?tx.net_amount:tx.amount||0);
+            // In this wallet, completed/approved non-withdrawal loan transactions
+            // represent released Fund amounts. Do not depend on title/remarks text.
+            return tt!=='withdrawal' && amt>0;
+          }).reduce(function(a,tx){return a+Number(tx.net_amount!=null?tx.net_amount:tx.amount||0);},0);
+          if(releaseSum>0)grossLoan=releaseSum;
+        }
+      }catch(_fundSyncErr){console.log('wallet fund reconciliation:',_fundSyncErr.message);}
+    }
     var eligibleLoan=(lv2.eligible?Math.max(0,Number(lv2.incremental||0)):0);
     // IMPORTANT: Loan Wallet card shows only the actual wallets.loan_wallet balance.
     // Eligibility/incremental amount must never be substituted into the wallet.
@@ -1183,44 +1223,29 @@ async function loadWalletData(){
   // Prefer the real completed bonus rows because an old wallets.matching_wallet value can
   // contain a duplicate/extra amount even when Transaction History shows only one Rs.200 bonus.
   var completedBonusCount=0;
-  var completedBonusAmount=0;
   try{
-    var mb=await supabaseClient.from('wallet_transactions').select('id,amount,transaction_type,wallet_type,status,title').eq('fl_id',flId).eq('wallet_type','matching').in('status',['completed','approved']);
+    var mb=await supabaseClient.from('wallet_transactions').select('id,amount,transaction_type,wallet_type,status,title,remarks,created_at').eq('fl_id',flId).eq('wallet_type','matching').in('status',['completed','approved']);
+    var now2=new Date();var istNow2=new Date(now2.getTime()+330*60000);var dayStartUtc2=Date.UTC(istNow2.getUTCFullYear(),istNow2.getUTCMonth(),istNow2.getUTCDate())-330*60000;
     (mb.data||[]).forEach(function(x){
-      var tt=String(x.transaction_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),wt=String(x.wallet_type||'').toLowerCase();
-      var amt=Number(x.amount||0);
-      if(tt==='withdrawal') return;
-      if(wt==='matching' && amt>0){
-        completedBonusCount++;
-        completedBonusAmount+=amt;
-      }
+      var xt=new Date(x.created_at||0).getTime();
+      var tt=String(x.transaction_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),rm=String(x.remarks||'').toLowerCase();
+      if(xt<dayStartUtc2)return;
+      if(tt!=='withdrawal' && (tt==='matching_bonus'||tt==='matching_income'||ti.indexOf('matching bonus')>=0||ti.indexOf('matching income')>=0||rm.indexOf('matching bonus')>=0||rm.indexOf('matching income')>=0)) completedBonusCount++;
     });
   }catch(e){console.log('matching bonus entitlement:',e.message);}
-  // LIVE PAIRS fallback: if wallet is 0 but binary shows pairs, show expected income
-  var livePairsExpected = Math.max(0,Number(liveStats.pairs||0))*200;
-  var pairCap=(completedBonusCount>0?completedBonusCount:Math.max(0,Number(liveStats.pairs||0)))*200;
-  if(completedBonusCount>0){
-    // cap duplicate amount
-    if(Number.isFinite(completedBonusAmount) && Number(ma)>completedBonusAmount){
-      ma=completedBonusAmount;
-      FLM_WALLET.matching=completedBonusAmount;
-      FLM_WALLET.rawMatching=completedBonusAmount;
-    }
-  } else {
-    // No matching tx yet but pair exists -> show expected from binary (fixes spillover case)
-    if(livePairsExpected>0 && Number(ma)===0){
-      ma=livePairsExpected;
-      FLM_WALLET.matching=livePairsExpected;
-      FLM_WALLET.rawMatching=livePairsExpected;
-    }
+  // Matching entitlement reconciliation: a live pair is worth ₹200. If the
+  // database bonus row is already present, use the real wallet balance. If the
+  // pair exists but the bonus row is missing, expose that single uncredited pair
+  // in the UI; after SQL credits it, completedBonusCount increases and the
+  // fallback disappears, preventing duplicate display.
+  var uncreditedPairs=Math.max(0,Number(liveStats.pairs||0)-completedBonusCount);
+  var derivedMatching=Math.max(0,uncreditedPairs*200);
+  if(Number.isFinite(derivedMatching) && derivedMatching>ma){
+    ma=derivedMatching;
+    FLM_WALLET.matching=derivedMatching;
+    FLM_WALLET.rawMatching=derivedMatching;
   }
-  if(Number.isFinite(pairCap) && Number(ma)>pairCap && completedBonusCount>0){
-    // safety cap only when we have real tx count
-    ma=Math.min(Number(ma),pairCap);
-    FLM_WALLET.matching=ma;
-    FLM_WALLET.rawMatching=ma;
-  }
-  FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=liveToday.pairs;FLM_WALLET.dailyIncome=liveToday.income;
+  FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=Math.max(Number(liveToday.pairs||0),Math.min(25,uncreditedPairs));FLM_WALLET.dailyIncome=Math.max(Number(liveToday.income||0),Math.min(5000,derivedMatching));
   FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0);
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
   var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
@@ -1494,18 +1519,6 @@ async function flmLoadLoanV2(){
    // calculation prevents repeated page opens from crediting Fund 1 again.
    var syncWalletAmount=0;
    var loanWithdrawalPending=false;
-   // Reconcile the Fund Wallet from already-recorded releases. This is idempotent
-   // and prevents the Company Fund page showing ₹1,000 while My Wallets remains ₹0.
-   if(!loanWithdrawalPending){
-     try{
-       var sr=await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});
-       if(sr.error) console.log('loan wallet sync:',sr.error.message);
-       else {
-         var sd=Array.isArray(sr.data)?(sr.data[0]||{}):(sr.data||{});
-         syncWalletAmount=loanNum(sd.wallet_amount||0);
-       }
-     }catch(syncErr){console.log('loan wallet sync:',syncErr.message);}
-   }
    try{
      var pw=await supabaseClient.from('wallet_transactions')
        .select('id').eq('fl_id',flId).eq('wallet_type','loan')
@@ -1714,12 +1727,19 @@ async function flmEnsureFundReleaseOnce(flId, liveStats){
       if(released)latestReleased=Math.max(latestReleased,loanNum(x.plan_level||x.level_no));
     });
 
+    var directL=loanNum(liveStats.directLeft),directR=loanNum(liveStats.directRight);
+    try{
+      var er=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
+      var ed=(!er.error&&er.data)?(Array.isArray(er.data)?(er.data[0]||{}):(er.data||{})):{};
+      directL=Math.max(directL,loanNum(ed.direct_left));
+      directR=Math.max(directR,loanNum(ed.direct_right));
+    }catch(_elig){console.log('fund direct eligibility:',_elig.message||_elig);}
     var next=null;
     for(var i=0;i<plans.length;i++){
       var lv=loanNum(plans[i].level_no),req=loanNum(plans[i].required_pairs);
       if(lv<=latestReleased)continue;
       var ok=(lv===1)
-        ? (loanNum(liveStats.directLeft)>=1 && loanNum(liveStats.directRight)>=1)
+        ? (directL>=1 && directR>=1)
         : (loanNum(liveStats.pairs)>=req);
       if(ok){next=plans[i];break;}
     }
@@ -1785,6 +1805,12 @@ async function loadLoanPanel(){
   try{
     var v2=await flmLoadLoanV2();
     var liveTop=await flmFetchTeamStats(flId);
+    try{
+      var erTop=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
+      var edTop=(!erTop.error&&erTop.data)?(Array.isArray(erTop.data)?(erTop.data[0]||{}):(erTop.data||{})):{};
+      liveTop.directLeft=Math.max(loanNum(liveTop.directLeft),loanNum(edTop.direct_left));
+      liveTop.directRight=Math.max(loanNum(liveTop.directRight),loanNum(edTop.direct_right));
+    }catch(_topElig){console.log('loan direct display:',_topElig.message||_topElig);}
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
     // Release only once after live direct/team counts are verified.
     // The guarded function prevents repeated page opens from creating another Fund 1.
@@ -1812,20 +1838,35 @@ async function loadLoanPanel(){
       .eq('wallet_type','loan')
       .order('created_at',{ascending:true});
     if(loanReleaseTxR.error) console.log('loan release history:',loanReleaseTxR.error.message);
-    var loanReleaseTxs=(loanReleaseTxR.data||[]).filter(function(tx){
+    var loanWalletRows=loanReleaseTxR.data||[];
+    var loanWithdrawalExists=loanWalletRows.some(function(tx){
+      var tt=String(tx.transaction_type||'').toLowerCase().trim();
+      var st=String(tx.status||'').toLowerCase().trim();
+      return tt==='withdrawal' && ['processing','approved','completed'].indexOf(st)>=0;
+    });
+    var loanReleaseTxs=loanWalletRows.filter(function(tx){
       var wt=String(tx.wallet_type||'').toLowerCase().trim();
       var tt=String(tx.transaction_type||'').toLowerCase().trim();
       var title=String(tx.title||'').toLowerCase().trim();
       var st=String(tx.status||'').toLowerCase().trim();
       var isCompleted = (st==='completed'||st==='approved');
-      var isLoanTx = wt==='loan' && (tt.indexOf('loan')>=0 || title.indexOf('loan')>=0 || title.indexOf('increment')>=0);
+      var amt=loanNum(tx.net_amount!=null?tx.net_amount:tx.amount);
+      // Treat any positive completed/approved non-withdrawal loan-wallet credit
+      // as a released Fund. This avoids relying on optional title/remarks labels.
+      var isLoanTx = wt==='loan' && tt!=='withdrawal' && amt>0;
       return isLoanTx && isCompleted;
     });
+    // If the release transaction exists but wallets.loan_wallet was not synced,
+    // reconcile the visible Fund Wallet from the actual released transaction.
+    // Never do this after a withdrawal has already been recorded.
+    if(actualLoanWallet<=0 && !loanWithdrawalExists && loanReleaseTxs.length){
+      actualLoanWallet=loanReleaseTxs.reduce(function(sum,tx){return sum+loanNum(tx.net_amount!=null?tx.net_amount:tx.amount);},0);
+    }
     var roiR=await supabaseClient.from('loan_roi_cycles').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(10);
     if(roiR.error) console.log('ROI cycle query:',roiR.error.message);
     var rois=roiR.data||[];
     var currentLoan=loans.length?loans[loans.length-1]:null;
-    var currentRoi=rois.length?rois[0]:null;
+    var currentRoi=rois.length?rois[0]:null;var hasDbRoiCycle=rois.length>0;
 
     // ROI DISPLAY FALLBACK:
     // Some older members already receive daily ROI credits but do not have a
@@ -1982,6 +2023,25 @@ async function loadLoanPanel(){
         console.log('ROI transaction query:',roiSyncR.error.message);
       }
 
+      // If there is no ROI-cycle row and no ROI credit yet, the business rule is
+      // still a 50-day ROI cycle starting from the member's joining date.
+      // This is display-only and does not create/update any database row.
+      if(!currentRoi){
+        try{
+          var memberJoinR=await supabaseClient.from('users').select('created_at').eq('fl_id',flId).single();
+          var memberJoin=memberJoinR.data&&memberJoinR.data.created_at;
+          var mj=memberJoin?new Date(memberJoin):null;
+          if(mj && !isNaN(mj.getTime())){
+            currentRoi={
+              daily_amount:40,total_days:50,days_completed:0,total_credited:0,
+              start_date:mj.toISOString(),
+              end_date:new Date(mj.getTime()+49*86400000).toISOString(),
+              last_credited_date:null,status:'active',__display_fallback:true,__joining_date_fallback:true
+            };
+          }
+        }catch(joinDateErr){console.log('Joining-date ROI fallback:',joinDateErr.message);}
+      }
+
       // Last-resort cycle display from the released loan when both the cycle row
       // and ROI transaction history are unavailable. Display only; no DB write.
       if(!currentRoi && currentLoan){
@@ -1998,6 +2058,22 @@ async function loadLoanPanel(){
       }
     }catch(finalRoiSyncErr){
       console.log('Final ROI display sync:',finalRoiSyncErr.message||finalRoiSyncErr);
+    }
+
+    // BUSINESS RULE: when there is no loan_roi_cycles row, the visible 50-day
+    // ROI cycle starts from the member's joining/registration date, not from
+    // the date of the first ROI transaction. This is display-only.
+    if(!hasDbRoiCycle){
+      try{
+        var joinR=await supabaseClient.from('users').select('created_at').eq('fl_id',flId).single();
+        var joinRaw=joinR.data&&joinR.data.created_at, joinDate=joinRaw?new Date(joinRaw):null;
+        if(joinDate && !isNaN(joinDate.getTime())){
+          if(!currentRoi) currentRoi={daily_amount:40,total_days:50,days_completed:0,total_credited:0,status:'active',__display_fallback:true};
+          currentRoi.start_date=joinDate.toISOString();
+          currentRoi.end_date=new Date(joinDate.getTime()+49*86400000).toISOString();
+          currentRoi.total_days=50;
+        }
+      }catch(joinNormalizeErr){console.log('Joining-date ROI normalization:',joinNormalizeErr.message);}
     }
 
     // Use exactly the same live tree calculation as the Binary Tree popup.
@@ -2260,28 +2336,7 @@ async function loadLoanPanel(){
       var lastRaw=firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],null);
       try{ if(!lastRaw && typeof syncLast!=='undefined' && syncLast && syncLast.created_at) lastRaw=syncLast.created_at; }catch(e){}
       currentRoi.__last_display = lastRaw;
-      var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['start_date','started_at','created_at'],null)))+'<br>End: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['end_date','ends_at'],null)))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else{
-      // FIXED: Show 50-day cycle from joining date, not loan cycle dependency
-      try{
-        var uj=await supabaseClient.from('users').select('created_at,joining_date,activation_date').eq('fl_id',flId).maybeSingle();
-        var joinRaw = (uj.data && (uj.data.joining_date||uj.data.created_at||uj.data.activation_date)) || new Date().toISOString();
-        var jd = new Date(joinRaw);
-        if(isNaN(jd.getTime())) jd=new Date();
-        var endD = new Date(jd.getTime()+49*24*60*60*1000);
-        var nowD = new Date();
-        var diffDays = Math.floor((nowD - jd)/(24*60*60*1000));
-        if(diffDays<0) diffDays=0;
-        var doneDays = Math.min(50, Math.max(0, diffDays+1));
-        var remainDays = Math.max(0, 50-doneDays);
-        rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(40)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+doneDays+' / 50 days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remainDays+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Expected</div><b>'+loanMoney(doneDays*40)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Joining: '+loanEsc(flmRoiIstDateOnly(jd.toISOString()))+'<br>End: '+loanEsc(flmRoiIstDateOnly(endD.toISOString()))+'<br>Status: active (50-day logic from joining date)<br><span style="font-size:10px;color:#059669">Note: ROI cycle is based on joining date, not loan release.</span></div>';
-        // Also update self renewal note
-        var note2=document.getElementById('selfRenewNote');
-        if(note2) note2.innerText = (remainDays>0) ? '🔒 Current ROI cycle is active ('+doneDays+'/50 days). Self Renewal after '+loanEsc(flmRoiIstDateOnly(endD.toISOString())) : '✅ ROI cycle completed. Self Renewal available.';
-      }catch(e2){
-        console.log('ROI joining fallback:',e2.message);
-        rbbox.innerHTML='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><b>ROI Cycle: 50 days from joining date</b><br><span style="font-size:11px;color:#64748b">Daily ₹40, Total ₹2000. Cycle starts on your joining date and runs 50 days. Current status is calculated from your joining date, not loan release.</span><br><br><span style="font-size:11px">Joining-based cycle is active.</span></div>';
-      }
-    }}
+      var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['start_date','started_at','created_at'],null)))+'<br>End: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['end_date','ends_at'],null)))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
     // Show the released loan history separately from the NEXT eligible loan.
     // This makes it clear that the ₹1,000 Fund 1 release is already completed while
     // the next Fund 2 remains locked until 4:4.
@@ -3059,7 +3114,7 @@ async function claimReward(pairs, name){
       (tx.data||[]).forEach(function(x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);if(amt<=0||tt==='withdrawal')return;if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;var k=istDayKey(x.created_at);if(!k|| (startKey&&k<startKey))return;days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;});
       var done=Math.min(totalDays,Object.keys(days).length),remaining=Math.max(0,totalDays-done),creditTotal=credited||done*daily;
       var rb=document.getElementById('loanRoiCycleBox');if(rb){rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+istDateOnly(start)+'<br>End: '+istDateOnly(cycle.end_date||cycle.ends_at||(start?new Date(new Date(start).getTime()+49*86400000):null))+'<br>Last Credit: '+istText(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';}
-      var note=document.getElementById('selfRenewNote');var endValue=cycle.end_date||cycle.ends_at||(start?new Date(new Date(start).getTime()+49*86400000):null);var dateComplete=flmRoiEndDatePassed(endValue);if(note){ if(start){ note.innerText=(!dateComplete&&done<totalDays)?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until '+istDateOnly(endValue)+' is complete. (50-day from joining)':'✅ ROI cycle completed. Self Renewal is available now with a valid unused PIN.'; } else { note.innerText='ROI: 50 days from joining date. Daily ₹40.'; } }var renewBtn=document.getElementById('loanRenewBtn');if(renewBtn)renewBtn.disabled=!dateComplete;
+      var note=document.getElementById('selfRenewNote');var endValue=cycle.end_date||cycle.ends_at||(start?new Date(new Date(start).getTime()+49*86400000):null);var dateComplete=flmRoiEndDatePassed(endValue);if(note)note.innerText=(!dateComplete&&done<totalDays)?'🔒 Current ROI cycle is active ('+done+'/'+totalDays+' days). Self Renewal is locked until '+istDateOnly(endValue)+' is complete.':'✅ ROI cycle completed. Self Renewal is available now with a valid unused PIN.';var renewBtn=document.getElementById('loanRenewBtn');if(renewBtn)renewBtn.disabled=!dateComplete;
     }catch(e){console.log('ROI reconcile:',e.message||e);}
   }
   window.flmReconcileRoiDisplay=reconcileRoiDisplay;
