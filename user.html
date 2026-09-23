@@ -729,7 +729,7 @@ async function saveProfile(){
   if(typeof flmRefreshOrderOptions==='function') flmRefreshOrderOptions();
  }catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}}
 }
-async function loadInvite(){if(!requireLogin()) return;var flId=getFlId();var itName=document.getElementById('inviteTopName');if(itName) itName.innerText=getName()||flId;var itFl=document.getElementById('inviteTopFl');if(itFl) itFl.innerText=flId;var registerBase=new URL('register.html',window.location.href).href.split('?')[0];var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';var leftInput=document.getElementById('leftLinkInput');if(leftInput) leftInput.value=leftLink;var rightInput=document.getElementById('rightLinkInput');if(rightInput) rightInput.value=rightLink;window.leftInviteLink=leftLink;window.rightInviteLink=rightLink;try{if(supabaseClient){var liveStats=await flmFetchTeamStats(flId);var lw=Number(liveStats.left||0),rw=Number(liveStats.right||0);var lwc=document.getElementById('leftWingCount');if(lwc) lwc.innerText=lw;var rwc=document.getElementById('rightWingCount');if(rwc) rwc.innerText=rw;var lp=document.getElementById('leftPlacement');if(lp) lp.innerText=lw>0?'Filled':'Open';var rp=document.getElementById('rightPlacement');if(rp) rp.innerText=rw>0?'Filled':'Open';var lls=document.getElementById('leftLinkStatus');if(lls) lls.innerText=lw>0?(lw+' members'):'Open';var rls=document.getElementById('rightLinkStatus');if(rls) rls.innerText=rw>0?(rw+' members'):'Open';var r2=await supabaseClient.from('users').select('*').eq('sponsor_id',flId).order('created_at',{ascending:false});var spons=r2.data||[];var st=document.getElementById('sponsoredTotal');if(st) st.innerText=spons.length+' total';var sl=document.getElementById('sponsoredList');if(sl){if(spons.length>0){var html='';for(var i=0;i<spons.length;i++){var u=spons[i];html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><b style="font-size:13px">'+u.full_name+'</b><div style="font-size:11px;color:#64748b">'+u.fl_id+' · '+u.mobile+'</div></div>';}sl.innerHTML=html;}else{sl.innerHTML='No sponsored members yet.';}}}}catch(e){console.log('invite wing stats:',e.message);}}
+async function loadInvite(){if(!requireLogin()) return;var flId=getFlId();var itName=document.getElementById('inviteTopName');if(itName) itName.innerText=getName()||flId;var itFl=document.getElementById('inviteTopFl');if(itFl) itFl.innerText=flId;var registerBase=new URL('register.html',window.location.href).href.split('?')[0];var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';var leftInput=document.getElementById('leftLinkInput');if(leftInput) leftInput.value=leftLink;var rightInput=document.getElementById('rightLinkInput');if(rightInput) rightInput.value=rightLink;window.leftInviteLink=leftLink;window.rightInviteLink=rightLink;try{if(supabaseClient){var liveStats=await flmFetchTeamStats(flId);var lw=Number(liveStats.left||0),rw=Number(liveStats.right||0);var lwc=document.getElementById('leftWingCount');if(lwc) lwc.innerText=lw;var rwc=document.getElementById('rightWingCount');if(rwc) rwc.innerText=rw;var lp=document.getElementById('leftPlacement');if(lp) lp.innerText=Number(liveStats.directLeft||0)>0?'Filled':'Open';var rp=document.getElementById('rightPlacement');if(rp) rp.innerText=Number(liveStats.directRight||0)>0?'Filled':'Open';var lls=document.getElementById('leftLinkStatus');if(lls) lls.innerText=lw>0?(lw+' members'):'Open';var rls=document.getElementById('rightLinkStatus');if(rls) rls.innerText=rw>0?(rw+' members'):'Open';var r2=await supabaseClient.from('users').select('*').eq('sponsor_id',flId).order('created_at',{ascending:false});var spons=r2.data||[];var st=document.getElementById('sponsoredTotal');if(st) st.innerText=spons.length+' total';var sl=document.getElementById('sponsoredList');if(sl){if(spons.length>0){var html='';for(var i=0;i<spons.length;i++){var u=spons[i];html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><b style="font-size:13px">'+u.full_name+'</b><div style="font-size:11px;color:#64748b">'+u.fl_id+' · '+u.mobile+'</div></div>';}sl.innerHTML=html;}else{sl.innerHTML='No sponsored members yet.';}}}}catch(e){console.log('invite wing stats:',e.message);}}
 function copyLeftLink(){var v=window.leftInviteLink||document.getElementById('leftLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Left link copied');}
 function copyRightLink(){var v=window.rightInviteLink||document.getElementById('rightLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Right link copied');}
 var treeZoomLevel=42;
@@ -805,8 +805,19 @@ async function flmFetchTeamStats(rootFlId){
     var root=String(rootFlId).trim().toUpperCase();
     var rootGroup=treeByParent[root]||{left:null,right:null};
     var queue=[];
-    if(rootGroup.left){out.left++;out.directLeft++;queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});}
-    if(rootGroup.right){out.right++;out.directRight++;queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});}
+    if(rootGroup.left){out.left++;queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});}
+    if(rootGroup.right){out.right++;queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});}
+
+    // DIRECT referrals use direct_sponsor_id only.
+    // Spillover/placement members still count in the binary wings,
+    // but they cannot qualify or fill Fund 1 direct placement.
+    (users||[]).forEach(function(u){
+      var ds=String(u.direct_sponsor_id||'').trim().toUpperCase();
+      if(ds!==root)return;
+      var us=String(u.side||'').trim().toLowerCase();
+      if(us==='left')out.directLeft++;
+      else if(us==='right')out.directRight++;
+    });
     var seen={};
     queue.forEach(function(x){if(x.fl)seen[x.fl]=true;});
     for(var i=0;i<queue.length;i++){
@@ -1304,7 +1315,7 @@ async function submitWalletPinPurchase(walletType){
 function showWalletWithdraw(walletType){
  if(walletType==='matching'){
   var box=document.getElementById('walletSubAction');if(!box)return;
-  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹200. Until the ₹5,000/day store condition is reached, Bank/USDT withdrawal is available.</div><input id="walletActionAmount" type="number" min="200" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
+  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. Until the ₹5,000/day store condition is reached, Bank/USDT withdrawal is available.</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
   checkMatchingStore();
   return;
  }
@@ -1370,7 +1381,7 @@ async function submitRoiRedeem(){
   showRoiCouponSuccess(newCode,amt);
  }catch(e){alert('ROI redemption failed: '+e.message);}
 }
-async function submitMatchingWithdraw(method){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;var flId=getFlId();var forceStore=(FLM_WALLET.dailyIncome>=5000 || FLM_WALLET.dailyPairs>=25);try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:forceStore});if(r.error)throw r.error;
+async function submitMatchingWithdraw(method){var amt=getActionAmount();if(amt<500){alert('Minimum matching withdrawal is ₹500.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;var flId=getFlId();var forceStore=(FLM_WALLET.dailyIncome>=5000 || FLM_WALLET.dailyPairs>=25);try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:forceStore});if(r.error)throw r.error;
   // The database reserves the requested amount immediately. Update the visible balance first.
   FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);
   FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;
@@ -1431,7 +1442,7 @@ async function checkMatchingStore(){
   }else{el.innerHTML='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px;font-size:11px">No store found within 25 KM. Bank/USDT withdrawal is available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';var sb2=document.getElementById('matchingStoreWithdrawBtn');if(sb2)sb2.style.display='none';}
  }catch(e){el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px">Location permission is needed to find the nearest store. If no store can be located, Bank/USDT withdrawal remains available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';}
 }
-async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Store withdrawal failed: '+e.message);}}
+async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<500){alert('Minimum matching withdrawal is ₹500.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}var flId=getFlId();try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:flId,p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Withdrawal request submitted. Status: Processing.');await loadWalletData();loadWalletHistory();}catch(e){alert('Store withdrawal failed: '+e.message);}}
 async function loadWalletHistory(){var el=document.getElementById('walletHistory');if(!el||!supabaseClient)return;var flId=getFlId();try{var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}var g={matching:[],loan:[],fundRelease:[],roi:[],pins:[],other:[]};var fundReleaseByLevel={};rows.forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),remarks=String(x.remarks||'').toLowerCase(),st=String(x.status||'').toLowerCase();if(y==='pin_purchase')g.pins.push(x);else if(t==='matching'&&y==='withdrawal')g.matching.push(x);else if(t==='loan'&&y==='withdrawal')g.loan.push(x);else if(t==='loan'&&st==='completed'&&((title.indexOf('loan')>=0)||(title.indexOf('increment')>=0)||(y.indexOf('loan')>=0)||(y.indexOf('increment')>=0))){var m=(remarks+' '+title).match(/(?:fund|loan)\s*(?:level\s*)?(\d+)/i);var lvl=m?parseInt(m[1],10):0;if(!lvl){var amt=Number(x.net_amount!=null?x.net_amount:x.amount)||0;lvl=amt>=16000?5:amt>=8000?4:amt>=4000?3:amt>=2000?2:1;}var key=String(lvl),prev=fundReleaseByLevel[key],isIncrement=(title.indexOf('increment')>=0||y.indexOf('increment')>=0);if(!prev||isIncrement)fundReleaseByLevel[key]=x;}else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);});Object.keys(fundReleaseByLevel).sort(function(a,b){return Number(b)-Number(a);}).forEach(function(k){var x=fundReleaseByLevel[k];g.fundRelease.push(Object.assign({},x,{title:'Fund '+k+' Released'}));});function card(x){var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';var displayTitle=(x.title||x.wallet_type||'Transaction');if(String(x.wallet_type||'').toLowerCase()==='loan'&&String(x.transaction_type||'').toLowerCase()==='withdrawal'){displayTitle=displayTitle.replace(/\bLoan\b/gi,'Fund');}var couponHtml='';if(x.coupon_code){var cc=flmEscHtml(x.coupon_code);couponHtml='<div style="margin-top:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:8px"><div style="font-size:10px;font-weight:800;color:#166534">🎫 ROI Coupon</div><div style="display:flex;gap:6px;align-items:center;margin-top:5px"><span style="flex:1;font-size:12px;font-weight:900;word-break:break-all">'+cc+'</span><button type="button" onclick="copyRoiCoupon(\''+cc.replace(/'/g,"\\'")+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:7px;padding:7px 9px;font-size:10px;font-weight:800">Copy</button></div><div style="font-size:9px;color:#64748b;margin-top:4px">'+(st==='COMPLETED'?'Redeemed once':'Show this code to store/admin for one-time redemption')+'</div></div>';}return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+displayTitle+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+x.store_name:'')+(x.store_code?' • Code: '+x.store_code:'')+'</div>'+couponHtml+'</div>';}function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}el.innerHTML=group('💰 Matching Income Withdrawals',g.matching)+group('🏦 Fund Amount Withdrawals',g.loan)+group('📋 Company Fund Releases',g.fundRelease)+group('🎫 PIN Purchases',g.pins)+group('🛒 ROI Store Redemptions',g.roi)+(g.other.length?group('📋 Other Wallet Transactions',g.other):'');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}}
 
 function loanNum(v){var n=Number(v);return Number.isFinite(n)?n:0;}
@@ -1447,20 +1458,12 @@ async function flmLoadLoanV2(){
    var syncWalletAmount=0;
    var loanWithdrawalPending=false;
    try{var pw=await supabaseClient.from('wallet_transactions').select('id').eq('fl_id',flId).eq('wallet_type','loan').eq('transaction_type','withdrawal').eq('status','processing').limit(1);loanWithdrawalPending=!!(pw.data&&pw.data.length);}catch(e){console.log('pending loan withdrawal check:',e.message);}
-   if(!loanWithdrawalPending){
-     try{
-       var sr=await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});
-       if(sr.error) console.log('loan wallet sync:',sr.error.message);
-       else {var sd=Array.isArray(sr.data)?(sr.data[0]||{}):(sr.data||{});syncWalletAmount=loanNum(sd.wallet_amount||0);}
-     }catch(syncErr){console.log('loan wallet sync:',syncErr.message);}
-   }
-
    // Use the canonical database eligibility function. It uses the live binary tree,
    // direct referrals separately, and RELEASED/ACTIVE loan level history so that
    // 1:1 -> Loan 1, 4:4 -> Loan 2, 12:12 -> Loan 3 automatically.
    var e=null;
    try{
-     var r=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
+     var r=await supabaseClient.rpc('flm_loan_live_eligibility_v3',{p_fl_id:flId});
      if(!r.error)e=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
      else console.log('loan eligibility:',r.error.message);
    }catch(err){console.log('loan eligibility:',err.message);}
@@ -1509,6 +1512,16 @@ async function flmLoadLoanV2(){
      if(FLM_LOAN_V2.eligible&&!FLM_LOAN_V2.message)FLM_LOAN_V2.message='Fund '+FLM_LOAN_V2.level+' eligible: required pair level completed.';
    }else{
      FLM_LOAN_V2={eligible:fallbackEligible,level:nextPlan?loanNum(nextPlan.level_no):latestLevel,totalLeft:live.left,totalRight:live.right,directLeft:live.directLeft,directRight:live.directRight,loanAmount:gross,previousLoan:prev,incremental:fallbackEligible?inc:0,wallet:0,message:fallbackEligible?'Fund '+(nextPlan?nextPlan.level_no:'')+' eligible: required pair level completed.':'Fund status is temporarily unavailable.'};
+   }
+
+   // Sync/release only AFTER eligibility is calculated.
+   // Fund 1 requires 1 direct LEFT + 1 direct RIGHT; spillover alone cannot release it.
+   if(!loanWithdrawalPending && FLM_LOAN_V2.eligible){
+     try{
+       var sr=await supabaseClient.rpc('flm_sync_loan_wallet_v2',{p_fl_id:flId});
+       if(sr.error) console.log('loan wallet sync:',sr.error.message);
+       else {var sd=Array.isArray(sr.data)?(sr.data[0]||{}):(sr.data||{});syncWalletAmount=loanNum(sd.wallet_amount||0);}
+     }catch(syncErr){console.log('loan wallet sync:',syncErr.message);}
    }
 
    // FIX V4: If eligible but no active loan record for this level, try to create it
@@ -1608,7 +1621,7 @@ async function flmCalcEligibleLoanDirect(){
     var latest=active.length?loanNum(active[active.length-1].plan_level||active[active.length-1].level_no||0):0;
     var totalPairs=Math.min(loanNum(live.left),loanNum(live.right));
     var nextPlan=null;
-    for(var i=0;i<plans.length;i++){ var lv=loanNum(plans[i].level_no), req=loanNum(plans[i].required_pairs); if(lv>latest && req<=totalPairs){ nextPlan=plans[i]; break; } }
+    for(var i=0;i<plans.length;i++){ var lv=loanNum(plans[i].level_no), req=loanNum(plans[i].required_pairs); if(lv>latest && ((lv===1 && live.directLeft>=1 && live.directRight>=1) || (lv>1 && req<=totalPairs))){ nextPlan=plans[i]; break; } }
     if(!nextPlan && !latest && plans.length) nextPlan=plans[0];
     if(!nextPlan) return {eligible:false,incremental:0};
     var gross=loanNum(nextPlan.loan_amount), prev=loanNum(nextPlan.previous_loan_amount);
