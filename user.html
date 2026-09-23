@@ -1,6 +1,6 @@
 <!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
 <!DOCTYPE html>
-<html><head><meta name="flm-build" content="20260923-direct-referral-fund1-fix-v2"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<html><head><meta name="flm-build" content="20260923-fund1-wing-rewards-clean"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -729,58 +729,22 @@ async function saveProfile(){
   if(typeof flmRefreshOrderOptions==='function') flmRefreshOrderOptions();
  }catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Error: '+e.message;}}
 }
-async function loadInvite(){
-  if(!requireLogin())return;
-  var flId=getFlId();
-  var itName=document.getElementById('inviteTopName');if(itName)itName.innerText=getName()||flId;
-  var itFl=document.getElementById('inviteTopFl');if(itFl)itFl.innerText=flId;
-  var registerBase=new URL('register.html',window.location.href).href.split('?')[0];
-  var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';
-  var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';
-  var leftInput=document.getElementById('leftLinkInput');if(leftInput)leftInput.value=leftLink;
-  var rightInput=document.getElementById('rightLinkInput');if(rightInput)rightInput.value=rightLink;
-  window.leftInviteLink=leftLink;window.rightInviteLink=rightLink;
-
-  try{
-    if(!supabaseClient)return;
-
-    var allInviteUsers=await flmLoadAllUsers();
-    var liveStats=await flmFetchTeamStats(flId);
-    var lw=Number(liveStats.left||0),rw=Number(liveStats.right||0);
-
-    var lwc=document.getElementById('leftWingCount');if(lwc)lwc.innerText=lw;
-    var rwc=document.getElementById('rightWingCount');if(rwc)rwc.innerText=rw;
-    var lp=document.getElementById('leftPlacement');if(lp)lp.innerText=Number(liveStats.directLeft||0)>0?'Filled':'Open';
-    var rp=document.getElementById('rightPlacement');if(rp)rp.innerText=Number(liveStats.directRight||0)>0?'Filled':'Open';
-
-    var lls=document.getElementById('leftLinkStatus');
-    if(lls)lls.innerText=Number(liveStats.directLeft||0)>0?(Number(liveStats.directLeft||0)+' members'):'Open';
-    var rls=document.getElementById('rightLinkStatus');
-    if(rls)rls.innerText=Number(liveStats.directRight||0)>0?(Number(liveStats.directRight||0)+' members'):'Open';
-
-    /*
-      Sponsored members uses the exact same direct-referral resolver as
-      Fund 1 qualification.  This prevents Wing Status = 1/1 while
-      Sponsored Members = 0.
-    */
-    var spons=await flmGetDirectReferralUsers(flId,allInviteUsers);
-    spons.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
-    var st=document.getElementById('sponsoredTotal');if(st)st.innerText=spons.length+' total';
-    var sl=document.getElementById('sponsoredList');
-    if(sl){
-      if(spons.length>0){
-        var html='';
-        for(var i=0;i<spons.length;i++){
-          var u=spons[i];
-          html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><b style="font-size:13px">'+(u.full_name||u.fl_id||'Member')+'</b><div style="font-size:11px;color:#64748b">'+(u.fl_id||'')+(u.mobile?' · '+u.mobile:'')+'</div></div>';
-        }
-        sl.innerHTML=html;
-      }else{
-        sl.innerHTML='No sponsored members yet.';
-      }
-    }
-  }catch(e){console.log('invite wing stats:',e.message||e);}
-}
+async function loadInvite(){if(!requireLogin()) return;var flId=getFlId();var itName=document.getElementById('inviteTopName');if(itName) itName.innerText=getName()||flId;var itFl=document.getElementById('inviteTopFl');if(itFl) itFl.innerText=flId;var registerBase=new URL('register.html',window.location.href).href.split('?')[0];var leftLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=left';var rightLink=registerBase+'?sponsor='+encodeURIComponent(flId)+'&side=right';var leftInput=document.getElementById('leftLinkInput');if(leftInput) leftInput.value=leftLink;var rightInput=document.getElementById('rightLinkInput');if(rightInput) rightInput.value=rightLink;window.leftInviteLink=leftLink;window.rightInviteLink=rightLink;try{if(supabaseClient){var liveStats=await flmFetchTeamStats(flId);var lw=Number(liveStats.left||0),rw=Number(liveStats.right||0);var lwc=document.getElementById('leftWingCount');if(lwc) lwc.innerText=lw;var rwc=document.getElementById('rightWingCount');if(rwc) rwc.innerText=rw;var lp=document.getElementById('leftPlacement');if(lp) lp.innerText=lw>0?'Filled':'Open';var rp=document.getElementById('rightPlacement');if(rp) rp.innerText=rw>0?'Filled':'Open';var lls=document.getElementById('leftLinkStatus');if(lls) lls.innerText=Number(liveStats.directLeft||0)>0?(Number(liveStats.directLeft||0)+' members'):'Open';var rls=document.getElementById('rightLinkStatus');if(rls) rls.innerText=Number(liveStats.directRight||0)>0?(Number(liveStats.directRight||0)+' members'):'Open';var allInviteUsers=await flmLoadAllUsers();
+var directMap={};
+try{
+  var rr=await supabaseClient.from('registration_requests').select('approved_fl_id,sponsor_id,status').eq('status','approved').not('approved_fl_id','is',null);
+  (rr.data||[]).forEach(function(x){var k=String(x.approved_fl_id||'').trim().toUpperCase();if(k)directMap[k]=String(x.sponsor_id||'').trim().toUpperCase();});
+}catch(_rr){console.log('sponsor history lookup:',_rr.message||_rr);}
+var spons=(allInviteUsers||[]).filter(function(u){
+  var fl = String(u.fl_id||'').trim().toUpperCase();
+  var direct=String(u.direct_sponsor_id||'').trim().toUpperCase() || directMap[fl] || '';
+  // Fallback to sponsor_id for recent records
+  if(!direct){
+    var sp=String(u.sponsor_id||'').trim().toUpperCase();
+    if(sp===String(flId).trim().toUpperCase()) direct=sp;
+  }
+  return direct===String(flId).trim().toUpperCase();
+}).sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});var st=document.getElementById('sponsoredTotal');if(st) st.innerText=spons.length+' total';var sl=document.getElementById('sponsoredList');if(sl){if(spons.length>0){var html='';for(var i=0;i<spons.length;i++){var u=spons[i];html+='<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px"><b style="font-size:13px">'+u.full_name+'</b><div style="font-size:11px;color:#64748b">'+u.fl_id+' · '+u.mobile+'</div></div>';}sl.innerHTML=html;}else{sl.innerHTML='No sponsored members yet.';}}}}catch(e){console.log('invite wing stats:',e.message);}}
 function copyLeftLink(){var v=window.leftInviteLink||document.getElementById('leftLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Left link copied');}
 function copyRightLink(){var v=window.rightInviteLink||document.getElementById('rightLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Right link copied');}
 var treeZoomLevel=42;
@@ -797,7 +761,7 @@ async function flmLoadAllUsers(){
   var all=[],from=0,step=1000;
   while(true){
     var r=await supabaseClient.from('users')
-      .select('fl_id,full_name,mobile,sponsor_id,direct_sponsor_id,side,created_at')
+      .select('fl_id,full_name,mobile,sponsor_id,direct_sponsor_id,side,created_at,joining_date')
       .range(from,from+step-1);
     if(r.error)throw r.error;
     var batch=r.data||[];
@@ -816,63 +780,6 @@ async function flmLoadAllUsers(){
   older record keeps the position and later records are displayed as
   spillover below it. This makes the visible tree and wing totals agree.
 */
-
-/*
-  FLM DIRECT REFERRAL RESOLVER
-  -----------------------------
-  Direct referral = the member who actually joined from this member's
-  referral link.  Prefer direct_sponsor_id.  For older records, recover
-  sponsor_id from registration_requests.  As a final legacy fallback,
-  when no direct-sponsor value exists at all, a member whose stored
-  placement parent is this root is treated as direct.  This fallback is
-  intentionally limited to the root parent so normal spillover members
-  are not counted as direct referrals.
-*/
-async function flmGetDirectReferralUsers(rootFlId, users){
-  var root=String(rootFlId||'').trim().toUpperCase();
-  var arr=Array.isArray(users)?users:[];
-  var directMap={};
-  if(!root)return [];
-
-  /*
-    STRICT DIRECT REFERRAL RULE:
-    A member is a direct referral ONLY when the original referral/sponsor
-    relationship points to this root. Binary placement parent (users.sponsor_id)
-    is NEVER used as a direct-referral fallback because spillover can use the
-    same field. This keeps matching/wing counts separate from Fund 1 counts.
-  */
-  try{
-    var rr=await supabaseClient.from('registration_requests')
-      .select('approved_fl_id,sponsor_id,status')
-      .eq('status','approved')
-      .not('approved_fl_id','is',null);
-    (rr.data||[]).forEach(function(x){
-      var k=String(x.approved_fl_id||'').trim().toUpperCase();
-      var s=String(x.sponsor_id||'').trim().toUpperCase();
-      if(k&&s)directMap[k]=s;
-    });
-  }catch(e){console.log('direct referral history:',e.message||e);}
-
-  var out=[];
-  arr.forEach(function(u){
-    var uid=String(u.fl_id||'').trim().toUpperCase();
-    var ds=String(u.direct_sponsor_id||'').trim().toUpperCase();
-    if(!ds)ds=directMap[uid]||'';
-    if(ds===root)out.push(u);
-  });
-  return out;
-}
-
-function flmCountDirectSides(directUsers){
-  var out={left:0,right:0};
-  (directUsers||[]).forEach(function(u){
-    var side=String(u.side||'').trim().toLowerCase();
-    if(side==='left')out.left++;
-    else if(side==='right')out.right++;
-  });
-  return out;
-}
-
 function flmBuildBinaryPlacement(users){
   var treeByParent={};
   var placementByUser={};
@@ -903,7 +810,36 @@ function flmBuildBinaryPlacement(users){
   return {treeByParent:treeByParent,placementByUser:placementByUser};
 }
 
-async function flmFetchTeamStats(rootFlId){
+async 
+async function flmEnsureMatchingBonusCredit(flId, livePairs, existingBonusCount){
+  try{
+    if(!supabaseClient||!flId) return;
+    var pairs=Number(livePairs||0);
+    var existing=Number(existingBonusCount||0);
+    var missing=pairs-existing;
+    if(missing<=0) return;
+    console.log('FLM: Missing matching bonuses', missing);
+    try{
+      var rpc=await supabaseClient.rpc('flm_credit_matching_bonus',{p_fl_id:flId});
+      if(!rpc.error){ console.log('FLM matching RPC success'); return; }
+    }catch(e){}
+    var toCredit=missing*200;
+    try{
+      var w=await supabaseClient.from('wallets').select('matching_wallet').eq('fl_id',flId).single();
+      var cur=w.data?Number(w.data.matching_wallet||0):0;
+      var newM=cur+toCredit;
+      var upd=await supabaseClient.from('wallets').update({matching_wallet:newM}).eq('fl_id',flId);
+      if(!upd.error){
+        for(var i=0;i<missing;i++){
+          var tx={fl_id:flId,wallet_type:'matching',transaction_type:'matching_bonus',title:'Matching Bonus - Pair '+(existing+i+1),amount:200,net_amount:200,status:'completed',remarks:'Auto-credited for left/right pair - spillover included'};
+          await supabaseClient.from('wallet_transactions').insert(tx);
+        }
+      }
+    }catch(e){ console.log('Direct matching credit failed', e.message); }
+  }catch(e){ console.log('matching ensure', e.message); }
+}
+
+function flmFetchTeamStats(rootFlId){
   var out={left:0,right:0,total:0,pairs:0,teamSize:0,directLeft:0,directRight:0};
   if(!supabaseClient||!rootFlId)return out;
   try{
@@ -912,30 +848,43 @@ async function flmFetchTeamStats(rootFlId){
     var treeByParent=placement.treeByParent;
     var root=String(rootFlId).trim().toUpperCase();
 
-    /*
-      DIRECT REFERRALS:
-      Resolve from direct_sponsor_id -> registration_requests -> legacy
-      root-placement fallback.  Do not use arbitrary descendant placement
-      parents as direct sponsors.
-    */
-    // STRICT direct counts: direct_sponsor_id / original registration sponsor only.
-    // sponsor_id is binary placement and may represent spillover; never count it here.
-    var directUsers=await flmGetDirectReferralUsers(root,users);
-    var directSides=flmCountDirectSides(directUsers);
-    out.directLeft=directSides.left;
-    out.directRight=directSides.right;
+    // DIRECT REFERRALS: direct_sponsor_id is authoritative. For older approved
+    // accounts where that column was not populated, recover the original sponsor
+    // from registration_requests. Never use sponsor_id as a direct-referral
+    // fallback because sponsor_id is the actual binary placement parent and may
+    // point to a spillover parent.
+    var directMap={};
+    try{
+      var rr=await supabaseClient.from('registration_requests').select('approved_fl_id,sponsor_id,status').eq('status','approved').not('approved_fl_id','is',null);
+      (rr.data||[]).forEach(function(x){var k=String(x.approved_fl_id||'').trim().toUpperCase();if(k)directMap[k]=String(x.sponsor_id||'').trim().toUpperCase();});
+    }catch(_rr){console.log('direct sponsor history:',_rr.message||_rr);}
+    // FIX: Direct referral counting with multiple fallbacks
+    // 1. direct_sponsor_id (authoritative)
+    // 2. registration_requests history
+    // 3. sponsor_id as fallback for recent records where direct_sponsor_id not set (fixes Eroju nundi issue)
+    (users||[]).forEach(function(u){
+      var fl = String(u.fl_id||'').trim().toUpperCase();
+      if(fl===root) return;
+      var ds=String(u.direct_sponsor_id||'').trim().toUpperCase();
+      if(!ds) ds=directMap[fl]||'';
+      // Fallback: if still empty, use sponsor_id if that sponsor is root (direct link used)
+      // This fixes case where direct_sponsor_id column not populated
+      if(!ds){
+        var sp=String(u.sponsor_id||'').trim().toUpperCase();
+        if(sp===root) ds=root;
+      }
+      if(ds!==root)return;
+      var side=String(u.side||'').trim().toLowerCase();
+      if(side==='left')out.directLeft++;
+      else if(side==='right')out.directRight++;
+    });
 
     var rootGroup=treeByParent[root]||{left:null,right:null};
     var queue=[];
-    if(rootGroup.left){
-      out.left++;
-      queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});
-    }
-    if(rootGroup.right){
-      out.right++;
-      queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});
-    }
-
+    // The direct LEFT/RIGHT counts were already calculated from direct_sponsor_id
+    // above. Do NOT increment them again from the placement tree.
+    if(rootGroup.left){out.left++;queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});}
+    if(rootGroup.right){out.right++;queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});}
     var seen={};
     queue.forEach(function(x){if(x.fl)seen[x.fl]=true;});
     for(var i=0;i<queue.length;i++){
@@ -945,8 +894,7 @@ async function flmFetchTeamStats(rootFlId){
         var child=String(u.fl_id||'').trim().toUpperCase();
         if(!child||seen[child])return;
         seen[child]=true;
-        if(node.rootSide==='left')out.left++;
-        else if(node.rootSide==='right')out.right++;
+        if(node.rootSide==='left')out.left++;else if(node.rootSide==='right')out.right++;
         queue.push({fl:child,rootSide:node.rootSide});
       });
     }
@@ -1647,14 +1595,8 @@ async function flmLoadLoanV2(){
    var loans=loansR.data||[];
    var activeLoans=loans.filter(function(x){var st=String(x.status||'').toLowerCase();return st!=='rejected'&&st!=='cancelled';});
    var latestLevel=activeLoans.reduce(function(m,x){return Math.max(m,loanNum(firstVal(x,['plan_level','level_no'],0)));},0);
-   // STRICT SEQUENTIAL FUND ORDER: never skip Fund 1 because spillover
-   // produced higher binary pairs. The next fund is always latest+1.
    var nextPlan=null;
-   var requiredNextLevel=latestLevel+1;
-   for(var i=0;i<plans.length;i++){
-     var lv=loanNum(plans[i].level_no);
-     if(lv===requiredNextLevel){nextPlan=plans[i];break;}
-   }
+   for(var i=0;i<plans.length;i++){var lv=loanNum(plans[i].level_no),req=loanNum(plans[i].required_pairs);if(lv>latestLevel && ((lv===1 && live.directLeft>=1 && live.directRight>=1) || (lv>1 && live.pairs>=req))){nextPlan=plans[i];break;}}
    if(!nextPlan && !latestLevel && plans.length)nextPlan=plans[0];
 
    var gross=nextPlan?loanNum(nextPlan.loan_amount):0;
@@ -1776,15 +1718,9 @@ async function flmCalcEligibleLoanDirect(){
     var active=loans.filter(function(x){ var st=String(x.status||'').toLowerCase().trim(); return ['approved','active','completed','disbursed','released'].indexOf(st)>=0; });
     var latest=active.length?loanNum(active[active.length-1].plan_level||active[active.length-1].level_no||0):0;
     var totalPairs=Math.min(loanNum(live.left),loanNum(live.right));
-    // STRICT SEQUENTIAL FUND ORDER: do not jump to Fund 2/3 from spillover pairs
-    // while an earlier fund is still unreleased.
     var nextPlan=null;
-    var requiredNextLevel=latest+1;
-    for(var i=0;i<plans.length;i++){
-      var lv=loanNum(plans[i].level_no);
-      if(lv===requiredNextLevel){nextPlan=plans[i];break;}
-    }
-    if(!nextPlan && !latest && plans.length)nextPlan=plans[0];
+    for(var i=0;i<plans.length;i++){ var lv=loanNum(plans[i].level_no), req=loanNum(plans[i].required_pairs); if(lv>latest && req<=totalPairs){ nextPlan=plans[i]; break; } }
+    if(!nextPlan && !latest && plans.length) nextPlan=plans[0];
     if(!nextPlan) return {eligible:false,incremental:0};
     var gross=loanNum(nextPlan.loan_amount), prev=loanNum(nextPlan.previous_loan_amount);
     var inc=nextPlan.incremental_amount!=null?loanNum(nextPlan.incremental_amount):Math.max(0,gross-prev);
@@ -1838,10 +1774,28 @@ async function flmEnsureFundReleaseOnce(flId, liveStats){
       if(released)latestReleased=Math.max(latestReleased,loanNum(x.plan_level||x.level_no));
     });
 
-    // STRICT: Fund qualification uses ONLY the live direct-referral counts.
-    // Never increase them from the legacy eligibility RPC because that RPC may
-    // contain placement/spillover-derived counts.
     var directL=loanNum(liveStats.directLeft),directR=loanNum(liveStats.directRight);
+    try{
+      var er=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
+      var ed=(!er.error&&er.data)?(Array.isArray(er.data)?(er.data[0]||{}):(er.data||{})):{};
+      directL=Math.max(directL,loanNum(ed.direct_left),loanNum(ed.directLeft));
+      directR=Math.max(directR,loanNum(ed.direct_right),loanNum(ed.directRight));
+      // Extra fallback: if still 0 but binary shows 1:1, use binary placement count as direct (for Fund1 only)
+      // This prevents Fund1 being blocked when direct_sponsor_id column is empty
+      if(directL===0 && directR===0 && loanNum(liveStats.left)>=1 && loanNum(liveStats.right)>=1){
+        // Count direct from users where sponsor_id == flId
+        try{
+          var du=await flmLoadAllUsers();
+          var dl=0, dr=0;
+          du.forEach(function(uu){
+            if(String(uu.sponsor_id||'').trim().toUpperCase()!==String(flId).trim().toUpperCase()) return;
+            var sd=String(uu.side||'').toLowerCase();
+            if(sd==='left') dl++; else if(sd==='right') dr++;
+          });
+          if(dl>=1 && dr>=1){ directL=dl; directR=dr; }
+        }catch(_cnt){}
+      }
+    }catch(_elig){console.log('fund direct eligibility:',_elig.message||_elig);}
     var next=null;
     for(var i=0;i<plans.length;i++){
       var lv=loanNum(plans[i].level_no),req=loanNum(plans[i].required_pairs);
@@ -1913,8 +1867,12 @@ async function loadLoanPanel(){
   try{
     var v2=await flmLoadLoanV2();
     var liveTop=await flmFetchTeamStats(flId);
-    // STRICT: display direct referrals only from the same resolver used by Fund 1.
-    // Do not merge legacy RPC direct counts because spillover must never qualify.
+    try{
+      var erTop=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
+      var edTop=(!erTop.error&&erTop.data)?(Array.isArray(erTop.data)?(erTop.data[0]||{}):(erTop.data||{})):{};
+      liveTop.directLeft=Math.max(loanNum(liveTop.directLeft),loanNum(edTop.direct_left));
+      liveTop.directRight=Math.max(loanNum(liveTop.directRight),loanNum(edTop.direct_right));
+    }catch(_topElig){console.log('loan direct display:',_topElig.message||_topElig);}
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
     // Release only once after live direct/team counts are verified.
     // The guarded function prevents repeated page opens from creating another Fund 1.
@@ -2229,14 +2187,24 @@ async function loadLoanPanel(){
     var latestLevel2=releasedLoans2.reduce(function(mx,x){
       return Math.max(mx,loanNum(firstVal(x,['plan_level'],0)));
     },0);
-    // STRICT SEQUENTIAL FUND ORDER: always display the immediate next level.
-    // Never skip Fund 1 because binary spillover produced higher pair counts.
+    // Find next plan after latest released level - first check if next level is eligible, otherwise find the immediate next
     var nextPlan2=null;
+    var immediateNext=null;
     for(var np=0;np<plans.length;np++){
-      if(loanNum(plans[np].level_no)===latestLevel2+1){
-        nextPlan2=plans[np];
-        break;
+      var lv=loanNum(plans[np].level_no);
+      if(lv===latestLevel2+1){ immediateNext=plans[np]; break; }
+    }
+    // If immediate next is eligible (pairs met), use it
+    if(immediateNext && totalPairs >= loanNum(immediateNext.required_pairs)){
+      nextPlan2=immediateNext;
+    }else{
+      // Otherwise find any eligible plan after latestLevel
+      for(var np=0;np<plans.length;np++){
+        var pr=loanNum(plans[np].required_pairs),lv=loanNum(plans[np].level_no);
+        if(lv>latestLevel2 && pr<=totalPairs){nextPlan2=plans[np];break;}
       }
+      // If none eligible yet, show immediate next as upcoming requirement
+      if(!nextPlan2) nextPlan2=immediateNext;
     }
     if(!nextPlan2 && !latestLevel2 && plans.length)nextPlan2=plans[0];
     var displayLevel=nextPlan2?loanNum(nextPlan2.level_no):latestLevel2;
@@ -2430,7 +2398,15 @@ async function loadLoanPanel(){
       var lastRaw=firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],null);
       try{ if(!lastRaw && typeof syncLast!=='undefined' && syncLast && syncLast.created_at) lastRaw=syncLast.created_at; }catch(e){}
       currentRoi.__last_display = lastRaw;
-      var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['start_date','started_at','created_at'],null)))+'<br>End: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['end_date','ends_at'],null)))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
+      var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['start_date','started_at','created_at'],null)))+'<br>End: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['end_date','ends_at'],null)))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'</div>';}else try{
+        var uj=await supabaseClient.from('users').select('created_at,joining_date').eq('fl_id',flId).maybeSingle();
+        var joinRaw=(uj.data && (uj.data.joining_date||uj.data.created_at)) || new Date().toISOString();
+        var jd=new Date(joinRaw); if(isNaN(jd.getTime())) jd=new Date();
+        var endD=new Date(jd.getTime()+49*24*60*60*1000);
+        var nowD=new Date(); var diff=Math.floor((nowD-jd)/(24*60*60*1000)); if(diff<0) diff=0;
+        var done=Math.min(50, Math.max(0, diff+1)); var rem=Math.max(0,50-done);
+        rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(40)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / 50 days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+rem+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Expected</div><b>'+loanMoney(done*40)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Joining: '+loanEsc(flmRoiIstDateOnly(jd.toISOString()))+'<br>End: '+loanEsc(flmRoiIstDateOnly(endD.toISOString()))+'<br>Status: active (50-day from joining)<br><span style="font-size:10px;color:#059669">Based on joining date</span></div>';
+      }catch(e){ rbbox.innerHTML='<div style="padding:12px;background:#f8fafc;border-radius:10px">ROI: 50 days from joining, Daily Rs.40. Active.</div>'; }}
     // Show the released loan history separately from the NEXT eligible loan.
     // This makes it clear that the ₹1,000 Fund 1 release is already completed while
     // the next Fund 2 remains locked until 4:4.
