@@ -1,6 +1,6 @@
 <!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
 <!DOCTYPE html>
-<html><head><meta name="flm-build" content="20260924-permanent-renewal-matching-tree-v3"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<html><head><meta name="flm-build" content="20260923-direct-referral-fund1-fix-v2"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -804,6 +804,7 @@ async function flmLoadAllUsers(){
     all=all.concat(batch);
     if(batch.length<step)break;
     from+=step;
+    if(from>=10000)break;
   }
   return all;
 }
@@ -962,22 +963,40 @@ async function flmFetchTeamStats(rootFlId){
   }catch(e){console.log('team stats:',e.message);}
   return out;
 }
-/* FLM DAILY MATCHING — CANONICAL DB STATUS, 00:30 IST BUSINESS DAY */
+/* FLM DAILY MATCHING 00:30 IST WINDOW — UI FIX */
 async function flmFetchTodayMatchingStats(flId){
-  var out={pairs:0,income:0,remainingPairs:25,remainingAmount:5000,businessDate:null};
+  var out={pairs:0,income:0};
   if(!supabaseClient||!flId)return out;
   try{
     var rpc=await supabaseClient.rpc('flm_get_daily_pair_status',{p_fl_id:flId});
-    if(rpc.error) throw rpc.error;
     var row=(!rpc.error&&rpc.data)?(Array.isArray(rpc.data)?(rpc.data[0]||{}):rpc.data):{};
-    out.pairs=Math.min(25,Math.max(0,Number(row.daily_pairs_today||0)));
-    out.income=Math.min(5000,Math.max(0,Number(row.daily_income_today||0)));
-    out.remainingPairs=Math.max(0,25-out.pairs);
-    out.remainingAmount=Math.max(0,5000-out.income);
-    out.businessDate=row.business_date||row.current_business_date||null;
-  }catch(e){
-    console.log('canonical daily matching stats:',e.message||e);
-  }
+    var rpcPairs=Math.min(25,Math.max(0,Number(row.daily_pairs_today||0)));
+    var rpcIncome=Math.min(5000,Math.max(0,Number(row.daily_income_today||0)));
+
+    // UI reconciliation: when the live binary has a completed pair but the
+    // matching-bonus transaction has not yet appeared, show that one pending
+    // pair as today's matching entitlement. Once the DB bonus row appears,
+    // this fallback disappears automatically, so the same pair is never shown twice.
+    var live=await flmFetchTeamStats(flId);
+    var completedBonusCount=0;
+    try{
+      var mb=await supabaseClient.from('wallet_transactions')
+        .select('id,amount,transaction_type,wallet_type,status,title,remarks,created_at')
+        .eq('fl_id',flId).eq('wallet_type','matching')
+        .in('status',['completed','approved']);
+      var now=new Date();var istNow=new Date(now.getTime()+330*60000);
+      var dayStartUtc=Date.UTC(istNow.getUTCFullYear(),istNow.getUTCMonth(),istNow.getUTCDate())-330*60000;
+      (mb.data||[]).forEach(function(x){
+        var xt=new Date(x.created_at||0).getTime();
+        var tt=String(x.transaction_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),rm=String(x.remarks||'').toLowerCase();
+        if(xt<dayStartUtc)return;
+        if(tt!=='withdrawal' && (tt==='matching_bonus'||tt==='matching_income'||ti.indexOf('matching bonus')>=0||ti.indexOf('matching income')>=0||rm.indexOf('matching bonus')>=0||rm.indexOf('matching income')>=0)) completedBonusCount++;
+      });
+    }catch(e){console.log('matching reconciliation:',e.message);}
+    var uncreditedPairs=Math.max(0,Number(live.pairs||0)-completedBonusCount);
+    out.pairs=Math.min(25,Math.max(rpcPairs,uncreditedPairs));
+    out.income=Math.min(5000,rpcIncome);
+  }catch(e){console.log('today matching stats:',e.message);}
   return out;
 }
 
@@ -985,10 +1004,21 @@ function flmTreeEsc(v){
   return String(v==null?'':v).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});
 }
 function flmTreeArg(v){return encodeURIComponent(String(v==null?'':v));}
-function createNodeHtml(user,label,position){
+function createNodeHtml(user,label,position,parentUser){
   if(!user){return '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:10px;min-width:105px;text-align:center;opacity:.8"><div style="font-size:9px;color:#94a3b8">'+flmTreeEsc(label)+'</div><div style="width:34px;height:34px;background:#e2e8f0;border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-weight:800">—</div><div style="font-size:10px;color:#94a3b8">Empty</div></div>';}
   var initial=(user.full_name||user.fl_id||'U').charAt(0).toUpperCase(),name=user.full_name||user.fl_id,fl=String(user.fl_id||'').trim().toUpperCase(),arg=flmTreeArg(fl);
-  return '<div style="background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;min-width:118px;text-align:center;cursor:pointer;box-shadow:0 2px 7px rgba(15,23,42,.06)" onclick="openTreeRoot(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' tree"><div style="font-size:9px;color:#64748b">'+flmTreeEsc(label)+'</div><div style="width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+flmTreeEsc(initial)+'</div><div style="font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px;margin:auto">'+flmTreeEsc(name)+'</div><div style="font-size:9px;color:#64748b;margin-top:2px">'+flmTreeEsc(fl)+'</div><div style="font-size:9px;color:#2563eb;margin-top:5px;font-weight:800">Tap to open tree →</div></div>';
+  var parentName=parentUser?(parentUser.full_name||parentUser.fl_id||'—'):'—';
+  var parentFl=parentUser?String(parentUser.fl_id||'').trim().toUpperCase():'';
+  var side=(String(position||'').slice(-1).toUpperCase()==='L')?'LEFT':(String(position||'').slice(-1).toUpperCase()==='R'?'RIGHT':'ROOT');
+  var relation=parentUser?('Under: '+flmTreeEsc(parentName)+' ('+flmTreeEsc(parentFl)+')'):'Top member';
+  return '<div style="background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;min-width:150px;max-width:165px;text-align:center;cursor:pointer;box-shadow:0 2px 7px rgba(15,23,42,.06)" onclick="openTreeRoot(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' tree">'
+    +'<div style="font-size:9px;color:#64748b;font-weight:800">'+flmTreeEsc(label)+'</div>'
+    +'<div style="display:inline-block;margin-top:4px;padding:3px 7px;border-radius:999px;background:'+(side==='LEFT'?'#eff6ff':side==='RIGHT'?'#f0fdf4':'#f8fafc')+';color:'+(side==='LEFT'?'#1d4ed8':side==='RIGHT'?'#047857':'#475569')+';font-size:9px;font-weight:800">'+side+'</div>'
+    +'<div style="width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+flmTreeEsc(initial)+'</div>'
+    +'<div style="font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;margin:auto">'+flmTreeEsc(name)+'</div>'
+    +'<div style="font-size:9px;color:#64748b;margin-top:2px">'+flmTreeEsc(fl)+'</div>'
+    +'<div style="font-size:9px;color:#334155;margin-top:5px;line-height:1.25;white-space:normal">'+relation+'</div>'
+    +'<div style="font-size:9px;color:#2563eb;margin-top:5px;font-weight:800">Tap to open full tree →</div></div>';
 }
 function openPlacement(pos){alert('Placement available - '+pos);}
 function closeTreeModal(){var m=document.getElementById('treeModal');if(m)m.style.display='none';}
@@ -1008,11 +1038,11 @@ function flmRenderAllTree(rootFlId,users,treeByParent){
   var rootBar=document.getElementById('treeRootBar');
   if(!rootBar){rootBar=document.createElement('div');rootBar.id='treeRootBar';rootBar.style.cssText='margin:0 0 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;';if(container.parentNode)container.parentNode.insertBefore(rootBar,container);}
   var rootName=root?(root.full_name||root.fl_id):rootFlId;
-  rootBar.innerHTML='<div style="font-size:11px;color:#1e3a8a"><b>🌳 Current Tree:</b> '+flmTreeEsc(rootName)+' <span style="color:#64748b">('+flmTreeEsc(rootFlId)+')</span><br><span style="font-size:10px">Tap any member to open that member’s complete binary subtree. All available levels are loaded; this selection stays after refresh.</span></div><button type="button" onclick="resetTreeRoot()" style="border:0;background:#2563eb;color:#fff;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:800;white-space:nowrap">My Tree</button>';
+  rootBar.innerHTML='<div style="font-size:11px;color:#1e3a8a"><b>🌳 Current Tree:</b> '+flmTreeEsc(rootName)+' <span style="color:#64748b">('+flmTreeEsc(rootFlId)+')</span><br><span style="font-size:10px">Tap any member to open that member’s full subtree. This selection stays after refresh.</span></div><button type="button" onclick="resetTreeRoot()" style="border:0;background:#2563eb;color:#fff;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:800;white-space:nowrap">My Tree</button>';
   var wrap=document.createElement('div');wrap.style.cssText='text-align:center;min-width:max-content;padding:4px 4px 24px;';
-  var rootRow=document.createElement('div');rootRow.style.cssText='display:flex;justify-content:center;margin-bottom:18px;';rootRow.innerHTML=createNodeHtml(root,'YOU','ROOT');wrap.appendChild(rootRow);
+  var rootRow=document.createElement('div');rootRow.style.cssText='display:flex;justify-content:center;margin-bottom:18px;';rootRow.innerHTML=createNodeHtml(root,'YOU','ROOT',null);wrap.appendChild(rootRow);
   var parents=[{user:root,path:''}],safety=0;
-  while(parents.length&&safety<1000){safety++;var next=[],rowUsers=[];parents.forEach(function(item){if(!item.user)return;var key=String(item.user.fl_id||'').trim().toUpperCase(),g=treeByParent[key]||{left:null,right:null};rowUsers.push({user:g.left,label:item.path+'L LEFT',position:item.path+'L'},{user:g.right,label:item.path+'R RIGHT',position:item.path+'R'});if(g.left)next.push({user:g.left,path:item.path+'L'});if(g.right)next.push({user:g.right,path:item.path+'R'});});if(!rowUsers.some(function(x){return !!x.user;}))break;var row=document.createElement('div');row.style.cssText='display:flex;justify-content:center;gap:10px;margin-bottom:18px;align-items:flex-start;';rowUsers.forEach(function(x){var h=document.createElement('div');h.innerHTML=createNodeHtml(x.user,x.label,x.position);row.appendChild(h.firstChild);});wrap.appendChild(row);parents=next;}
+  while(parents.length&&safety<100){safety++;var next=[],rowUsers=[];parents.forEach(function(item){if(!item.user)return;var key=String(item.user.fl_id||'').trim().toUpperCase(),g=treeByParent[key]||{left:null,right:null};rowUsers.push({user:g.left,label:item.path+'L LEFT',position:item.path+'L',parentUser:item.user},{user:g.right,label:item.path+'R RIGHT',position:item.path+'R',parentUser:item.user});if(g.left)next.push({user:g.left,path:item.path+'L'});if(g.right)next.push({user:g.right,path:item.path+'R'});});if(!rowUsers.some(function(x){return !!x.user;}))break;var row=document.createElement('div');row.style.cssText='display:flex;justify-content:center;gap:10px;margin-bottom:18px;align-items:flex-start;';rowUsers.forEach(function(x){var h=document.createElement('div');h.innerHTML=createNodeHtml(x.user,x.label,x.position,x.parentUser);row.appendChild(h.firstChild);});wrap.appendChild(row);parents=next;}
   container.innerHTML='';container.appendChild(wrap);
 }
 async function openTreeRoot(flId){if(!requireLogin())return;var target=String(flId||'').trim().toUpperCase();if(!target)return;var key=flmTreeStorageKey();if(key)localStorage.setItem(key,target);var users=await flmLoadAllUsers(),root=flmTreeFindUser(users,target);if(!root){if(key)localStorage.removeItem(key);target=getFlId();}var placement=flmBuildBinaryPlacement(users);flmRenderAllTree(target,users,placement.treeByParent);var c=document.getElementById('binaryTreeContainer');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});}
@@ -1280,12 +1310,14 @@ async function loadWalletData(){
   // pair exists but the bonus row is missing, expose that single uncredited pair
   // in the UI; after SQL credits it, completedBonusCount increases and the
   // fallback disappears, preventing duplicate display.
-  // DAILY MATCHING IS NOT derived from lifetime binary pairs.
-  // The database RPC is the only source for today's 00:30-IST business day.
-  // Lifetime pairs still remain available through liveStats for the total/team UI.
-  FLM_WALLET.pairs=liveStats.pairs;
-  FLM_WALLET.dailyPairs=Math.min(25,Math.max(0,Number(liveToday.pairs||0)));
-  FLM_WALLET.dailyIncome=Math.min(5000,Math.max(0,Number(liveToday.income||0)));
+  var uncreditedPairs=Math.max(0,Number(liveStats.pairs||0)-completedBonusCount);
+  var derivedMatching=Math.max(0,uncreditedPairs*200);
+  if(Number.isFinite(derivedMatching) && derivedMatching>ma){
+    ma=derivedMatching;
+    FLM_WALLET.matching=derivedMatching;
+    FLM_WALLET.rawMatching=derivedMatching;
+  }
+  FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=Math.max(Number(liveToday.pairs||0),Math.min(25,uncreditedPairs));FLM_WALLET.dailyIncome=Math.max(Number(liveToday.income||0),Math.min(5000,derivedMatching));
   FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0);
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
   var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
@@ -1415,7 +1447,7 @@ async function submitWalletPinPurchase(walletType){
 function showWalletWithdraw(walletType){
  if(walletType==='matching'){
   var box=document.getElementById('walletSubAction');if(!box)return;
-  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. You can use Bank/USDT until today reaches 25 paid pairs / ₹5,000. After the cap, Store withdrawal is mandatory.</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
+  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. Until the ₹5,000/day store condition is reached, Bank/USDT withdrawal is available.</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
   checkMatchingStore();
   return;
  }
@@ -1525,8 +1557,8 @@ async function checkMatchingStore(){
   if(!store){try{var ur=await supabaseClient.from('users').select('pincode').eq('fl_id',getFlId()).maybeSingle(),pin=ur.data&&String(ur.data.pincode||'').trim();if(pin){var sr=await supabaseClient.from('stores').select('name,store_code,address,town,pincode,latitude,longitude,status').eq('status','active').eq('pincode',pin).limit(1);if(!sr.error&&sr.data&&sr.data.length){var x=sr.data[0];store={store_name:x.name||'FLM Store',store_code:x.store_code||'',address:x.address||'',city:x.town||'',pincode:x.pincode||pin,distance_km:null};}}}catch(e){}}
   FLM_WALLET.store=store;
   if(store){el.innerHTML='<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;font-size:11px"><b>🏪 Store withdrawal required</b><br>'+flmTreeEsc(store.store_name||'FLM Store')+(store.distance_km!=null?' • '+Number(store.distance_km||0).toFixed(1)+' KM':'')+'<br><span style="color:#047857">Store Code: '+flmTreeEsc(store.store_code||'--')+'</span><br><span>Daily store withdrawal limit: ₹5,000</span><br><span>20% deduction: 10% store + 10% admin</span></div>';if(sb)sb.style.display='block';}
-  else el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>🏪 No active FLM Store found within 25 KM.</b><br>Store withdrawal is mandatory after ₹5,000/day. Please allow location access and ask Admin to add/activate a nearby Store Point if needed. Bank/USDT is not enabled after the daily cap.</div>';
- }catch(e){FLM_WALLET.store=null;el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>📍 Store lookup could not complete.</b><br>Allow location access and tap <b>Check nearest store</b> again. If a store is active within 25 KM, it will be selected automatically.</div>';}
+  else el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>🏪 No FLM Store found within 25 KM.</b><br>Store withdrawal is mandatory after ₹5,000/day. Please ask Admin to add/activate a nearby Store Point. Bank/USDT is not enabled after the daily cap.</div>';
+ }catch(e){FLM_WALLET.store=null;el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>📍 Location permission is needed.</b><br>Allow location access and tap again. After the daily ₹5,000 cap, Store withdrawal is mandatory.</div>';}
 }
 async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>5000){alert('Store withdrawal maximum is ₹5,000 per day.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Store withdrawal request submitted. Maximum ₹5,000/day is enforced.');await loadWalletData();await loadWalletHistory();await checkMatchingStore();}catch(e){alert('Store withdrawal failed: '+e.message);}}
 async function loadWalletHistory(){var el=document.getElementById('walletHistory');if(!el||!supabaseClient)return;var flId=getFlId();try{var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;var rows=r.data||[];if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}var g={matching:[],loan:[],fundRelease:[],roi:[],pins:[],other:[]};var fundReleaseByLevel={};rows.forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),remarks=String(x.remarks||'').toLowerCase(),st=String(x.status||'').toLowerCase();if(y==='pin_purchase')g.pins.push(x);else if(t==='matching'&&y==='withdrawal')g.matching.push(x);else if(t==='loan'&&y==='withdrawal')g.loan.push(x);else if(t==='loan'&&st==='completed'&&((title.indexOf('loan')>=0)||(title.indexOf('increment')>=0)||(y.indexOf('loan')>=0)||(y.indexOf('increment')>=0))){var m=(remarks+' '+title).match(/(?:fund|loan)\s*(?:level\s*)?(\d+)/i);var lvl=m?parseInt(m[1],10):0;if(!lvl){var amt=Number(x.net_amount!=null?x.net_amount:x.amount)||0;lvl=amt>=16000?5:amt>=8000?4:amt>=4000?3:amt>=2000?2:1;}var key=String(lvl),prev=fundReleaseByLevel[key],isIncrement=(title.indexOf('increment')>=0||y.indexOf('increment')>=0);if(!prev||isIncrement)fundReleaseByLevel[key]=x;}else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);});Object.keys(fundReleaseByLevel).sort(function(a,b){return Number(b)-Number(a);}).forEach(function(k){var x=fundReleaseByLevel[k];g.fundRelease.push(Object.assign({},x,{title:'Fund '+k+' Released'}));});function card(x){var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';var displayTitle=(x.title||x.wallet_type||'Transaction');if(String(x.wallet_type||'').toLowerCase()==='loan'&&String(x.transaction_type||'').toLowerCase()==='withdrawal'){displayTitle=displayTitle.replace(/\bLoan\b/gi,'Fund');}var couponHtml='';if(x.coupon_code){var cc=flmEscHtml(x.coupon_code);couponHtml='<div style="margin-top:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:8px"><div style="font-size:10px;font-weight:800;color:#166534">🎫 ROI Coupon</div><div style="display:flex;gap:6px;align-items:center;margin-top:5px"><span style="flex:1;font-size:12px;font-weight:900;word-break:break-all">'+cc+'</span><button type="button" onclick="copyRoiCoupon(\''+cc.replace(/'/g,"\\'")+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:7px;padding:7px 9px;font-size:10px;font-weight:800">Copy</button></div><div style="font-size:9px;color:#64748b;margin-top:4px">'+(st==='COMPLETED'?'Redeemed once':'Show this code to store/admin for one-time redemption')+'</div></div>';}return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+displayTitle+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+x.store_name:'')+(x.store_code?' • Code: '+x.store_code:'')+'</div>'+couponHtml+'</div>';}function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}el.innerHTML=group('💰 Matching Income Withdrawals',g.matching)+group('🏦 Fund Amount Withdrawals',g.loan)+group('📋 Company Fund Releases',g.fundRelease)+group('🎫 PIN Purchases',g.pins)+group('🛒 ROI Store Redemptions',g.roi)+(g.other.length?group('📋 Other Wallet Transactions',g.other):'');}catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}}
@@ -1588,6 +1620,10 @@ async function flmLoadLoanV2(){
    var prev=nextPlan?loanNum(nextPlan.previous_loan_amount):0;
    var inc=nextPlan?(nextPlan.incremental_amount!=null?loanNum(nextPlan.incremental_amount):Math.max(0,gross-prev)):0;
    var fallbackEligible=Boolean(nextPlan)&&((loanNum(nextPlan.level_no)===1)?(live.directLeft>=1&&live.directRight>=1):(live.pairs>=loanNum(nextPlan.required_pairs)));
+   // IMPORTANT: When the canonical DB eligibility RPC succeeds, its eligibility
+   // result is authoritative. Do not overwrite it with the old UI pair-only fallback.
+   // The fallback is used only when the RPC is unavailable/error.
+   var hasCanonicalEligibility=!!e;
 
    if(e){
      FLM_LOAN_V2={
@@ -1608,7 +1644,7 @@ async function flmLoadLoanV2(){
        FLM_LOAN_V2.loanAmount=gross;
        FLM_LOAN_V2.previousLoan=prev;
        FLM_LOAN_V2.incremental=inc;
-       FLM_LOAN_V2.eligible=fallbackEligible;
+       FLM_LOAN_V2.eligible=hasCanonicalEligibility ? Boolean(e.eligible) : fallbackEligible;
      }
      if(FLM_LOAN_V2.eligible&&!FLM_LOAN_V2.message)FLM_LOAN_V2.message='Fund '+FLM_LOAN_V2.level+' eligible: required pair level completed.';
    }else{
@@ -1728,36 +1764,8 @@ function flmRoiIstDayKey(value){
   if(!value)return '';
   try{var d=new Date(value);if(isNaN(d.getTime()))return '';return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}catch(e){return '';}
 }
-function flmRenewalUnlockDate(startValue){
-  if(!startValue)return null;
-  try{
-    var d=new Date(startValue);if(isNaN(d.getTime()))return null;
-    // Day 1 = registration/start date. Renewal opens after 50 calendar days.
-    return new Date(d.getTime()+50*24*60*60*1000);
-  }catch(e){return null;}
-}
-function flmRenewalUnlockText(startValue){
-  var d=flmRenewalUnlockDate(startValue);
-  if(!d)return '50 days from the registration/cycle start date';
-  return flmRoiIstDateOnly(d);
-}
-async function flmGetRenewalBaseDate(currentRoi){
-  try{
-    var fl=getFlId();
-    if(!fl||!supabaseClient)return firstVal(currentRoi,['start_date','started_at','created_at'],null);
-    // First cycle: registration date is the renewal clock.
-    // Subsequent cycles: the latest ROI cycle start is the renewal clock.
-    var cr=await supabaseClient.from('loan_roi_cycles').select('id,created_at,start_date,status').eq('fl_id',fl).order('created_at',{ascending:true});
-    var cycles=cr.data||[];
-    if(cycles.length<=1){
-      var u=await supabaseClient.from('users').select('created_at').eq('fl_id',fl).maybeSingle();
-      if(u.data&&u.data.created_at)return u.data.created_at;
-    }
-    return firstVal(currentRoi,['start_date','started_at','created_at'],null);
-  }catch(e){
-    return firstVal(currentRoi,['start_date','started_at','created_at'],null);
-  }
-}
+function flmRenewalUnlockDate(startValue){if(!startValue)return null;try{var d=new Date(startValue);if(isNaN(d.getTime()))return null;return new Date(d.getTime()+49*24*60*60*1000);}catch(e){return null;}}
+function flmRenewalUnlockText(startValue){var d=flmRenewalUnlockDate(startValue);if(!d)return 'the ROI start date + 50 days';return flmRoiIstDateOnly(d);}
 function flmRoiEndDatePassed(endValue){
   var endKey=flmRoiIstDayKey(endValue);if(!endKey)return false;
   var nowKey=flmRoiIstDayKey(new Date());return !!nowKey&&nowKey>endKey;
@@ -2202,7 +2210,7 @@ async function loadLoanPanel(){
     var displayInc=nextPlan2?(nextPlan2.incremental_amount!=null?loanNum(nextPlan2.incremental_amount):Math.max(0,displayGross-displayPrev)):0;
     var firstEligible=!latestLevel2 && loanNum(liveStats.directLeft)>=1 && loanNum(liveStats.directRight)>=1;
     var eligibleAmount=nextPlan2 ? displayInc : 0;
-    var eligible=Boolean(nextPlan2) && (displayLevel===1 ? firstEligible : totalPairs>=loanNum(nextPlan2.required_pairs));
+    var eligible=Boolean(nextPlan2) && (hasCanonicalEligibility ? Boolean(e && e.eligible) : (displayLevel===1 ? firstEligible : totalPairs>=loanNum(nextPlan2.required_pairs)));
     // A pending/rejected/cancelled record must not be treated as an already released previous loan.
     // The UI only says eligible when the next configured plan's pair/direct requirement is met.
     v2.totalLeft=ql;v2.totalRight=qr;v2.directLeft=loanNum(liveStats.directLeft);v2.directRight=loanNum(liveStats.directRight);
@@ -2252,7 +2260,7 @@ async function loadLoanPanel(){
       status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Fund eligible':'⏳ Fund progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
     }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Company Fund':'Current Fund Wallet (Already Released)';
+    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Company Fund':'Current Fund Wallet (Already Released)';var ef=document.getElementById('loanEligibleAmount');if(ef){ef.title=eligible?'Eligibility conditions satisfied for this fund level.':'Not eligible yet; showing only the actual released wallet balance.';}
     // Force current wallet UI from DB for every already-released loan.
     if(latestLevel2>0){
       var lwActual=document.getElementById('loanWallet');if(lwActual)lwActual.innerText=loanMoney(actualLoanWallet);
@@ -2373,10 +2381,10 @@ async function loadLoanPanel(){
     }catch(e){}
     var done=Math.max(dbDone, walletDays);
     if(done>totalDays) done=totalDays;
-    var cycleStart=await flmGetRenewalBaseDate(currentRoi);
+    var cycleStart=firstVal(currentRoi,['start_date','started_at','created_at'],null);
     var renewalDate=flmRenewalUnlockDate(cycleStart);
-    var completed=renewalDate ? Date.now()>=renewalDate.getTime() : false;
-    if(note)note.innerText=currentRoi&&!completed?'🔒 Self Renewal is locked. You can renew on '+flmRenewalUnlockText(cycleStart)+' (50 days from the registration/current cycle start date).':'✅ 50 days completed from the registration/current cycle start date. Self Renewal is available now with a valid unused PIN.';
+    var completed=renewalDate ? Date.now()>=renewalDate.getTime() : (roiStatus==='completed'||done>=totalDays||flmRoiEndDatePassed(end));
+    if(note)note.innerText=currentRoi&&!completed?'🔒 Self Renewal is locked. Renewal opens on '+flmRenewalUnlockText(cycleStart)+' (50-day cycle from the start date).':'✅ 50-day ROI cycle completed. Self Renewal is available now with a valid unused PIN.';
     if(rb)rb.disabled=!!currentRoi&&!completed;
     var rbbox=document.getElementById('loanRoiCycleBox');
     if(rbbox){if(currentRoi){
@@ -3167,7 +3175,7 @@ async function claimReward(pairs, name){
       (tx.data||[]).forEach(function(x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);if(amt<=0||tt==='withdrawal')return;if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;var k=istDayKey(x.created_at);if(!k|| (startKey&&k<startKey))return;days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;});
       var done=Math.min(totalDays,Object.keys(days).length),remaining=Math.max(0,totalDays-done),creditTotal=credited||done*daily;
       var rb=document.getElementById('loanRoiCycleBox');if(rb){rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+istDateOnly(start)+'<br>End: '+istDateOnly(cycle.end_date||cycle.ends_at||(start?new Date(new Date(start).getTime()+49*86400000):null))+'<br>Last Credit: '+istText(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';}
-      var note=document.getElementById('selfRenewNote');var renewalBase=await flmGetRenewalBaseDate(cycle);var renewalDate=flmRenewalUnlockDate(renewalBase);var dateComplete=renewalDate ? Date.now()>=renewalDate.getTime() : false;if(note)note.innerText=!dateComplete?'🔒 Self Renewal is locked. You can renew on '+flmRenewalUnlockText(renewalBase)+' (50 days from the registration/current cycle start date).':'✅ 50 days completed from the registration/current cycle start date. Self Renewal is available now with a valid unused PIN.';var renewBtn=document.getElementById('loanRenewBtn');if(renewBtn)renewBtn.disabled=!dateComplete;
+      var note=document.getElementById('selfRenewNote');var renewalDate=flmRenewalUnlockDate(start);var dateComplete=renewalDate ? Date.now()>=renewalDate.getTime() : false;if(note)note.innerText=!dateComplete?'🔒 Self Renewal is locked. You can renew on '+flmRenewalUnlockText(start)+' (50-day cycle from the start date).':'✅ 50 days completed from the ROI cycle start date. Self Renewal is available now with a valid unused PIN.';var renewBtn=document.getElementById('loanRenewBtn');if(renewBtn)renewBtn.disabled=!dateComplete;
     }catch(e){console.log('ROI reconcile:',e.message||e);}
   }
   window.flmReconcileRoiDisplay=reconcileRoiDisplay;
