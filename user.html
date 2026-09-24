@@ -2280,9 +2280,18 @@ async function loadLoanPanel(){
     var incPlan=displayInc;
     // Already released loan = actual wallet balance. Do not substitute previous
     // deduction or next-level eligibility into the current wallet.
-    var availableIncrement=eligible?displayInc:(latestLevel2>0?actualLoanWallet:0);
+    // IMPORTANT: A held fund is NOT an available company fund.
+    // It becomes available only after the renewal gate is completed and the
+    // held amount is actually released to the Fund Wallet.
+    var availableIncrement=0;
+    if(held<=0){
+      availableIncrement=eligible?displayInc:(latestLevel2>0?actualLoanWallet:0);
+    }else{
+      availableIncrement=0;
+    }
+
     // Fund 1 is the initial ₹1,000 release; there is no previous-loan deduction.
-    if(latestLevel2===1 && totalPairs<4){
+    if(latestLevel2===1 && totalPairs<4 && held<=0){
       prevPlan=0;
       availableIncrement=actualLoanWallet;
       grossPlan=actualLoanWallet>0?actualLoanWallet:grossPlan;
@@ -2302,28 +2311,38 @@ async function loadLoanPanel(){
       status.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:16px">'+(eligible?'✅ Fund eligible':'⏳ Fund progress')+'</b><span style="font-size:11px;font-weight:800;color:'+(eligible?'#166534':'#92400e')+'">Level '+loanEsc(lvl||'—')+'</span></div><div style="margin-top:8px;font-size:12px;color:#475569">'+loanEsc(msg|| (eligible?'You have reached the current requirement.':'Keep building the required left/right pair progress.'))+'</div>'+latestHtml;
     }
     var pp=document.getElementById('loanPairProgress');if(pp)pp.innerText=ql+' : '+qr+'  ('+totalPairs+' pairs)';
-    var ea=document.getElementById('loanEligibleAmount');if(ea)ea.innerText=loanMoney(availableIncrement);var elab=document.getElementById('loanEligibleLabel');if(elab)elab.innerText=eligible?'Available Company Fund':'Current Fund Wallet (Already Released)';
-    // Force current wallet UI from DB for every already-released loan.
-    if(latestLevel2>0){
-      var lwActual=document.getElementById('loanWallet');if(lwActual)lwActual.innerText=loanMoney(actualLoanWallet);
-      localStorage.setItem('flm_available_loan',String(actualLoanWallet));
-      localStorage.setItem('flm_loan_eligible',eligible?'1':'0');
+    var ea=document.getElementById('loanEligibleAmount');
+    if(ea)ea.innerText=loanMoney(availableIncrement);
+
+    var elab=document.getElementById('loanEligibleLabel');
+    if(elab){
+      elab.innerText=(held>0)
+        ? 'Available Company Fund (Held)'
+        : (eligible?'Available Company Fund':'Current Fund Wallet (Already Released)');
     }
-    // FIX: Save eligible loan for wallet display and force wallet UI update
+
+    // Fund Wallet is ALWAYS the real DB loan_wallet.
+    // Available Company Fund is the NEXT unreleased amount and must never
+    // duplicate a held amount or the already-released wallet.
     try{
-      localStorage.setItem('flm_available_loan', String(availableIncrement));
-      localStorage.setItem('flm_loan_eligible', eligible?'1':'0');
-      // If wallet section already loaded, update it live
-      var lw=document.getElementById('loanWallet'); if(lw && availableIncrement>0) lw.innerText=loanMoney(availableIncrement);
-      var ta=document.getElementById('totalAmount'); 
-      if(ta && availableIncrement>0){
-        var roiEl=document.getElementById('roiWallet'); var matchEl=document.getElementById('matchingWallet');
+      var lw=document.getElementById('loanWallet');
+      if(lw)lw.innerText=loanMoney(actualLoanWallet);
+
+      localStorage.setItem('flm_available_loan', String(actualLoanWallet));
+      localStorage.setItem('flm_loan_eligible', (eligible && held<=0)?'1':'0');
+
+      var ta=document.getElementById('totalAmount');
+      if(ta){
+        var roiEl=document.getElementById('roiWallet');
+        var matchEl=document.getElementById('matchingWallet');
         var roiV=roiEl?loanNum(roiEl.innerText.replace(/[^0-9.]/g,'')):0;
         var matchV=matchEl?loanNum(matchEl.innerText.replace(/[^0-9.]/g,'')):0;
-        ta.innerText=loanMoney(roiV+matchV+availableIncrement);
+        ta.innerText=loanMoney(roiV+matchV+actualLoanWallet);
       }
     }catch(e){}
-    var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
+
+    var ha=document.getElementById('loanHeldAmount');
+    if(ha)ha.innerText=loanMoney(held);
     var ws=document.getElementById('loanWithdrawSummary');if(ws){
       // === FLM UNIVERSAL WITHDRAWN CHECK FOR ALL USERS ===
       var isWithdrawnAll = false;
@@ -2397,8 +2416,10 @@ async function loadLoanPanel(){
         var ea2=document.getElementById('loanEligibleAmount');if(ea2)ea2.innerText=loanMoney(nextInc);
         // fall through to eligible rendering below
         ws.innerHTML += '<div style="margin-top:8px"><b style="color:#1d4ed8">Level '+loanEsc(lvl)+' Company Fund: '+loanMoney(availableIncrement)+'</b><br>This is the release fund available for this level.</div>';
-      }else if(eligible){
+      }else if(eligible && held<=0){
         ws.innerHTML='<b style="color:#1d4ed8">Level '+loanEsc(lvl)+' Company Fund: '+loanMoney(availableIncrement)+'</b><br>This is the release fund available for this level.';
+      }else if(held>0){
+        ws.innerHTML='<b style="color:#92400e">Level '+loanEsc(lvl)+' Fund is on hold: '+loanMoney(held)+'</b><br>Complete the renewal requirement to release this amount to the Fund Wallet.';
       }else if(latestLevel2>0 && availableIncrement>0){
         ws.innerHTML='<b style="color:#166534">Fund wallet available: '+loanMoney(availableIncrement)+'</b><br>Already released fund amount. Next fund is available after the required pair level is reached.';
       }else{
