@@ -963,40 +963,31 @@ async function flmFetchTeamStats(rootFlId){
   }catch(e){console.log('team stats:',e.message);}
   return out;
 }
-/* FLM DAILY MATCHING 00:30 IST WINDOW — UI FIX */
+/* FLM DAILY MATCHING — DAILY COUNTER ONLY
+   IMPORTANT:
+   - Today pairs/income must come only from the daily RPC.
+   - Never derive today's count from total binary pairs.
+   - Total pairs is lifetime/team data and must not affect the daily 25-pair cap.
+*/
 async function flmFetchTodayMatchingStats(flId){
   var out={pairs:0,income:0};
   if(!supabaseClient||!flId)return out;
   try{
     var rpc=await supabaseClient.rpc('flm_get_daily_pair_status',{p_fl_id:flId});
-    var row=(!rpc.error&&rpc.data)?(Array.isArray(rpc.data)?(rpc.data[0]||{}):rpc.data):{};
-    var rpcPairs=Math.min(25,Math.max(0,Number(row.daily_pairs_today||0)));
-    var rpcIncome=Math.min(5000,Math.max(0,Number(row.daily_income_today||0)));
+    if(rpc.error){
+      console.log('daily matching RPC:',rpc.error.message||rpc.error);
+      return out;
+    }
 
-    // UI reconciliation: when the live binary has a completed pair but the
-    // matching-bonus transaction has not yet appeared, show that one pending
-    // pair as today's matching entitlement. Once the DB bonus row appears,
-    // this fallback disappears automatically, so the same pair is never shown twice.
-    var live=await flmFetchTeamStats(flId);
-    var completedBonusCount=0;
-    try{
-      var mb=await supabaseClient.from('wallet_transactions')
-        .select('id,amount,transaction_type,wallet_type,status,title,remarks,created_at')
-        .eq('fl_id',flId).eq('wallet_type','matching')
-        .in('status',['completed','approved']);
-      var now=new Date();var istNow=new Date(now.getTime()+330*60000);
-      var dayStartUtc=Date.UTC(istNow.getUTCFullYear(),istNow.getUTCMonth(),istNow.getUTCDate())-330*60000;
-      (mb.data||[]).forEach(function(x){
-        var xt=new Date(x.created_at||0).getTime();
-        var tt=String(x.transaction_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),rm=String(x.remarks||'').toLowerCase();
-        if(xt<dayStartUtc)return;
-        if(tt!=='withdrawal' && (tt==='matching_bonus'||tt==='matching_income'||ti.indexOf('matching bonus')>=0||ti.indexOf('matching income')>=0||rm.indexOf('matching bonus')>=0||rm.indexOf('matching income')>=0)) completedBonusCount++;
-      });
-    }catch(e){console.log('matching reconciliation:',e.message);}
-    var uncreditedPairs=Math.max(0,Number(live.pairs||0)-completedBonusCount);
-    out.pairs=Math.min(25,Math.max(rpcPairs,uncreditedPairs));
-    out.income=Math.min(5000,rpcIncome);
-  }catch(e){console.log('today matching stats:',e.message);}
+    var row=Array.isArray(rpc.data)?(rpc.data[0]||{}):(rpc.data||{});
+
+    // These values are DAILY values returned by the database function.
+    // Do not use binary_summary.total_pairs or live team totals here.
+    out.pairs=Math.min(25,Math.max(0,Number(row.daily_pairs_today||0)));
+    out.income=Math.min(5000,Math.max(0,Number(row.daily_income_today||0)));
+  }catch(e){
+    console.log('today matching stats:',e.message);
+  }
   return out;
 }
 
