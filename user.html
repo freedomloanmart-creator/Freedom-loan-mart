@@ -1885,7 +1885,11 @@ async function loadLoanPanel(){
     // The guarded function prevents repeated page opens from creating another Fund 1.
     await flmEnsureFundReleaseOnce(flId, liveTop);
 
-    var e={};
+    // Use the result already calculated by flmLoadLoanV2.
+    // The previous build referenced hasCanonicalEligibility before defining it,
+    // which caused "hasCanonicalEligibility is not defined" on the Company Fund page.
+    var e=v2||{};
+    var hasCanonicalEligibility=(typeof e.eligible==='boolean');
     var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
     if(plansR.error)throw plansR.error;
     var plans=plansR.data||[];
