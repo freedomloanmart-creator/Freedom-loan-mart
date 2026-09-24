@@ -163,6 +163,40 @@ body{background:#eef2f7;color:#0f172a}
 }
 </style>
 
+
+<style id="flm-tree-modern-css">
+.flm-tree-wrap{font-family:inherit}
+.flm-tree-row{display:flex;justify-content:center;align-items:center}
+.flm-tree-root-row{margin-bottom:26px}
+.flm-tree-level{display:flex;justify-content:center;align-items:flex-start;gap:16px;margin:0 auto 24px;position:relative}
+.flm-tree-pair{display:flex;gap:8px;position:relative;padding-top:12px}
+.flm-tree-pair:before{content:"";position:absolute;left:25%;right:25%;top:0;border-top:1px solid #cbd5e1}
+.flm-tree-pair:after{content:"";position:absolute;left:50%;top:0;height:12px;border-left:1px solid #cbd5e1}
+.flm-tree-node{width:138px;min-height:142px;box-sizing:border-box;background:#fff;border:1px solid #dbe4ee;border-radius:15px;padding:9px 8px 10px;text-align:center;cursor:pointer;box-shadow:0 3px 10px rgba(15,23,42,.07);transition:transform .15s,box-shadow .15s}
+.flm-tree-node:active{transform:scale(.98)}
+.flm-tree-node.flm-root{width:158px;border:2px solid #10b981;background:linear-gradient(180deg,#f0fdf4,#fff)}
+.flm-tree-node.flm-left{border-top:3px solid #2563eb}
+.flm-tree-node.flm-right{border-top:3px solid #059669}
+.flm-tree-side{font-size:8px;font-weight:900;letter-spacing:.5px;color:#64748b}
+.flm-tree-node.flm-left .flm-tree-side{color:#2563eb}
+.flm-tree-node.flm-right .flm-tree-side{color:#047857}
+.flm-tree-avatar{width:38px;height:38px;margin:7px auto 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:900}
+.flm-tree-name{font-size:11px;font-weight:900;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flm-tree-id{font-size:8px;color:#64748b;margin-top:2px}
+.flm-tree-parent{font-size:8px;line-height:1.2;color:#475569;margin-top:5px;min-height:19px}
+.flm-tree-open{font-size:8px;font-weight:900;color:#2563eb;margin-top:5px}
+.flm-tree-empty{width:138px;min-height:92px;box-sizing:border-box;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:9px 7px;text-align:center;opacity:.78}
+.flm-tree-pos{font-size:8px;color:#94a3b8;font-weight:800}
+.flm-tree-empty-dot{width:30px;height:30px;margin:7px auto 5px;border-radius:50%;background:#e2e8f0;color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+.flm-tree-empty-text{font-size:9px;color:#94a3b8;font-weight:700}
+@media(max-width:520px){
+  .flm-tree-level{gap:10px}
+  .flm-tree-pair{gap:6px}
+  .flm-tree-node{width:124px;min-height:137px}
+  .flm-tree-empty{width:124px}
+  .flm-tree-node.flm-root{width:150px}
+}
+</style>
 </head>
 <body><!-- FLM_MATCHING_FINAL_BUILD_20260918 -->
 <div style="padding:12px" id="main">
@@ -290,7 +324,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-profile" style="display:none"><div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Profile</b></div><div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#c17a2a,#9c4a4a);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👤</div><b style="color:#fff">Profile</b></div><div style="text-align:center;padding:8px 0;color:#64748b;font-size:12px" id="profFlId">FL ID</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profName" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profPhone" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profEmail" disabled type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#4338ca,#7c3aed);padding:14px;color:#fff;text-align:center"><b>🏦 Bank & USDT (BEP20) Details</b></div><div style="padding:16px;display:flex;flex-direction:column;gap:10px"><div style="font-size:11px;color:#64748b">You can save Bank details, USDT details, or both. These are used for eligible withdrawals.</div><input id="bankHolder" placeholder="Bank account holder name" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><input id="bankName" placeholder="Bank name" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><input id="bankAccount" placeholder="Account number" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><input id="bankIfsc" placeholder="IFSC" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;text-transform:uppercase"><input id="usdtAddress" placeholder="USDT BEP-20 wallet address" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><button onclick="savePayoutDetails()" style="width:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">Save payout details</button><div id="payoutMsg" style="font-size:11px;text-align:center"></div></div></div>
 <div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#059669,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📦</div><b style="color:#fff">Delivery Address - One Time Entry</b></div><div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px">Enter once. After saving, address is locked; contact admin for changes.</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Full Address</div><textarea id="profAddress" placeholder="Enter full address" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;min-height:80px;resize:none"></textarea></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Pincode</div><input id="profPincode" placeholder="Eg: 506101" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">City</div><input id="profCity" placeholder="Eg: Mahbubabad" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px"></div></div><div id="profStoreHint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px;font-size:11px;color:#1e3a8a;margin-top:2px"></div><button id="saveProfBtn" onclick="saveProfile()" style="width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;margin-top:8px;cursor:pointer">Save address</button><div id="profMsg" style="font-size:11px;text-align:center;margin-top:8px"></div><div id="addrLockedMsg" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:12px;font-weight:700;color:#166534">🔒 Address locked</div></div></div></div></div>
 <div id="sec-invite" style="display:none"><div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">Invite Members</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="inviteTopName">Theja</div><div style="font-size:10px;color:#64748b" id="inviteTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">🔗</div><b style="color:#fff">Left referral link</b></div><div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px" id="leftLinkStatus">Open</div><div style="padding:16px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><input id="leftLinkInput" readonly style="width:100%;border:0;background:transparent;font-size:12px;color:#1e3a5a;outline:none" value=""></div><button onclick="copyLeftLink()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;cursor:pointer">Copy</button></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">🔗</div><b style="color:#fff">Right referral link</b></div><div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px" id="rightLinkStatus">Open</div><div style="padding:16px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><input id="rightLinkInput" readonly style="width:100%;border:0;background:transparent;font-size:12px;color:#1e3a5a;outline:none" value=""></div><button onclick="copyRightLink()" style="width:100%;margin-top:10px;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:14px;cursor:pointer">Copy</button></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📊</div><b style="color:#fff">Wing status</b></div><div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px;cursor:pointer" onclick="showSec('downline')">Open downline</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left wing</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="leftWingCount">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right wing</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="rightWingCount">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left placement</div><div style="font-size:18px;font-weight:800;margin-top:6px" id="leftPlacement">Open</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right placement</div><div style="font-size:18px;font-weight:800;margin-top:6px" id="rightPlacement">Open</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👥</div><b style="color:#fff">Sponsored members</b></div><div style="text-align:center;padding:6px 0;color:#64748b;font-size:11px" id="sponsoredTotal">0 total</div><div style="padding:16px"><div id="sponsoredList" style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;text-align:center;color:#64748b;font-size:14px">No sponsored members yet.</div></div></div></div>
-<div id="sec-downline" style="display:none"><div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">Downline</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="downTopName">Theja</div><div style="font-size:10px;color:#64748b" id="downTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">📊</div><b style="color:#fff">Network summary</b></div><div style="text-align:center;padding:6px 0;color:#e0e7ff;font-size:12px;background:linear-gradient(135deg,#b45309,#9f1239)">All levels</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left tokens</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="netLeftTokens">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right tokens</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="netRightTokens">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Total pairs</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="netTotalPairs">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Pair value</div><div style="font-size:20px;font-weight:800;margin-top:6px">Rs. 200</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📦</div><b style="color:#fff">Current carry</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:12px;background:linear-gradient(135deg,#0f766e,#0e7490)">Unmatched volume</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left carry</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="carryLeft">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right carry</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="carryRight">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Today pairs</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="todayPairs">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Today income</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="todayIncome">Rs. 0</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#059669,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center;flex-direction:column"><div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">🌳</div><b style="color:#fff">Full binary tree</b></div><div style="display:flex;align-items:center;gap:8px;margin-top:8px"><button onclick="zoomTree(-10)" style="background:#2563eb;color:#fff;border:0;width:32px;height:32px;border-radius:8px;font-weight:800">-</button><span style="color:#fff;font-size:12px" id="treeZoom">42%</span><button onclick="zoomTree(10)" style="background:#2563eb;color:#fff;border:0;width:32px;height:32px;border-radius:8px;font-weight:800">+</button></div></div><div style="padding:16px;overflow:auto"><div id="binaryTreeContainer" style="min-width:600px;transform-origin:top left"><div style="text-align:center"><div id="level1" style="display:flex;justify-content:center;margin-bottom:20px"></div><div id="level2" style="display:flex;justify-content:center;gap:40px;margin-bottom:20px"></div><div id="level3" style="display:flex;justify-content:center;gap:20px"></div></div></div><div id="treeNodeDetails" style="margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:none"><div style="font-weight:700;font-size:13px" id="detailName">User</div><div style="font-size:11px;color:#64748b" id="detailFl">FL ID</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#fff;padding:8px;border-radius:8px;border:1px solid #e2e8f0"><div style="font-size:10px;color:#64748b">Left</div><div style="font-weight:700" id="detailLeft">0</div></div><div style="background:#fff;padding:8px;border-radius:8px;border:1px solid #e2e8f0"><div style="font-size:10px;color:#64748b">Right</div><div style="font-weight:700" id="detailRight">0</div></div></div></div></div></div></div>
+<div id="sec-downline" style="display:none"><div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">Downline</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="downTopName">Theja</div><div style="font-size:10px;color:#64748b" id="downTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#b45309,#9f1239);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center">📊</div><b style="color:#fff">Network summary</b></div><div style="text-align:center;padding:6px 0;color:#e0e7ff;font-size:12px;background:linear-gradient(135deg,#b45309,#9f1239)">All levels</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left tokens</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="netLeftTokens">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right tokens</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="netRightTokens">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Total pairs</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="netTotalPairs">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Pair value</div><div style="font-size:20px;font-weight:800;margin-top:6px">Rs. 200</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#0f766e,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">📦</div><b style="color:#fff">Current carry</b></div><div style="text-align:center;padding:6px 0;color:#e0f2f1;font-size:12px;background:linear-gradient(135deg,#0f766e,#0e7490)">Unmatched volume</div><div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Left carry</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="carryLeft">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Right carry</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="carryRight">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Today pairs</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="todayPairs">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px"><div style="font-size:11px;color:#64748b">Today income</div><div style="font-size:20px;font-weight:800;margin-top:6px" id="todayIncome">Rs. 0</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#059669,#0e7490);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center;flex-direction:column"><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:9px;display:flex;align-items:center;justify-content:center">🌳</div><b style="color:#fff;font-size:16px">My Binary Tree</b></div><div style="color:rgba(255,255,255,.9);font-size:10px;text-align:center">Tap a member to open that member’s complete subtree</div><div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;flex-wrap:wrap"><button type="button" onclick="resetTreeRoot()" style="background:#fff;color:#047857;border:0;padding:7px 11px;border-radius:9px;font-size:10px;font-weight:800">🏠 My Tree</button><button type="button" onclick="toggleFullTree()" id="fullTreeBtn" style="background:#2563eb;color:#fff;border:0;padding:7px 11px;border-radius:9px;font-size:10px;font-weight:800">🌳 Full Tree</button><button type="button" onclick="zoomTree(-10)" style="background:#2563eb;color:#fff;border:0;width:32px;height:32px;border-radius:8px;font-weight:800">−</button><span style="color:#fff;font-size:11px;font-weight:800;min-width:38px;text-align:center" id="treeZoom">72%</span><button type="button" onclick="zoomTree(10)" style="background:#2563eb;color:#fff;border:0;width:32px;height:32px;border-radius:8px;font-weight:800">+</button><button type="button" onclick="resetTreeZoom()" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 10px;border-radius:9px;font-size:10px;font-weight:800">Reset</button></div></div><div id="treeViewport" style="padding:12px 8px 18px;overflow:auto;max-width:100%;-webkit-overflow-scrolling:touch"><div id="binaryTreeContainer" style="min-width:100%;transform-origin:top center"><div style="text-align:center"></div></div></div><div id="treeNodeDetails" style="margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:none"><div style="font-weight:700;font-size:13px" id="detailName">User</div><div style="font-size:11px;color:#64748b" id="detailFl">FL ID</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#fff;padding:8px;border-radius:8px;border:1px solid #e2e8f0"><div style="font-size:10px;color:#64748b">Left</div><div style="font-weight:700" id="detailLeft">0</div></div><div style="background:#fff;padding:8px;border-radius:8px;border:1px solid #e2e8f0"><div style="font-size:10px;color:#64748b">Right</div><div style="font-weight:700" id="detailRight">0</div></div></div></div></div></div></div>
 
 <div id="sec-tokens" style="display:none">
 <div style="background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b style="font-size:18px;color:#1e3a5a">My Pins - Tokens</b></div><div style="background:#f1f5f9;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="pinsTopName">Theja</div><div style="font-size:10px;color:#64748b" id="pinsTopFl">FL ID</div></div></div></div>
@@ -783,243 +817,68 @@ async function loadInvite(){
 }
 function copyLeftLink(){var v=window.leftInviteLink||document.getElementById('leftLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Left link copied');}
 function copyRightLink(){var v=window.rightInviteLink||document.getElementById('rightLinkInput').value;if(v) navigator.clipboard.writeText(v);alert('Right link copied');}
-var treeZoomLevel=42;
-function zoomTree(delta){treeZoomLevel+=delta;if(treeZoomLevel<20) treeZoomLevel=20;if(treeZoomLevel>100) treeZoomLevel=100;var tz=document.getElementById('treeZoom');if(tz) tz.innerText=treeZoomLevel+'%';var cont=document.getElementById('binaryTreeContainer');if(cont) cont.style.transform='scale('+(treeZoomLevel/100)+')';}
+var treeZoomLevel=72;
+var treeFullMode=false;
 
-/* FLM live tree/count helpers
-   Counts are derived from the current users table instead of stale cached
-   binary_summary counters. Today's matching stats are derived from today's
-   matching_bonus transactions so the UI resets at the IST date boundary
-   even if the scheduled summary reset has not yet run.
-*/
-async function flmLoadAllUsers(){
-  if(!supabaseClient)return [];
-  var all=[],from=0,step=1000;
-  while(true){
-    var r=await supabaseClient.from('users')
-      .select('fl_id,full_name,mobile,sponsor_id,direct_sponsor_id,side,created_at')
-      .range(from,from+step-1);
-    if(r.error)throw r.error;
-    var batch=r.data||[];
-    all=all.concat(batch);
-    if(batch.length<step)break;
-    from+=step;
-    if(from>=10000)break;
-  }
-  return all;
+function zoomTree(delta){
+  treeZoomLevel+=delta;
+  if(treeZoomLevel<35) treeZoomLevel=35;
+  if(treeZoomLevel>100) treeZoomLevel=100;
+  var tz=document.getElementById('treeZoom');
+  if(tz) tz.innerText=treeZoomLevel+'%';
+  var cont=document.getElementById('binaryTreeContainer');
+  if(cont) cont.style.transform='scale('+(treeZoomLevel/100)+')';
 }
-
-/*
-  ONE binary placement resolver used everywhere in the member panel.
-  sponsor_id is treated as the stored placement parent. For older records
-  where two users were accidentally saved under the same parent+side, the
-  older record keeps the position and later records are displayed as
-  spillover below it. This makes the visible tree and wing totals agree.
-*/
-
-/*
-  FLM DIRECT REFERRAL RESOLVER
-  -----------------------------
-  Direct referral = the member who actually joined from this member's
-  referral link.  Prefer direct_sponsor_id.  For older records, recover
-  sponsor_id from registration_requests.  As a final legacy fallback,
-  when no direct-sponsor value exists at all, a member whose stored
-  placement parent is this root is treated as direct.  This fallback is
-  intentionally limited to the root parent so normal spillover members
-  are not counted as direct referrals.
-*/
-async function flmGetDirectReferralUsers(rootFlId, users){
-  var root=String(rootFlId||'').trim().toUpperCase();
-  var arr=Array.isArray(users)?users:[];
-  var directMap={};
-  if(!root)return [];
-
-  /*
-    STRICT DIRECT REFERRAL RULE:
-    A member is a direct referral ONLY when the original referral/sponsor
-    relationship points to this root. Binary placement parent (users.sponsor_id)
-    is NEVER used as a direct-referral fallback because spillover can use the
-    same field. This keeps matching/wing counts separate from Fund 1 counts.
-  */
-  try{
-    var rr=await supabaseClient.from('registration_requests')
-      .select('approved_fl_id,sponsor_id,status,created_at')
-      .not('approved_fl_id','is',null);
-    /*
-      Do NOT require status='approved' here.  In this project the approved
-      member can remain with a different request status after registration,
-      while approved_fl_id + sponsor_id still preserve the ORIGINAL referral
-      relationship.  The latest request for each approved FL ID wins.
-    */
-    (rr.data||[]).slice().sort(function(a,b){
-      return new Date(a.created_at||0)-new Date(b.created_at||0);
-    }).forEach(function(x){
-      var k=String(x.approved_fl_id||'').trim().toUpperCase();
-      var s=String(x.sponsor_id||'').trim().toUpperCase();
-      if(k&&s)directMap[k]=s;
-    });
-  }catch(e){console.log('direct referral history:',e.message||e);}
-
-  var out=[];
-  arr.forEach(function(u){
-    var uid=String(u.fl_id||'').trim().toUpperCase();
-    var ds=String(u.direct_sponsor_id||'').trim().toUpperCase();
-    if(!ds)ds=directMap[uid]||'';
-    if(ds===root)out.push(u);
-  });
-  return out;
+function resetTreeZoom(){
+  treeZoomLevel=72;
+  var tz=document.getElementById('treeZoom');
+  if(tz) tz.innerText='72%';
+  var cont=document.getElementById('binaryTreeContainer');
+  if(cont) cont.style.transform='scale(.72)';
 }
-
-function flmCountDirectSides(directUsers){
-  var out={left:0,right:0};
-  (directUsers||[]).forEach(function(u){
-    var side=String(u.side||'').trim().toLowerCase();
-    if(side==='left')out.left++;
-    else if(side==='right')out.right++;
-  });
-  return out;
-}
-
-function flmBuildBinaryPlacement(users){
-  var treeByParent={};
-  var placementByUser={};
-  var sorted=(users||[]).slice().sort(function(a,b){
-    var da=new Date(a.created_at||0).getTime(), db=new Date(b.created_at||0).getTime();
-    if(da!==db)return da-db;
-    return String(a.fl_id||'').localeCompare(String(b.fl_id||''));
-  });
-  sorted.forEach(function(u){
-    var requestedParent=String(u.sponsor_id||'').trim().toUpperCase();
-    var side=String(u.side||'').trim().toLowerCase();
-    if(!requestedParent || (side!=='left' && side!=='right'))return;
-    var parent=requestedParent;
-    var seen={};
-    for(var depth=0;depth<100;depth++){
-      if(seen[parent])break;
-      seen[parent]=true;
-      if(!treeByParent[parent])treeByParent[parent]={left:null,right:null};
-      if(!treeByParent[parent][side]){
-        treeByParent[parent][side]=u;
-        placementByUser[String(u.fl_id).toUpperCase()]={parent:parent,side:side,depth:depth};
-        break;
-      }
-      parent=String(treeByParent[parent][side].fl_id||'').trim().toUpperCase();
-      if(!parent)break;
-    }
-  });
-  return {treeByParent:treeByParent,placementByUser:placementByUser};
-}
-
-async function flmFetchTeamStats(rootFlId){
-  var out={left:0,right:0,total:0,pairs:0,teamSize:0,directLeft:0,directRight:0};
-  if(!supabaseClient||!rootFlId)return out;
-  try{
-    var users=await flmLoadAllUsers();
-    var placement=flmBuildBinaryPlacement(users);
-    var treeByParent=placement.treeByParent;
-    var root=String(rootFlId).trim().toUpperCase();
-
-    /*
-      DIRECT REFERRALS:
-      Resolve from direct_sponsor_id -> registration_requests -> legacy
-      root-placement fallback.  Do not use arbitrary descendant placement
-      parents as direct sponsors.
-    */
-    // STRICT direct counts: direct_sponsor_id / original registration sponsor only.
-    // sponsor_id is binary placement and may represent spillover; never count it here.
-    var directUsers=await flmGetDirectReferralUsers(root,users);
-    var directSides=flmCountDirectSides(directUsers);
-    out.directLeft=directSides.left;
-    out.directRight=directSides.right;
-
-    var rootGroup=treeByParent[root]||{left:null,right:null};
-    var queue=[];
-    if(rootGroup.left){
-      out.left++;
-      queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});
-    }
-    if(rootGroup.right){
-      out.right++;
-      queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});
-    }
-
-    var seen={};
-    queue.forEach(function(x){if(x.fl)seen[x.fl]=true;});
-    for(var i=0;i<queue.length;i++){
-      var node=queue[i],g=treeByParent[node.fl]||{left:null,right:null};
-      ['left','right'].forEach(function(branch){
-        var u=g[branch];if(!u)return;
-        var child=String(u.fl_id||'').trim().toUpperCase();
-        if(!child||seen[child])return;
-        seen[child]=true;
-        if(node.rootSide==='left')out.left++;
-        else if(node.rootSide==='right')out.right++;
-        queue.push({fl:child,rootSide:node.rootSide});
-      });
-    }
-    out.total=out.left+out.right;
-    out.pairs=Math.min(out.left,out.right);
-    out.teamSize=out.total;
-  }catch(e){console.log('team stats:',e.message);}
-  return out;
-}
-/* FLM DAILY MATCHING 00:30 IST WINDOW — UI FIX */
-async function flmFetchTodayMatchingStats(flId){
-  var out={pairs:0,income:0};
-  if(!supabaseClient||!flId)return out;
-  try{
-    var rpc=await supabaseClient.rpc('flm_get_daily_pair_status',{p_fl_id:flId});
-    var row=(!rpc.error&&rpc.data)?(Array.isArray(rpc.data)?(rpc.data[0]||{}):rpc.data):{};
-    var rpcPairs=Math.min(25,Math.max(0,Number(row.daily_pairs_today||0)));
-    var rpcIncome=Math.min(5000,Math.max(0,Number(row.daily_income_today||0)));
-
-    // UI reconciliation: when the live binary has a completed pair but the
-    // matching-bonus transaction has not yet appeared, show that one pending
-    // pair as today's matching entitlement. Once the DB bonus row appears,
-    // this fallback disappears automatically, so the same pair is never shown twice.
-    var live=await flmFetchTeamStats(flId);
-    var completedBonusCount=0;
+function toggleFullTree(){
+  treeFullMode=!treeFullMode;
+  var btn=document.getElementById('fullTreeBtn');
+  if(btn) btn.innerText=treeFullMode?'📌 Focus Tree':'🌳 Full Tree';
+  var key=flmTreeStorageKey();
+  var root=key?localStorage.getItem(key):getFlId();
+  (async function(){
     try{
-      var mb=await supabaseClient.from('wallet_transactions')
-        .select('id,amount,transaction_type,wallet_type,status,title,remarks,created_at')
-        .eq('fl_id',flId).eq('wallet_type','matching')
-        .in('status',['completed','approved']);
-      var now=new Date();var istNow=new Date(now.getTime()+330*60000);
-      var dayStartUtc=Date.UTC(istNow.getUTCFullYear(),istNow.getUTCMonth(),istNow.getUTCDate())-330*60000;
-      (mb.data||[]).forEach(function(x){
-        var xt=new Date(x.created_at||0).getTime();
-        var tt=String(x.transaction_type||'').toLowerCase(),ti=String(x.title||'').toLowerCase(),rm=String(x.remarks||'').toLowerCase();
-        if(xt<dayStartUtc)return;
-        if(tt!=='withdrawal' && (tt==='matching_bonus'||tt==='matching_income'||ti.indexOf('matching bonus')>=0||ti.indexOf('matching income')>=0||rm.indexOf('matching bonus')>=0||rm.indexOf('matching income')>=0)) completedBonusCount++;
-      });
-    }catch(e){console.log('matching reconciliation:',e.message);}
-    var uncreditedPairs=Math.max(0,Number(live.pairs||0)-completedBonusCount);
-    out.pairs=Math.min(25,Math.max(rpcPairs,uncreditedPairs));
-    out.income=Math.min(5000,rpcIncome);
-  }catch(e){console.log('today matching stats:',e.message);}
-  return out;
+      var users=await flmLoadAllUsers();
+      var placement=flmBuildBinaryPlacement(users);
+      flmRenderAllTree(root,users,placement.treeByParent);
+    }catch(e){console.log('toggle full tree:',e.message);}
+  })();
 }
 
 function flmTreeEsc(v){
   return String(v==null?'':v).replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});
 }
 function flmTreeArg(v){return encodeURIComponent(String(v==null?'':v));}
+
 function createNodeHtml(user,label,position,parentUser){
-  if(!user){return '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:10px;min-width:105px;text-align:center;opacity:.8"><div style="font-size:9px;color:#94a3b8">'+flmTreeEsc(label)+'</div><div style="width:34px;height:34px;background:#e2e8f0;border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-weight:800">—</div><div style="font-size:10px;color:#94a3b8">Empty</div></div>';}
-  var initial=(user.full_name||user.fl_id||'U').charAt(0).toUpperCase(),name=user.full_name||user.fl_id,fl=String(user.fl_id||'').trim().toUpperCase(),arg=flmTreeArg(fl);
+  if(!user){
+    return '<div class="flm-tree-empty"><div class="flm-tree-pos">'+flmTreeEsc(label)+'</div><div class="flm-tree-empty-dot">+</div><div class="flm-tree-empty-text">Empty</div></div>';
+  }
+  var initial=(user.full_name||user.fl_id||'U').charAt(0).toUpperCase();
+  var name=user.full_name||user.fl_id;
+  var fl=String(user.fl_id||'').trim().toUpperCase();
+  var arg=flmTreeArg(fl);
   var parentName=parentUser?(parentUser.full_name||parentUser.fl_id||'—'):'—';
   var parentFl=parentUser?String(parentUser.fl_id||'').trim().toUpperCase():'';
-  var side=(String(position||'').slice(-1).toUpperCase()==='L')?'LEFT':(String(position||'').slice(-1).toUpperCase()==='R'?'RIGHT':'ROOT');
-  var relation=parentUser?('Under: '+flmTreeEsc(parentName)+' ('+flmTreeEsc(parentFl)+')'):'Top member';
-  return '<div style="background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;min-width:150px;max-width:165px;text-align:center;cursor:pointer;box-shadow:0 2px 7px rgba(15,23,42,.06)" onclick="openTreeRoot(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' tree">'
-    +'<div style="font-size:9px;color:#64748b;font-weight:800">'+flmTreeEsc(label)+'</div>'
-    +'<div style="display:inline-block;margin-top:4px;padding:3px 7px;border-radius:999px;background:'+(side==='LEFT'?'#eff6ff':side==='RIGHT'?'#f0fdf4':'#f8fafc')+';color:'+(side==='LEFT'?'#1d4ed8':side==='RIGHT'?'#047857':'#475569')+';font-size:9px;font-weight:800">'+side+'</div>'
-    +'<div style="width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+flmTreeEsc(initial)+'</div>'
-    +'<div style="font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;margin:auto">'+flmTreeEsc(name)+'</div>'
-    +'<div style="font-size:9px;color:#64748b;margin-top:2px">'+flmTreeEsc(fl)+'</div>'
-    +'<div style="font-size:9px;color:#334155;margin-top:5px;line-height:1.25;white-space:normal">'+relation+'</div>'
-    +'<div style="font-size:9px;color:#2563eb;margin-top:5px;font-weight:800">Tap to open full tree →</div></div>';
+  var side=(String(position||'').slice(-1).toUpperCase()==='L')?'LEFT':
+           (String(position||'').slice(-1).toUpperCase()==='R'?'RIGHT':'ROOT');
+  var sideClass=side==='LEFT'?'flm-left':side==='RIGHT'?'flm-right':'flm-root';
+  var relation=parentUser?('Under '+flmTreeEsc(parentName)): 'Main account';
+  return '<div class="flm-tree-node '+sideClass+'" onclick="openTreeRoot(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' subtree">'
+    +'<div class="flm-tree-side">'+flmTreeEsc(side)+'</div>'
+    +'<div class="flm-tree-avatar">'+flmTreeEsc(initial)+'</div>'
+    +'<div class="flm-tree-name">'+flmTreeEsc(name)+'</div>'
+    +'<div class="flm-tree-id">'+flmTreeEsc(fl)+'</div>'
+    +'<div class="flm-tree-parent">'+relation+(parentFl?' • '+flmTreeEsc(parentFl):'')+'</div>'
+    +'<div class="flm-tree-open">Tap to open subtree →</div></div>';
 }
+
 function openPlacement(pos){alert('Placement available - '+pos);}
 function closeTreeModal(){var m=document.getElementById('treeModal');if(m)m.style.display='none';}
 async function showUserTreeDetails(flId,name){
@@ -1027,33 +886,131 @@ async function showUserTreeDetails(flId,name){
   var mn=document.getElementById('modalName');if(mn)mn.innerText=name||flId;
   var mf=document.getElementById('modalFl');if(mf)mf.innerText=flId;
   var mi=document.getElementById('modalInitial');if(mi)mi.innerText=(name||flId).charAt(0).toUpperCase();
-  try{var s=await flmFetchTeamStats(flId);var ml=document.getElementById('modalLeft');if(ml)ml.innerText=s.left;var mr=document.getElementById('modalRight');if(mr)mr.innerText=s.right;var mp=document.getElementById('modalPairs');if(mp)mp.innerText=s.pairs;var mt=document.getElementById('modalTeam');if(mt)mt.innerText=s.teamSize;}catch(e){}
+  try{var st=await flmFetchTeamStats(flId);var ml=document.getElementById('modalLeft');if(ml)ml.innerText=st.left;var mr=document.getElementById('modalRight');if(mr)mr.innerText=st.right;var mp=document.getElementById('modalPairs');if(mp)mp.innerText=st.pairs;var mt=document.getElementById('modalTeam');if(mt)mt.innerText=st.teamSize;}catch(e){}
 }
 function flmTreeStorageKey(){var fl=getFlId();return fl?'flm_tree_root_'+String(fl).toUpperCase():'';}
-function flmTreeFindUser(users,flId){var key=String(flId||'').trim().toUpperCase();for(var i=0;i<(users||[]).length;i++){if(String(users[i].fl_id||'').trim().toUpperCase()===key)return users[i];}return null;}
+function flmTreeFindUser(users,flId){
+  var key=String(flId||'').trim().toUpperCase();
+  for(var i=0;i<(users||[]).length;i++){
+    if(String(users[i].fl_id||'').trim().toUpperCase()===key)return users[i];
+  }
+  return null;
+}
+function flmTreeNodeCount(treeByParent,rootFlId){
+  var seen={},q=[String(rootFlId||'').trim().toUpperCase()],n=0,s=0;
+  while(q.length&&s<50000){
+    s++;var fl=q.shift();if(!fl||seen[fl])continue;seen[fl]=1;
+    var g=treeByParent[fl]||{};
+    if(g.left){n++;q.push(String(g.left.fl_id||'').trim().toUpperCase());}
+    if(g.right){n++;q.push(String(g.right.fl_id||'').trim().toUpperCase());}
+  }
+  return n;
+}
 function flmRenderAllTree(rootFlId,users,treeByParent){
   var container=document.getElementById('binaryTreeContainer');if(!container)return;
-  var root=flmTreeFindUser(users,rootFlId);if(!root){root=flmTreeFindUser(users,getFlId());rootFlId=root?root.fl_id:getFlId();}
+  var root=flmTreeFindUser(users,rootFlId);
+  if(!root){root=flmTreeFindUser(users,getFlId());rootFlId=root?root.fl_id:getFlId();}
   var rootKey=String(rootFlId||'').trim().toUpperCase();
-  var rootBar=document.getElementById('treeRootBar');
-  if(!rootBar){rootBar=document.createElement('div');rootBar.id='treeRootBar';rootBar.style.cssText='margin:0 0 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;';if(container.parentNode)container.parentNode.insertBefore(rootBar,container);}
   var rootName=root?(root.full_name||root.fl_id):rootFlId;
-  rootBar.innerHTML='<div style="font-size:11px;color:#1e3a8a"><b>🌳 Current Tree:</b> '+flmTreeEsc(rootName)+' <span style="color:#64748b">('+flmTreeEsc(rootFlId)+')</span><br><span style="font-size:10px">Tap any member to open that member’s full subtree. This selection stays after refresh.</span></div><button type="button" onclick="resetTreeRoot()" style="border:0;background:#2563eb;color:#fff;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:800;white-space:nowrap">My Tree</button>';
-  var wrap=document.createElement('div');wrap.style.cssText='text-align:center;min-width:max-content;padding:4px 4px 24px;';
-  var rootRow=document.createElement('div');rootRow.style.cssText='display:flex;justify-content:center;margin-bottom:18px;';rootRow.innerHTML=createNodeHtml(root,'YOU','ROOT',null);wrap.appendChild(rootRow);
-  var parents=[{user:root,path:''}],safety=0;
-  while(parents.length&&safety<100){safety++;var next=[],rowUsers=[];parents.forEach(function(item){if(!item.user)return;var key=String(item.user.fl_id||'').trim().toUpperCase(),g=treeByParent[key]||{left:null,right:null};rowUsers.push({user:g.left,label:item.path+'L LEFT',position:item.path+'L',parentUser:item.user},{user:g.right,label:item.path+'R RIGHT',position:item.path+'R',parentUser:item.user});if(g.left)next.push({user:g.left,path:item.path+'L'});if(g.right)next.push({user:g.right,path:item.path+'R'});});if(!rowUsers.some(function(x){return !!x.user;}))break;var row=document.createElement('div');row.style.cssText='display:flex;justify-content:center;gap:10px;margin-bottom:18px;align-items:flex-start;';rowUsers.forEach(function(x){var h=document.createElement('div');h.innerHTML=createNodeHtml(x.user,x.label,x.position,x.parentUser);row.appendChild(h.firstChild);});wrap.appendChild(row);parents=next;}
-  container.innerHTML='';container.appendChild(wrap);
+
+  var rootBar=document.getElementById('treeRootBar');
+  if(!rootBar){
+    rootBar=document.createElement('div');
+    rootBar.id='treeRootBar';
+    rootBar.style.cssText='margin:0 0 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:13px;padding:10px 11px;display:flex;align-items:center;justify-content:space-between;gap:8px;';
+    var viewport=document.getElementById('treeViewport');
+    if(viewport&&viewport.parentNode)viewport.parentNode.insertBefore(rootBar,viewport);
+  }
+  var direct=treeByParent[rootKey]||{left:null,right:null};
+  var directCount=(direct.left?1:0)+(direct.right?1:0);
+  var modeText=treeFullMode?'Full network':'Focus view • 3 levels';
+  rootBar.innerHTML='<div style="min-width:0"><div style="font-size:12px;color:#1e3a8a;font-weight:800">🌳 '+flmTreeEsc(rootName)+' <span style="font-weight:600;color:#64748b">('+flmTreeEsc(rootFlId)+')</span></div><div style="font-size:10px;color:#64748b;margin-top:3px">'+modeText+' • '+directCount+' direct positions • Tap any member to open their subtree</div></div><button type="button" onclick="resetTreeRoot()" style="border:0;background:#2563eb;color:#fff;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:800;white-space:nowrap">My Tree</button>';
+
+  container.innerHTML='';
+  container.style.minWidth=treeFullMode?'max-content':'100%';
+  container.style.transform='scale('+(treeZoomLevel/100)+')';
+
+  var wrap=document.createElement('div');
+  wrap.className='flm-tree-wrap';
+  wrap.style.cssText='text-align:center;min-width:'+(treeFullMode?'max-content':'100%')+';padding:8px 8px 26px;';
+
+  var rootRow=document.createElement('div');
+  rootRow.className='flm-tree-row flm-tree-root-row';
+  rootRow.innerHTML=createNodeHtml(root,'YOU','ROOT',null);
+  wrap.appendChild(rootRow);
+
+  var parents=[{user:root,path:''}],level=0,maxLevels=treeFullMode?100:2;
+  while(parents.length&&level<maxLevels){
+    level++;
+    var next=[],row=document.createElement('div');
+    row.className='flm-tree-level';
+    row.setAttribute('data-level',level);
+    parents.forEach(function(item){
+      if(!item.user)return;
+      var key=String(item.user.fl_id||'').trim().toUpperCase();
+      var g=treeByParent[key]||{left:null,right:null};
+      var pair=document.createElement('div');
+      pair.className='flm-tree-pair';
+      var lh=document.createElement('div');lh.innerHTML=createNodeHtml(g.left,item.path+'L LEFT',item.path+'L',item.user);pair.appendChild(lh.firstChild);
+      var rh=document.createElement('div');rh.innerHTML=createNodeHtml(g.right,item.path+'R RIGHT',item.path+'R',item.user);pair.appendChild(rh.firstChild);
+      row.appendChild(pair);
+      if(g.left)next.push({user:g.left,path:item.path+'L'});
+      if(g.right)next.push({user:g.right,path:item.path+'R'});
+    });
+    if(!row.children.length)break;
+    wrap.appendChild(row);
+    parents=next;
+  }
+
+  if(!treeFullMode && parents.length){
+    var more=document.createElement('div');
+    more.style.cssText='margin:4px auto 0;padding:10px 12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;color:#64748b;font-size:11px;max-width:270px;';
+    more.innerHTML='More members are below this level.<br><b style="color:#2563eb">Tap a member</b> or choose <b>Full Tree</b> to continue.';
+    wrap.appendChild(more);
+  }
+  container.appendChild(wrap);
 }
-async function openTreeRoot(flId){if(!requireLogin())return;var target=String(flId||'').trim().toUpperCase();if(!target)return;var key=flmTreeStorageKey();if(key)localStorage.setItem(key,target);var users=await flmLoadAllUsers(),root=flmTreeFindUser(users,target);if(!root){if(key)localStorage.removeItem(key);target=getFlId();}var placement=flmBuildBinaryPlacement(users);flmRenderAllTree(target,users,placement.treeByParent);var c=document.getElementById('binaryTreeContainer');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});}
-function resetTreeRoot(){var key=flmTreeStorageKey();if(key)localStorage.removeItem(key);loadDownline();}
+async function openTreeRoot(flId){
+  if(!requireLogin())return;
+  var target=String(flId||'').trim().toUpperCase();if(!target)return;
+  var key=flmTreeStorageKey();
+  if(key)localStorage.setItem(key,target);
+  treeFullMode=false;
+  var btn=document.getElementById('fullTreeBtn');if(btn)btn.innerText='🌳 Full Tree';
+  var users=await flmLoadAllUsers(),root=flmTreeFindUser(users,target);
+  if(!root){if(key)localStorage.removeItem(key);target=getFlId();}
+  var placement=flmBuildBinaryPlacement(users);
+  flmRenderAllTree(target,users,placement.treeByParent);
+  var c=document.getElementById('binaryTreeContainer');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function resetTreeRoot(){
+  var key=flmTreeStorageKey();
+  if(key)localStorage.removeItem(key);
+  treeFullMode=false;
+  var btn=document.getElementById('fullTreeBtn');if(btn)btn.innerText='🌳 Full Tree';
+  loadDownline();
+}
 async function loadDownline(){
-  if(!requireLogin())return;var flId=getFlId();var dtn=document.getElementById('downTopName');if(dtn)dtn.innerText=getName()||flId;var dtf=document.getElementById('downTopFl');if(dtf)dtf.innerText=flId;
-  try{if(!supabaseClient)return;var r=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single(),bin=r.data||{},liveStats=await flmFetchTeamStats(flId),liveToday=await flmFetchTodayMatchingStats(flId);
-    var nlt=document.getElementById('netLeftTokens');if(nlt)nlt.innerText=liveStats.left;var nrt=document.getElementById('netRightTokens');if(nrt)nrt.innerText=liveStats.right;var ntp=document.getElementById('netTotalPairs');if(ntp)ntp.innerText=liveStats.pairs;var cl=document.getElementById('carryLeft');if(cl)cl.innerText=bin.left_carry||0;var cr=document.getElementById('carryRight');if(cr)cr.innerText=bin.right_carry||0;var tp=document.getElementById('todayPairs');if(tp)tp.innerText=liveToday.pairs;var ti=document.getElementById('todayIncome');if(ti)ti.innerText='Rs. '+liveToday.income;
-    var users=await flmLoadAllUsers(),placement=flmBuildBinaryPlacement(users),key=flmTreeStorageKey(),saved=key?localStorage.getItem(key):null,rootUser=flmTreeFindUser(users,saved),rootFl=rootUser?rootUser.fl_id:flId;if(key)localStorage.setItem(key,String(rootFl).toUpperCase());flmRenderAllTree(rootFl,users,placement.treeByParent);
+  if(!requireLogin())return;
+  var flId=getFlId();
+  var dtn=document.getElementById('downTopName');if(dtn)dtn.innerText=getName()||flId;
+  var dtf=document.getElementById('downTopFl');if(dtf)dtf.innerText=flId;
+  try{
+    if(!supabaseClient)return;
+    var r=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single(),bin=r.data||{},liveStats=await flmFetchTeamStats(flId),liveToday=await flmFetchTodayMatchingStats(flId);
+    var nlt=document.getElementById('netLeftTokens');if(nlt)nlt.innerText=liveStats.left;
+    var nrt=document.getElementById('netRightTokens');if(nrt)nrt.innerText=liveStats.right;
+    var ntp=document.getElementById('netTotalPairs');if(ntp)ntp.innerText=liveStats.pairs;
+    var cl=document.getElementById('carryLeft');if(cl)cl.innerText=bin.left_carry||0;
+    var cr=document.getElementById('carryRight');if(cr)cr.innerText=bin.right_carry||0;
+    var tp=document.getElementById('todayPairs');if(tp)tp.innerText=liveToday.pairs;
+    var ti=document.getElementById('todayIncome');if(ti)ti.innerText='Rs. '+liveToday.income;
+    var users=await flmLoadAllUsers(),placement=flmBuildBinaryPlacement(users),key=flmTreeStorageKey(),saved=key?localStorage.getItem(key):null,rootUser=flmTreeFindUser(users,saved),rootFl=rootUser?rootUser.fl_id:flId;
+    if(key)localStorage.setItem(key,String(rootFl).toUpperCase());
+    flmRenderAllTree(rootFl,users,placement.treeByParent);
   }catch(e){console.log('downline tree:',e.message);}
 }
+
 function calcPins(){
  var wantEl=document.getElementById('pinsWant');
  var want=parseInt(wantEl?wantEl.value:'0')||0;
