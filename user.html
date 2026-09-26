@@ -2271,20 +2271,29 @@ async function loadLoanPanel(){
       localStorage.setItem('flm_available_loan',String(actualLoanWallet));
       localStorage.setItem('flm_loan_eligible',eligible?'1':'0');
     }
-    // FIX: Save eligible loan for wallet display and force wallet UI update
+    // FIX: Fund Wallet display must ALWAYS show actual DB wallet balance.
+    // Eligible/future fund amount must NEVER overwrite the Fund Wallet card.
     try{
-      localStorage.setItem('flm_available_loan', String(availableIncrement));
+      // Save only the REAL released wallet balance.
+      localStorage.setItem('flm_available_loan', String(actualLoanWallet));
       localStorage.setItem('flm_loan_eligible', eligible?'1':'0');
-      // If wallet section already loaded, update it live
-      var lw=document.getElementById('loanWallet'); if(lw && availableIncrement>0) lw.innerText=loanMoney(availableIncrement);
-      var ta=document.getElementById('totalAmount'); 
-      if(ta && availableIncrement>0){
-        var roiEl=document.getElementById('roiWallet'); var matchEl=document.getElementById('matchingWallet');
+
+      // Fund Wallet card = actual wallets.loan_wallet only.
+      var lw=document.getElementById('loanWallet');
+      if(lw) lw.innerText=loanMoney(actualLoanWallet);
+
+      // Total Amount must also use actual Fund Wallet balance.
+      var ta=document.getElementById('totalAmount');
+      if(ta){
+        var roiEl=document.getElementById('roiWallet');
+        var matchEl=document.getElementById('matchingWallet');
         var roiV=roiEl?loanNum(roiEl.innerText.replace(/[^0-9.]/g,'')):0;
         var matchV=matchEl?loanNum(matchEl.innerText.replace(/[^0-9.]/g,'')):0;
-        ta.innerText=loanMoney(roiV+matchV+availableIncrement);
+        ta.innerText=loanMoney(roiV+matchV+actualLoanWallet);
       }
-    }catch(e){}
+    }catch(e){
+      console.log('Fund Wallet display fix:',e.message||e);
+    }
     // A completed release for this level means Held Amount must be zero.
     try{
       var heldLevel=loanNum(currentLoan&&currentLoan.plan_level);
