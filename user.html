@@ -37,8 +37,7 @@ function showSec(id,fromPop){
      try{
        var fw=await supabaseClient.from('wallets').select('loan_wallet,roi_wallet,matching_wallet').eq('fl_id',getFlId()).single();
        if(!fw.error&&fw.data){
-         var fundNow=Number(fw.data.loan_wallet||0); // FIX: never restore from FLM_LOAN_V2 memory after withdrawal - wallets table is source of truth
-         var totalNow=Number(fw.data.roi_wallet||0)+Number(fw.data.matching_wallet||0)+fundNow;
+         var fundNow=Number(fw.data.loan_wallet||0); // FIXED: no fallbackvar totalNow=Number(fw.data.roi_wallet||0)+Number(fw.data.matching_wallet||0)+fundNow;
          var fwe=document.getElementById('loanWallet');if(fwe)fwe.innerText=money(fundNow);
          var fwn=document.getElementById('loanEligible');if(fwn)fwn.innerText=fundNow>0?'Released fund wallet: '+money(fundNow):'Not currently eligible';
          var fwt=document.getElementById('totalAmount');if(fwt)fwt.innerText=money(totalNow);
@@ -1230,7 +1229,8 @@ async function loadWalletData(){
   // The SQL withdrawal function reserves/deducts the requested amount immediately.
   // Therefore the wallet balance returned by Supabase is already the AVAILABLE balance.
   // Do not subtract processing withdrawals a second time in the browser.
-  var ma=Math.max(0,matching),la=Math.max(0,loan),ra=Math.max(0,roi);FLM_WALLET={roi:ra,matching:ma,loan:la,total:roi+matching+loan,pairs:0,dailyPairs:0,dailyIncome:0,totalWithdrawn:0,pendingMatching:pm,pendingLoan:pl,pendingRoi:pr,rawMatching:matching,rawLoan:loan,rawRoi:roi};
+  var ma=Math.max(0,matching),la=Math.max(0,loan),ra=Math.max(0,roi); // FIXED: use actual wallet balances only
+      FLM_WALLET={roi:ra,matching:ma,loan:la,total:roi+matching+loan,pairs:0,dailyPairs:0,dailyIncome:0,totalWithdrawn:0,pendingMatching:pm,pendingLoan:pl,pendingRoi:pr,rawMatching:matching,rawLoan:loan,rawRoi:roi};
   try{
     var lv2=await flmLoadLoanV2();
     // IMPORTANT: wallet.loan_wallet may contain the gross/current loan amount.
@@ -1274,7 +1274,9 @@ async function loadWalletData(){
     // FIX: Update all wallet cards with correct loan value immediately
     try{
       var totalCalc = Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(availableLoan);
-      var mapIds={totalAmount:totalCalc, loanWallet:availableLoan, totalWithdrawn:FLM_WALLET.totalWithdrawn||0};
+      var mapIds={totalAmount:totalCalc, loanWallet:FLM_LOAN_V2.wallet||availableLoan, totalWithdrawn:FLM_WALLET.totalWithdrawn||0};
+      // FIXED: loanWallet card will be overwritten by actual wallets table in next refresh
+      try{var _real=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',getFlId()).single(); if(!_real.error && _real.data) mapIds.loanWallet=Number(_real.data.loan_wallet||0);}catch(_e){}
       Object.keys(mapIds).forEach(function(k){ var e=document.getElementById(k); if(e) e.innerText=money(mapIds[k]); });
       var le=document.getElementById('loanEligible'); if(le && availableLoan>0) le.innerText='Withdrawable: '+money(availableLoan)+' (Level '+ (lv2.level||2) +' eligible)';
       localStorage.setItem('flm_available_loan', String(availableLoan));
@@ -1629,7 +1631,7 @@ async function flmLoadLoanV2(){
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
    // FIX CRITICAL: Don't show next level gross as available when not eligible
    // Wallet should be actual wallet balance only
-   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0 && !loanWithdrawalExists){
+   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0){
      // Only use sync if we are eligible for that level, else keep 0 or actual
      var isEligibleForNext = false;
      try{
