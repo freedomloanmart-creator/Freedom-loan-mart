@@ -588,10 +588,13 @@ async function flmEditFundPlanById(id){
 }
 async function flmSaveFundPlan(){
  if(!supabaseClient)return;var msg=document.getElementById('flmFundPlanMsg');
- var level=Number(flmFundVal('flmFundLevel')),pairs=Number(flmFundVal('flmFundPairs')),amount=Number(flmFundVal('flmFundAmount')),prev=Number(flmFundVal('flmFundPrevious')),inc=Number(flmFundVal('flmFundIncremental')),hold=Number(flmFundVal('flmFundHold')),order=Number(flmFundVal('flmFundOrder'))||level;
- if(!level||level<1){if(msg)msg.innerText='Enter Level No.';return;} if(pairs<0||amount<0||inc<0||hold<0){if(msg)msg.innerText='Amounts cannot be negative.';return;}
- var obj={level_no:level,plan_name:flmFundVal('flmFundName')||('Fund '+level),required_pairs:pairs,loan_amount:amount,previous_loan_amount:prev,incremental_amount:inc,hold_amount:hold,release_order:order,require_direct_lr:document.getElementById('flmFundDirect').checked,require_renewals:document.getElementById('flmFundRenewal').checked,active:document.getElementById('flmFundActive').checked};
- try{var id=flmFundVal('flmFundPlanId');var r=id?await supabaseClient.from('loan_plans').update(obj).eq('id',id):await supabaseClient.from('loan_plans').insert(obj);if(r.error)throw r.error;if(msg){msg.style.color='#059669';msg.innerText=id?'Fund plan updated successfully.':'Fund plan added successfully.';}flmFundPlanReset();await flmLoadFundPlansAdmin();}catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Save failed: '+(e.message||e)+'. If these new columns are missing, run the supplied one-time SQL migration.';}}
+ var level=Number(flmFundVal('flmFundLevel')),pairs=Number(flmFundVal('flmFundPairs')),amount=Number(flmFundVal('flmFundAmount')),prev=Number(flmFundVal('flmFundPrevious')),hold=Number(flmFundVal('flmFundHold')),order=Number(flmFundVal('flmFundOrder'))||level;
+ if(!level||level<1){if(msg)msg.innerText='Enter Level No.';return;} if(pairs<0||amount<0||prev<0||hold<0){if(msg)msg.innerText='Amounts cannot be negative.';return;}
+ // incremental_amount is a generated DB column. PostgreSQL does not allow a
+ // normal UPDATE/INSERT value for a generated column, so let the database
+ // calculate it automatically from loan_amount and previous_loan_amount.
+ var obj={level_no:level,plan_name:flmFundVal('flmFundName')||('Fund '+level),required_pairs:pairs,loan_amount:amount,previous_loan_amount:prev,hold_amount:hold,release_order:order,require_direct_lr:document.getElementById('flmFundDirect').checked,require_renewals:document.getElementById('flmFundRenewal').checked,active:document.getElementById('flmFundActive').checked};
+ try{var id=flmFundVal('flmFundPlanId');var r=id?await supabaseClient.from('loan_plans').update(obj).eq('id',id):await supabaseClient.from('loan_plans').insert(obj);if(r.error)throw r.error;if(msg){msg.style.color='#059669';msg.innerText=id?'Fund plan updated successfully.':'Fund plan added successfully.';}flmFundPlanReset();await flmLoadFundPlansAdmin();}catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Save failed: '+(e.message||e);}}
 }
 async function flmToggleFundPlan(id,active){if(!supabaseClient||!id)return;try{var r=await supabaseClient.from('loan_plans').update({active:!active}).eq('id',id);if(r.error)throw r.error;await flmLoadFundPlansAdmin();}catch(e){alert('Status update failed: '+e.message);}}
 
@@ -868,7 +871,7 @@ body{background:#eef2f7;color:#0f172a}
   <div><label>Required Pairs</label><input id="flmFundPairs" class="input" type="number" min="0" placeholder="1"></div>
   <div><label>Fund Amount</label><input id="flmFundAmount" class="input" type="number" min="0" step="0.01" placeholder="1000"></div>
   <div><label>Previous Fund Amount</label><input id="flmFundPrevious" class="input" type="number" min="0" step="0.01" placeholder="0"></div>
-  <div><label>Incremental / Release Amount</label><input id="flmFundIncremental" class="input" type="number" min="0" step="0.01" placeholder="1000"></div>
+  <div><label>Incremental / Release Amount <span style="font-size:10px;color:#64748b">(Auto)</span></label><input id="flmFundIncremental" class="input" type="number" min="0" step="0.01" placeholder="Auto calculated" readonly style="background:#f1f5f9;color:#475569"></div>
   <div><label>Held Amount</label><input id="flmFundHold" class="input" type="number" min="0" step="0.01" placeholder="0"></div>
   <div><label>Release Order</label><input id="flmFundOrder" class="input" type="number" min="1" placeholder="1"></div>
  </div>
