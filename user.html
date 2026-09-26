@@ -1222,6 +1222,7 @@ async function loadWalletData(){
   try{
     var _liveForWallet=await flmFetchTeamStats(flId);
     await flmEnsureFundReleaseOnce(flId,_liveForWallet);
+    await flmSyncReleasedFundWallet(flId);
   }catch(_fundOnWallet){console.log('wallet fund release check:',_fundOnWallet.message||_fundOnWallet);}
   var r=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();if(r.error)throw r.error;var w=r.data||{};
   var roi=Number(w.roi_wallet||0),matching=Number(w.matching_wallet||0),loan=Number(w.loan_wallet||0),pm=0,pl=0,pr=0;
@@ -1875,21 +1876,37 @@ async function flmEnsureFundReleaseOnce(flId, liveStats){
     if(rel.error)console.log('fund release:',rel.error.message);
   }catch(e){console.log('fund release gate:',e.message||e);}
 }
+async function flmSyncReleasedFundWallet(flId){
+  if(!flId||!supabaseClient)return null;
+  try{
+    var syncR=await supabaseClient.rpc('flm_sync_released_fund_wallet',{p_fl_id:flId});
+    if(syncR.error){
+      console.log('released fund wallet sync:',syncR.error.message||syncR.error);
+      return null;
+    }
+    return syncR.data||null;
+  }catch(e){
+    console.log('released fund wallet sync:',e.message||e);
+    return null;
+  }
+}
 async function loadLoanPanel(){
   if(!requireLogin()||!supabaseClient)return;
   var flId=getFlId();
   var status=document.getElementById('loanStatusBox'); if(status)status.innerHTML='<div style="text-align:center;color:#64748b">🔄 Checking loan eligibility...</div>';
   try{
-    var v2=await flmLoadLoanV2();
     var liveTop=await flmFetchTeamStats(flId);
+    // Release first, then reconcile the released Fund into Fund Wallet and clear Held Amount.
+    await flmEnsureFundReleaseOnce(flId,liveTop);
+    await flmSyncReleasedFundWallet(flId);
+    // Re-read after the release/sync so Company Fund, Fund Wallet and Held Amount
+    // all use the same current database state.
+    var v2=await flmLoadLoanV2();
     // STRICT: display direct referrals only from the same resolver used by Fund 1.
     // Do not merge legacy RPC direct counts because spillover must never qualify.
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
-    // Release only once after live direct/team counts are verified.
-    // The guarded function prevents repeated page opens from creating another Fund 1.
-    await flmEnsureFundReleaseOnce(flId, liveTop);
-
-    // Use the result already calculated by flmLoadLoanV2.
+    // Release/sync was already completed above before the fresh loan read.
+    // Use the freshly calculated result from flmLoadLoanV2.
     // The previous build referenced hasCanonicalEligibility before defining it,
     // which caused "hasCanonicalEligibility is not defined" on the Company Fund page.
     var e=v2||{};
