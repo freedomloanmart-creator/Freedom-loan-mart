@@ -1268,8 +1268,9 @@ async function loadWalletData(){
     FLM_WALLET.rawLoan=grossLoan;
     FLM_WALLET.loanGross=grossLoan;
     FLM_WALLET.loanEligible=eligibleLoan;
-    FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+availableLoan;
-    var lw2=document.getElementById('loanWallet');if(lw2)lw2.innerText=money(availableLoan);
+    FLM_WALLET.loan=availableLoan; FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+availableLoan; // FIXED
+    try{var _rw=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',getFlId()).single(); if(!_rw.error && _rw.data) availableLoan=Number(_rw.data.loan_wallet||0);}catch(_e){}
+     var lw2=document.getElementById('loanWallet');if(lw2)lw2.innerText=money(availableLoan); // FIXED: show actual DB
     var le2=document.getElementById('loanEligible');if(le2)le2.innerText=lv2.eligible?'Withdrawable: '+money(availableLoan):'Not currently eligible';
     // FIX: Update all wallet cards with correct loan value immediately
     try{
@@ -1631,7 +1632,7 @@ async function flmLoadLoanV2(){
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
    // FIX CRITICAL: Don't show next level gross as available when not eligible
    // Wallet should be actual wallet balance only
-   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0){
+   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && !loanWithdrawalExists && syncWalletAmount>0){ // FIXED: never restore after any withdrawal
      // Only use sync if we are eligible for that level, else keep 0 or actual
      var isEligibleForNext = false;
      try{
