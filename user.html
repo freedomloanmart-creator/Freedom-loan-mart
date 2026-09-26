@@ -37,7 +37,8 @@ function showSec(id,fromPop){
      try{
        var fw=await supabaseClient.from('wallets').select('loan_wallet,roi_wallet,matching_wallet').eq('fl_id',getFlId()).single();
        if(!fw.error&&fw.data){
-         var fundNow=Number(fw.data.loan_wallet||0);try{if(fundNow<=0&&typeof FLM_LOAN_V2!=='undefined'&&Number(FLM_LOAN_V2.wallet||0)>0)fundNow=Number(FLM_LOAN_V2.wallet||0);}catch(_e){}var totalNow=Number(fw.data.roi_wallet||0)+Number(fw.data.matching_wallet||0)+fundNow;
+         var fundNow=Number(fw.data.loan_wallet||0); // FIX: never restore from FLM_LOAN_V2 memory after withdrawal - wallets table is source of truth
+         var totalNow=Number(fw.data.roi_wallet||0)+Number(fw.data.matching_wallet||0)+fundNow;
          var fwe=document.getElementById('loanWallet');if(fwe)fwe.innerText=money(fundNow);
          var fwn=document.getElementById('loanEligible');if(fwn)fwn.innerText=fundNow>0?'Released fund wallet: '+money(fundNow):'Not currently eligible';
          var fwt=document.getElementById('totalAmount');if(fwt)fwt.innerText=money(totalNow);
@@ -1628,7 +1629,7 @@ async function flmLoadLoanV2(){
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
    // FIX CRITICAL: Don't show next level gross as available when not eligible
    // Wallet should be actual wallet balance only
-   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0){
+   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && syncWalletAmount>0 && !loanWithdrawalExists){
      // Only use sync if we are eligible for that level, else keep 0 or actual
      var isEligibleForNext = false;
      try{
