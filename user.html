@@ -1222,7 +1222,6 @@ async function loadWalletData(){
   try{
     var _liveForWallet=await flmFetchTeamStats(flId);
     await flmEnsureFundReleaseOnce(flId,_liveForWallet);
-    await flmSyncReleasedFundWallet(flId);
   }catch(_fundOnWallet){console.log('wallet fund release check:',_fundOnWallet.message||_fundOnWallet);}
   var r=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();if(r.error)throw r.error;var w=r.data||{};
   var roi=Number(w.roi_wallet||0),matching=Number(w.matching_wallet||0),loan=Number(w.loan_wallet||0),pm=0,pl=0,pr=0;
@@ -1656,7 +1655,7 @@ async function flmLoadLoanV2(){
      var isEligibleForNext = false;
      try{
        var nextPairsReq = 0;
-       if(FLM_LOAN_V2.level==2) nextPairsReq=4; else if(FLM_LOAN_V2.level==3) nextPairsReq=12; else if(FLM_LOAN_V2.level==4) nextPairsReq=40;
+       if(FLM_LOAN_V2.level==2) nextPairsReq=4; else if(FLM_LOAN_V2.level==3) nextPairsReq=12; else if(FLM_LOAN_V2.level==4) nextPairsReq=36;
        var totalPairs = Math.min(loanNum(live.left||0), loanNum(live.right||0));
        if(totalPairs >= nextPairsReq) isEligibleForNext=true;
      }catch(e){}
@@ -1705,7 +1704,7 @@ async function flmLoadLoanV2(){
    try{
      var finalPairs = Math.min(loanNum(live.left||0), loanNum(live.right||0));
      var finalReq = 0;
-     if(FLM_LOAN_V2.level==2) finalReq=4; else if(FLM_LOAN_V2.level==3) finalReq=12; else if(FLM_LOAN_V2.level==4) finalReq=40; else if(FLM_LOAN_V2.level==5) finalReq=80;
+     if(FLM_LOAN_V2.level==2) finalReq=4; else if(FLM_LOAN_V2.level==3) finalReq=12; else if(FLM_LOAN_V2.level==4) finalReq=36; else if(FLM_LOAN_V2.level==5) finalReq=80;
      if(finalPairs < finalReq){
        // Fetch real wallet again to avoid showing inflated amount
        var realW = await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
@@ -1876,37 +1875,21 @@ async function flmEnsureFundReleaseOnce(flId, liveStats){
     if(rel.error)console.log('fund release:',rel.error.message);
   }catch(e){console.log('fund release gate:',e.message||e);}
 }
-async function flmSyncReleasedFundWallet(flId){
-  if(!flId||!supabaseClient)return null;
-  try{
-    var syncR=await supabaseClient.rpc('flm_sync_released_fund_wallet',{p_fl_id:flId});
-    if(syncR.error){
-      console.log('released fund wallet sync:',syncR.error.message||syncR.error);
-      return null;
-    }
-    return syncR.data||null;
-  }catch(e){
-    console.log('released fund wallet sync:',e.message||e);
-    return null;
-  }
-}
 async function loadLoanPanel(){
   if(!requireLogin()||!supabaseClient)return;
   var flId=getFlId();
   var status=document.getElementById('loanStatusBox'); if(status)status.innerHTML='<div style="text-align:center;color:#64748b">🔄 Checking loan eligibility...</div>';
   try{
-    var liveTop=await flmFetchTeamStats(flId);
-    // Release first, then reconcile the released Fund into Fund Wallet and clear Held Amount.
-    await flmEnsureFundReleaseOnce(flId,liveTop);
-    await flmSyncReleasedFundWallet(flId);
-    // Re-read after the release/sync so Company Fund, Fund Wallet and Held Amount
-    // all use the same current database state.
     var v2=await flmLoadLoanV2();
+    var liveTop=await flmFetchTeamStats(flId);
     // STRICT: display direct referrals only from the same resolver used by Fund 1.
     // Do not merge legacy RPC direct counts because spillover must never qualify.
     var directBox=document.getElementById('loanDirectProgress');if(directBox)directBox.innerHTML='<div style="font-weight:900;margin-bottom:7px">TOTAL BINARY</div><div>Left: <b>'+loanNum(liveTop.left)+'</b> &nbsp; Right: <b>'+loanNum(liveTop.right)+'</b></div><div style="font-weight:900;margin:10px 0 7px">DIRECT REFERRALS</div><div>Left Direct: <b>'+loanNum(liveTop.directLeft)+'</b> &nbsp; Right Direct: <b>'+loanNum(liveTop.directRight)+'</b></div>';
-    // Release/sync was already completed above before the fresh loan read.
-    // Use the freshly calculated result from flmLoadLoanV2.
+    // Release only once after live direct/team counts are verified.
+    // The guarded function prevents repeated page opens from creating another Fund 1.
+    await flmEnsureFundReleaseOnce(flId, liveTop);
+
+    // Use the result already calculated by flmLoadLoanV2.
     // The previous build referenced hasCanonicalEligibility before defining it,
     // which caused "hasCanonicalEligibility is not defined" on the Company Fund page.
     var e=v2||{};
@@ -2302,6 +2285,18 @@ async function loadLoanPanel(){
         ta.innerText=loanMoney(roiV+matchV+availableIncrement);
       }
     }catch(e){}
+    // A completed release for this level means Held Amount must be zero.
+    try{
+      var heldLevel=loanNum(currentLoan&&currentLoan.plan_level);
+      var releasedSameLevel=heldLevel>0 && loanReleaseTxs.some(function(tx){
+        var a=loanNum(tx.net_amount!=null?tx.net_amount:tx.amount);
+        var lv=1;
+        if(a>=16000)lv=5; else if(a>=8000)lv=4; else if(a>=4000)lv=3; else if(a>=2000)lv=2;
+        try{var mm=String(tx.remarks||tx.title||'').match(/(?:Loan|Fund)\s*(?:level\s*)?(\d+)/i);if(mm)lv=parseInt(mm[1],10);}catch(_e){}
+        return lv===heldLevel;
+      });
+      if(releasedSameLevel) held=0;
+    }catch(_heldFix){}
     var ha=document.getElementById('loanHeldAmount');if(ha)ha.innerText=loanMoney(held);
     var ws=document.getElementById('loanWithdrawSummary');if(ws){
       // === FLM UNIVERSAL WITHDRAWN CHECK FOR ALL USERS ===
@@ -2494,16 +2489,28 @@ async function loadLoanPanel(){
       });
       // Also include loanReleaseTxs directly if not in merged (e.g. Fund 3 from wallet)
       loanReleaseTxs.forEach(function(tx){
-        var amt = loanNum(tx.amount);
+        var amt = loanNum(tx.net_amount!=null?tx.net_amount:tx.amount);
         var lvl = 1;
         if(amt>=16000) lvl=5; else if(amt>=8000) lvl=4; else if(amt>=4000) lvl=3; else if(amt>=2000) lvl=2; else lvl=1;
-        try{ var rm=String(tx.remarks||tx.title||''); var m=rm.match(/Loan\s*(\d+)/i); if(m) lvl=parseInt(m[1],10); }catch(e){}
-        if(!mergedLoans[lvl]){
-          var planForLvl2 = plans.find(function(p){return loanNum(p.level_no)===lvl;})||{};
+        try{ var rm=String(tx.remarks||tx.title||''); var m=rm.match(/(?:Loan|Fund)\s*(?:level\s*)?(\d+)/i); if(m) lvl=parseInt(m[1],10); }catch(e){}
+        var existingTxLevel = mergedLoans[lvl];
+        var planForLvl2 = plans.find(function(p){return loanNum(p.level_no)===lvl;})||{};
+        if(existingTxLevel){
+          // Completed wallet release is authoritative. Reconcile stale held/pending UI state.
+          var oldStatus=String(existingTxLevel.status||'').toLowerCase();
+          var oldRelease=String(existingTxLevel.release_status||'').toLowerCase();
+          if(oldStatus!=='withdrawn' && oldRelease!=='withdrawn'){
+            existingTxLevel.status='released';
+            existingTxLevel.release_status='released';
+            existingTxLevel.hold_amount=0;
+            existingTxLevel.amount=amt||existingTxLevel.amount||0;
+            existingTxLevel.released_at=tx.created_at||existingTxLevel.released_at||null;
+          }
+        }else{
           mergedLoans[lvl]={
             plan_level:lvl,
             required_pairs:loanNum(planForLvl2.required_pairs||0),
-            amount:loanNum(tx.net_amount!=null?tx.net_amount:tx.amount),
+            amount:amt,
             status:'released',
             release_status:'released',
             hold_amount:0,
