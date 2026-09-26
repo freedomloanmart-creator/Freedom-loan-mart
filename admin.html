@@ -1021,9 +1021,14 @@ function renderAdminWithdrawCard(x,compact){
   const a=Number(x.amount||0),net=x.net_amount!=null?Number(x.net_amount):a;
   const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown'),store=escapeHtml(x.store_name||x.store_code||''),id=safeText(x.id);
   let b='';
-  if(!compact&&safeText(x.status||'processing').trim().toLowerCase()==='processing'){
-    if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
-    else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
+  const currentStatus=safeText(x.status||'processing').trim().toLowerCase();
+  if(!compact){
+    if(currentStatus==='processing'){
+      if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
+      else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
+    }else if(currentStatus==='approved'||currentStatus==='completed'||currentStatus==='rejected'){
+      b='<button onclick="adminEditWithdrawalStatus(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✏️ Edit Status — Approve / Reject</button>';
+    }
   }
   const payout=payoutHtml(x);
   const actionNote=(safeText(x.status||'processing').trim().toLowerCase()==='processing' && !wdIsStore(x))?'<div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px;font-size:10px;color:#92400e">Send <b>₹'+net.toLocaleString('en-IN')+'</b> to the payout details above only after verifying the member and payment status. Then click Approve.</div>':'';
@@ -1064,6 +1069,36 @@ async function loadAdminWithdrawals(){
     document.getElementById('wdTotalCount').innerText=financeRows.length;
     renderAdminWithdrawals();
   }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load wallet transactions: '+escapeHtml(e.message)+'</div>';}
+}
+async function adminEditWithdrawalStatus(id){
+  const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));
+  if(!x)return;
+  const oldStatus=safeText(x.status||'processing').trim().toLowerCase();
+  if(!['approved','completed','rejected'].includes(oldStatus))return;
+  const choice=prompt('Enter new status for '+safeText(x.fl_id||x.user_fl_id)+'\n\nType exactly: APPROVE or REJECT',oldStatus==='rejected'?'APPROVE':'REJECT');
+  if(choice===null)return;
+  const v=choice.trim().toLowerCase();
+  if(v!=='approve'&&v!=='reject'){alert('Please type APPROVE or REJECT only.');return;}
+  const newStatus=v==='approve'?'approved':'rejected';
+  if(newStatus===oldStatus){alert('This withdrawal is already '+wdStatusLabel(oldStatus)+'.');return;}
+  let reason='';
+  if(newStatus==='rejected'){
+    const r=prompt('Reason for rejection:','Status corrected by admin.');
+    if(r===null)return;
+    reason=r.trim();
+  }
+  if(!confirm('Change '+safeText(x.fl_id||x.user_fl_id)+' from '+wdStatusLabel(oldStatus)+' to '+wdStatusLabel(newStatus)+'?\n\nThe status correction will use the same wallet-side withdrawal function.'))return;
+  try{
+    const r=await supabaseClient.rpc('flm_edit_withdrawal_status',{
+      p_transaction_id:Number(id),
+      p_new_status:newStatus,
+      p_rejection_reason:reason,
+      p_changed_by:getAdminId()
+    });
+    if(r.error)throw r.error;
+    alert('✅ Withdrawal status updated to '+wdStatusLabel(newStatus)+'.');
+    await loadAdminWithdrawals();
+  }catch(e){alert('Status edit error: '+(e.message||e));}
 }
 async function adminApproveWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;if(!confirm('Approve this withdrawal?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:null});if(r.error)throw r.error;alert('✅ Withdrawal approved. Wallet was already deducted at request time.');await loadAdminWithdrawals();}catch(e){alert('Approval error: '+e.message);}}
 async function adminSettleStore(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const code=safeText(x.store_code).trim();if(!code){alert('Store code is missing.');return;}if(!confirm('Mark this store transaction as settled?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:code});if(r.error)throw r.error;alert('✅ Store settlement completed.');await loadAdminWithdrawals();}catch(e){alert('Store settlement error: '+e.message);}}
