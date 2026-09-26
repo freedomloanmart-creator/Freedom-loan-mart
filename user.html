@@ -1308,7 +1308,7 @@ async function loadWalletData(){
     FLM_WALLET.matching=derivedMatching;
     FLM_WALLET.rawMatching=derivedMatching;
   }
-  FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=Math.max(Number(liveToday.pairs||0),Math.min(25,uncreditedPairs));FLM_WALLET.dailyIncome=Math.max(Number(liveToday.income||0),Math.min(5000,derivedMatching));
+  FLM_WALLET.pairs=liveStats.pairs;FLM_WALLET.dailyPairs=Math.min(25,Math.max(0,Number(liveToday.pairs||0)));FLM_WALLET.dailyIncome=Math.min(5000,Math.max(0,Number(liveToday.income||0)));
   FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0);
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
   var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
