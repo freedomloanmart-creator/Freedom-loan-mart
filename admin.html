@@ -561,11 +561,46 @@ async function loadAdminWalletAdjustHistory(flId){
   }catch(e){el.innerHTML='<div style="padding:10px;color:#dc2626">Unable to load adjustment history: '+safeText(e.message||e)+'</div>';}
 }
 function moneyA(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function flmFundPlanReset(){
+ ['flmFundPlanId','flmFundLevel','flmFundName','flmFundPairs','flmFundAmount','flmFundPrevious','flmFundIncremental','flmFundHold','flmFundOrder'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+ ['flmFundDirect','flmFundRenewal'].forEach(function(id){var e=document.getElementById(id);if(e)e.checked=false;});
+ var a=document.getElementById('flmFundActive');if(a)a.checked=true;
+ var b=document.getElementById('flmFundSaveBtn');if(b)b.innerText='💾 Save Fund Plan';
+}
+function flmFundVal(id){var e=document.getElementById(id);return e?e.value:'';}
+async function flmLoadFundPlansAdmin(){
+ var box=document.getElementById('flmFundPlansList');if(!box||!supabaseClient)return;
+ box.innerHTML='<div style="padding:12px;text-align:center;color:#64748b">Loading fund plans...</div>';
+ try{
+  var r=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
+  if(r.error)throw r.error; var rows=r.data||[];
+  if(!rows.length){box.innerHTML='<div style="padding:14px;color:#64748b">No fund plans configured. Add the first level above.</div>';return;}
+  box.innerHTML=rows.map(function(p){
+   var cond=[];if(p.require_direct_lr)cond.push('Direct L+R');if(p.require_renewals)cond.push('Renewal');if(!cond.length)cond.push('Pairs only');
+   var active=!(p.active===false||p.active===0||String(p.active).toLowerCase()==='false');
+   var pid=String(p.id||'').replace(/'/g,"\\'");
+   return `<div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:9px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px"><b>Fund ${p.level_no||''} — ${escapeHtml(p.plan_name||('Fund '+p.level_no))}</b><span style="font-size:10px;font-weight:900;color:${active?'#059669':'#dc2626'}">${active?'ACTIVE':'INACTIVE'}</span></div><div style="font-size:11px;color:#475569;margin-top:5px">Pairs: <b>${p.required_pairs||0}</b> · Amount: <b>₹${Number(p.loan_amount||0).toLocaleString('en-IN')}</b> · Incremental: <b>₹${Number(p.incremental_amount||0).toLocaleString('en-IN')}</b> · Held: <b>₹${Number(p.hold_amount||0).toLocaleString('en-IN')}</b></div><div style="font-size:11px;color:#64748b;margin-top:4px">Condition: <b>${cond.join(' OR ')}</b> · Order: ${p.release_order||p.level_no||'—'}</div><div style="display:flex;gap:7px;margin-top:9px"><button onclick="flmEditFundPlanById('${pid}')" style="flex:1;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:9px;padding:9px;font-weight:800">✏️ Edit</button><button onclick="flmToggleFundPlan('${pid}',${active})" style="flex:1;background:#f8fafc;color:#334155;border:1px solid #cbd5e1;border-radius:9px;padding:9px;font-weight:800">${active?'Disable':'Enable'}</button></div></div>`;
+  }).join('');
+ }catch(e){box.innerHTML='<div style="padding:12px;color:#dc2626;background:#fef2f2;border-radius:10px">Fund plan load failed: '+escapeHtml(e.message||e)+'</div>';}
+}
+async function flmEditFundPlanById(id){
+ try{var r=await supabaseClient.from('loan_plans').select('*').eq('id',id).single();if(r.error)throw r.error;var p=r.data||{};document.getElementById('flmFundPlanId').value=p.id||'';document.getElementById('flmFundLevel').value=p.level_no||'';document.getElementById('flmFundName').value=p.plan_name||'';document.getElementById('flmFundPairs').value=p.required_pairs||0;document.getElementById('flmFundAmount').value=p.loan_amount||0;document.getElementById('flmFundPrevious').value=p.previous_loan_amount||0;document.getElementById('flmFundIncremental').value=p.incremental_amount!=null?p.incremental_amount:Math.max(0,Number(p.loan_amount||0)-Number(p.previous_loan_amount||0));document.getElementById('flmFundHold').value=p.hold_amount||0;document.getElementById('flmFundOrder').value=p.release_order||p.level_no||'';document.getElementById('flmFundDirect').checked=!!p.require_direct_lr;document.getElementById('flmFundRenewal').checked=!!p.require_renewals;document.getElementById('flmFundActive').checked=!(p.active===false||p.active===0||String(p.active).toLowerCase()==='false');document.getElementById('flmFundSaveBtn').innerText='💾 Update Fund Plan';window.scrollTo({top:0,behavior:'smooth'});}catch(e){alert('Unable to open fund plan: '+e.message);}
+}
+async function flmSaveFundPlan(){
+ if(!supabaseClient)return;var msg=document.getElementById('flmFundPlanMsg');
+ var level=Number(flmFundVal('flmFundLevel')),pairs=Number(flmFundVal('flmFundPairs')),amount=Number(flmFundVal('flmFundAmount')),prev=Number(flmFundVal('flmFundPrevious')),inc=Number(flmFundVal('flmFundIncremental')),hold=Number(flmFundVal('flmFundHold')),order=Number(flmFundVal('flmFundOrder'))||level;
+ if(!level||level<1){if(msg)msg.innerText='Enter Level No.';return;} if(pairs<0||amount<0||inc<0||hold<0){if(msg)msg.innerText='Amounts cannot be negative.';return;}
+ var obj={level_no:level,plan_name:flmFundVal('flmFundName')||('Fund '+level),required_pairs:pairs,loan_amount:amount,previous_loan_amount:prev,incremental_amount:inc,hold_amount:hold,release_order:order,require_direct_lr:document.getElementById('flmFundDirect').checked,require_renewals:document.getElementById('flmFundRenewal').checked,active:document.getElementById('flmFundActive').checked};
+ try{var id=flmFundVal('flmFundPlanId');var r=id?await supabaseClient.from('loan_plans').update(obj).eq('id',id):await supabaseClient.from('loan_plans').insert(obj);if(r.error)throw r.error;if(msg){msg.style.color='#059669';msg.innerText=id?'Fund plan updated successfully.':'Fund plan added successfully.';}flmFundPlanReset();await flmLoadFundPlansAdmin();}catch(e){if(msg){msg.style.color='#dc2626';msg.innerText='Save failed: '+(e.message||e)+'. If these new columns are missing, run the supplied one-time SQL migration.';}}
+}
+async function flmToggleFundPlan(id,active){if(!supabaseClient||!id)return;try{var r=await supabaseClient.from('loan_plans').update({active:!active}).eq('id',id);if(r.error)throw r.error;await flmLoadFundPlansAdmin();}catch(e){alert('Status update failed: '+e.message);}}
+
 async function loadSec(id){
  if(id==='users'&&supabaseClient){loadAdminUsers();}
  if(id==='pins'&&supabaseClient){const {data}=await supabaseClient.from('pins').select('*').order('created_at',{ascending:false}).limit(200);if(data){const total=data.length;const unused=data.filter(p=>p.status==='unused').length;const used=data.filter(p=>p.status==='used').length;document.getElementById('pinsTotal').innerText=total;document.getElementById('pinsUnused').innerText=unused;document.getElementById('pinsUsed').innerText=used;let filtered=data;if(currentPinsFilter==='unused') filtered=data.filter(p=>p.status==='unused');if(currentPinsFilter==='used') filtered=data.filter(p=>p.status==='used');document.getElementById('pinsList').innerHTML=filtered.map(p=>`<div style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:11px;background:${p.status==='used'?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-family:monospace;font-size:12px">${p.pin_code}</div><div style="margin-top:4px"><span style="padding:2px 6px;border-radius:4px;background:${p.status==='used'?'#fee2e2':'#dcfce7'};font-size:10px">${p.status}</span> <span style="padding:2px 6px;border-radius:4px;background:#f1f5f9;font-size:10px">Rs.${p.amount}</span> ${p.generated_for?`<span style="padding:2px 6px;border-radius:4px;background:#fef3c7;font-size:10px">👤 ${p.generated_for}</span>`:''} ${p.generated_source==='wallet_purchase'?`<span style="padding:2px 6px;border-radius:4px;background:#ede9fe;color:#6d28d9;font-size:10px">🎫 Wallet Purchase</span>`:''} ${p.generated_source==='admin'?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;color:#1d4ed8;font-size:10px">🛠 Admin</span>`:''} ${p.town?`<span style="padding:2px 6px;border-radius:4px;background:#dbeafe;font-size:10px">📍 ${p.town}</span>`:''}</div></div><div>${p.status==='unused'?``:''}</div></div></div>`).join('');}loadDepositRequests();}
  if(id==='stores'){loadStoresAdmin();}
  if(id==='withdraw')loadAdminWithdrawals();
+ if(id==='fundPlansAdmin')flmLoadFundPlansAdmin();
  if(id==='wallets'&&supabaseClient){
    loadAdminWalletAdjust();
    const {data}=await supabaseClient.from('wallets').select('fl_id,roi_wallet,matching_wallet,loan_wallet').order('fl_id').limit(100);
@@ -646,7 +681,7 @@ body{background:#eef2f7;color:#0f172a}
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('binary')">🌳 Binary Summary - Real</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('roi')">🔄 ROI - Real - Full</div>
 <div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer" onclick="showSec('withdraw')">⬆️ Withdrawals - Full</div>
-<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#1d4ed8;color:#fff" onclick="showSec('supportAdmin')">💬 Help Center — Support Tickets</div>
+<div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#1d4ed8;color:#fff" onclick="showSec('supportAdmin')">💬 Help Center — Support Tickets</div><div style="padding:12px 16px;border-radius:10px;margin:4px 8px;cursor:pointer;background:#0ea5e9;color:#fff" onclick="showSec('fundPlansAdmin')">🏦 Fund Plan Configuration</div>
 </div>
 <div style="margin-top:12px;background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:10px;font-size:11px"><b style="color:#10b981">✅ Before Pins Session Files + Pins Logic Implemented</b><br><span style="color:#94a3b8">Before pins session: 40KB+ with 11 sections<br>Now: Same 11 sections + Pins logic (Deposit Check, Status by UTR, Copy Button, Screenshot Preview, Double Approve Prevent) - Full - 40KB+ as requested</span></div>
 </div>
@@ -817,6 +852,36 @@ body{background:#eef2f7;color:#0f172a}
 <div class="card" style="border:2px solid #f59e0b"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">📋 Active / Inactive Plans</b><button onclick="fdAdminLoadAll()" style="border:0;background:#fff7ed;color:#b45309;border-radius:9px;padding:8px;font-weight:800">🔄 Refresh</button></div><div id="fdAdminPlans" style="margin-top:10px">Loading...</div></div>
 <div class="card" style="border:2px solid #2563eb"><b style="font-size:16px">💳 Pending User Investments</b><div id="fdAdminInvestments" style="margin-top:10px">Loading...</div></div>
 <div class="card" style="border:2px solid #059669"><b style="font-size:16px">🏦 FD Withdrawal Requests</b><div id="fdAdminWithdrawals" style="margin-top:10px">Loading...</div></div>
+</div>
+<div id="sec-fundPlansAdmin" style="display:none">
+<div class="card" style="background:linear-gradient(135deg,#0f766e,#1d4ed8);color:#fff;border-radius:18px;padding:18px">
+ <div style="font-size:11px;opacity:.8">COMPANY FUND SETTINGS</div><div style="font-size:22px;font-weight:900;margin-top:4px">🏦 Fund Plan Configuration</div>
+ <div style="font-size:11px;opacity:.9;margin-top:6px">Add or edit fund levels without changing the member page code. Pair requirement and enabled qualification conditions are stored per fund level.</div>
+ <button onclick="flmFundPlanReset();flmLoadFundPlansAdmin()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:11px;font-weight:900">🔄 Refresh Fund Plans</button>
+</div>
+<div class="card" style="border:2px solid #2563eb">
+ <div style="font-weight:900;color:#1d4ed8;font-size:16px">➕ Add / Edit Fund Level</div>
+ <input type="hidden" id="flmFundPlanId">
+ <div class="grid2" style="margin-top:10px">
+  <div><label>Level No</label><input id="flmFundLevel" class="input" type="number" min="1" placeholder="1"></div>
+  <div><label>Plan Name</label><input id="flmFundName" class="input" placeholder="Fund 1"></div>
+  <div><label>Required Pairs</label><input id="flmFundPairs" class="input" type="number" min="0" placeholder="1"></div>
+  <div><label>Fund Amount</label><input id="flmFundAmount" class="input" type="number" min="0" step="0.01" placeholder="1000"></div>
+  <div><label>Previous Fund Amount</label><input id="flmFundPrevious" class="input" type="number" min="0" step="0.01" placeholder="0"></div>
+  <div><label>Incremental / Release Amount</label><input id="flmFundIncremental" class="input" type="number" min="0" step="0.01" placeholder="1000"></div>
+  <div><label>Held Amount</label><input id="flmFundHold" class="input" type="number" min="0" step="0.01" placeholder="0"></div>
+  <div><label>Release Order</label><input id="flmFundOrder" class="input" type="number" min="1" placeholder="1"></div>
+ </div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+  <label style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px"><input id="flmFundDirect" type="checkbox"> Require Direct L + R</label>
+  <label style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px"><input id="flmFundRenewal" type="checkbox"> Require Renewal</label>
+  <label style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px"><input id="flmFundActive" type="checkbox" checked> Active</label>
+ </div>
+ <div style="font-size:11px;color:#64748b;margin-top:9px">If both conditions are ON, either condition qualifies. If both are OFF, reaching the required pairs is enough.</div>
+ <div style="display:flex;gap:8px;margin-top:12px"><button id="flmFundSaveBtn" onclick="flmSaveFundPlan()" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:900">💾 Save Fund Plan</button><button onclick="flmFundPlanReset()" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:10px;padding:12px;font-weight:800">Clear</button></div>
+ <div id="flmFundPlanMsg" style="font-size:11px;text-align:center;margin-top:8px"></div>
+</div>
+<div class="card" style="border:2px solid #0ea5e9"><div style="font-weight:900;color:#0369a1">📋 Configured Fund Levels</div><div id="flmFundPlansList" style="margin-top:10px">Open this section to load plans.</div></div>
 </div>
 <div id="sec-withdraw" style="display:none"><div class="card" style="background:linear-gradient(135deg,#172554,#4c1d95);color:#fff;border-radius:18px;padding:18px"><div style="font-size:19px;font-weight:900">💳 Withdrawals & Settlements</div><div style="font-size:11px;opacity:.85;margin-top:5px">Matching income, loan withdrawals and ROI/store redemptions are shown separately.</div><button onclick="loadAdminWithdrawals()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Finance Data</button></div><div class="grid2"><div class="dark-card"><div style="font-size:11px;color:#64748b">Processing</div><div id="wdPendingCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Approved</div><div id="wdApprovedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Rejected</div><div id="wdRejectedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Total Records</div><div id="wdTotalCount" style="font-size:24px;font-weight:900">0</div></div></div><div class="card" style="border:2px solid #2563eb"><b>🔎 Quick Filter</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input id="wdSearch" class="input" placeholder="Search FL ID / store / method" oninput="renderAdminWithdrawals()"><select id="wdStatus" class="input" onchange="renderAdminWithdrawals()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div><div class="card" style="border:2px solid #059669"><div style="font-weight:900;font-size:16px">💰 Matching / Loan Direct Withdrawals</div><div id="adminWithdrawList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card" style="border:2px solid #b45309"><div style="font-weight:900;font-size:16px">🏪 ROI Store Redemptions / Store Settlements</div><div id="adminStoreList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card"><div style="font-weight:900;font-size:16px">📋 Complete Finance History</div><div id="adminWithdrawHistory" style="margin-top:10px">Click Refresh Finance Data.</div></div></div>
 </div>

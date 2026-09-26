@@ -1610,7 +1610,7 @@ async function flmLoadLoanV2(){
    var gross=nextPlan?loanNum(nextPlan.loan_amount):0;
    var prev=nextPlan?loanNum(nextPlan.previous_loan_amount):0;
    var inc=nextPlan?(nextPlan.incremental_amount!=null?loanNum(nextPlan.incremental_amount):Math.max(0,gross-prev)):0;
-   var fallbackEligible=Boolean(nextPlan)&&((loanNum(nextPlan.level_no)===1)?(live.directLeft>=1&&live.directRight>=1):(live.pairs>=loanNum(nextPlan.required_pairs)));
+   var fallbackEligible=Boolean(nextPlan)&&flmPlanPairReached(nextPlan,live)&&flmPlanConditionSatisfied(nextPlan,live,loans);
    // IMPORTANT: When the canonical DB eligibility RPC succeeds, its eligibility
    // result is authoritative. Do not overwrite it with the old UI pair-only fallback.
    // The fallback is used only when the RPC is unavailable/error.
@@ -1718,7 +1718,53 @@ async function flmLoadLoanV2(){
 }
 
 
-// FIX V3: Direct wallet open chesina kuda loan calculate chese independent function
+// FLM CONFIGURABLE FUND RULES
+// Rules are read from loan_plans so fund levels are not hard-coded in the member UI.
+function flmBool(v){ return v===true || v===1 || String(v).toLowerCase()==='true' || String(v)==='1' || String(v).toLowerCase()==='yes' || String(v).toLowerCase()==='on'; }
+function flmPlanRequiresDirectLR(p){ return flmBool(firstVal(p,['require_direct_lr','require_direct_left_right','direct_lr_required'],false)); }
+function flmPlanRequiresRenewal(p){ return flmBool(firstVal(p,['require_renewals','require_renewal','renewal_required_flag'],false)); }
+function flmPlanActive(p){ var v=firstVal(p,['active','is_active'],true); return !(v===false || v===0 || String(v).toLowerCase()==='false' || String(v).toLowerCase()==='inactive' || String(v).toLowerCase()==='off'); }
+function flmPlanConditionSatisfied(plan,live,loans){
+  if(!plan || !flmPlanActive(plan)) return false;
+  var directOk=loanNum(live&&live.directLeft)>=1 && loanNum(live&&live.directRight)>=1;
+  var renewalDone=0;
+  (loans||[]).forEach(function(x){
+    renewalDone += loanNum(firstVal(x,['renewal_completed','renewal_completed_count'],0));
+  });
+  var renewalOk=renewalDone>=2;
+  var needDirect=flmPlanRequiresDirectLR(plan), needRenewal=flmPlanRequiresRenewal(plan);
+  // Enabled conditions are OR conditions. If both are OFF, pairs alone qualify.
+  if(needDirect && needRenewal) return directOk || renewalOk;
+  if(needDirect) return directOk;
+  if(needRenewal) return renewalOk;
+  return true;
+}
+function flmPlanPairReached(plan,live){ return !!plan && loanNum(live&&live.pairs)>=loanNum(plan.required_pairs||0); }
+function flmPlanConditionText(plan){
+  var d=flmPlanRequiresDirectLR(plan),r=flmPlanRequiresRenewal(plan);
+  if(d&&r)return 'Direct L+R OR Renewal';
+  if(d)return 'Direct L+R';
+  if(r)return 'Renewal';
+  return 'No extra condition';
+}
+
+async function flmEnsureFundPendingQueue(flId,live,plans,loans){
+  if(!flId||!supabaseClient||!plans||!plans.length)return;
+  try{
+    var existing=(loans||[]).map(function(x){return loanNum(x.plan_level);});
+    for(var i=0;i<plans.length;i++){
+      var p=plans[i]; if(!flmPlanActive(p))continue;
+      var lv=loanNum(p.level_no); if(!lv || existing.indexOf(lv)>=0)continue;
+      if(!flmPlanPairReached(p,live))continue;
+      // Pair level reached but its configured condition is still pending: preserve the level.
+      if(!flmPlanConditionSatisfied(p,live,loans))continue;
+      // Do not manufacture a member_loans row for an immediately releasable level;
+      // the release RPC remains the source of truth for actual wallet credit.
+    }
+  }catch(e){ console.log('fund pending queue:',e.message||e); }
+}
+
+// FIX V4: configurable fund conditions
 async function flmCalcEligibleLoanDirect(){
   try{
     var flId=getFlId(); if(!flId) return {eligible:false,incremental:0};
@@ -1742,7 +1788,7 @@ async function flmCalcEligibleLoanDirect(){
     if(!nextPlan) return {eligible:false,incremental:0};
     var gross=loanNum(nextPlan.loan_amount), prev=loanNum(nextPlan.previous_loan_amount);
     var inc=nextPlan.incremental_amount!=null?loanNum(nextPlan.incremental_amount):Math.max(0,gross-prev);
-    var eligible = (loanNum(nextPlan.level_no)===1) ? (live.directLeft>=1 && live.directRight>=1) : (totalPairs>=loanNum(nextPlan.required_pairs));
+    var eligible = flmPlanPairReached(nextPlan,live) && flmPlanConditionSatisfied(nextPlan,live,loans);
     return {eligible:eligible, incremental:eligible?inc:0, level:loanNum(nextPlan.level_no), gross:gross, prev:prev};
   }catch(e){ console.log('direct calc',e.message); return {eligible:false,incremental:0}; }
 }
@@ -1777,91 +1823,58 @@ async function flmEnsureFundReleaseOnce(flId, liveStats){
   try{
     var plansR=await supabaseClient.from('loan_plans').select('*').order('level_no',{ascending:true});
     if(plansR.error)throw plansR.error;
-    var plans=plansR.data||[];
+    var plans=(plansR.data||[]).filter(flmPlanActive);
     if(!plans.length)return;
-
     var loansR=await supabaseClient.from('member_loans')
-      .select('plan_level,level_no,status,release_status,released_at,paid_at,created_at')
+      .select('plan_level,level_no,status,release_status,released_at,paid_at,created_at,required_pairs,gross_loan_amount,previous_loan_amount,incremental_amount,renewal_required,renewal_completed,hold_amount')
       .eq('fl_id',flId).order('plan_level',{ascending:true});
     if(loansR.error)throw loansR.error;
     var loans=loansR.data||[];
 
-    var latestReleased=0;
+    // Find the first unreleased configured level whose pair threshold and condition are met.
+    // Higher achieved levels are never discarded; they remain eligible/pending until their turn.
+    var released={};
     loans.forEach(function(x){
-      var st=String(x.status||'').toLowerCase();
-      var rs=String(x.release_status||'').toLowerCase();
-      var released=!!x.released_at||!!x.paid_at||['released','completed','disbursed','withdrawn'].indexOf(st)>=0||['released','completed','disbursed','withdrawn'].indexOf(rs)>=0;
-      if(released)latestReleased=Math.max(latestReleased,loanNum(x.plan_level||x.level_no));
+      var lv=loanNum(x.plan_level||x.level_no),st=String(x.status||'').toLowerCase(),rs=String(x.release_status||'').toLowerCase();
+      if(lv && (!!x.released_at||!!x.paid_at||['released','completed','disbursed','withdrawn'].indexOf(st)>=0||['released','completed','disbursed','withdrawn'].indexOf(rs)>=0))released[lv]=true;
     });
-
-    // STRICT: Fund qualification uses ONLY the live direct-referral counts.
-    // Never increase them from the legacy eligibility RPC because that RPC may
-    // contain placement/spillover-derived counts.
-    var directL=loanNum(liveStats.directLeft),directR=loanNum(liveStats.directRight);
     var next=null;
     for(var i=0;i<plans.length;i++){
-      var lv=loanNum(plans[i].level_no),req=loanNum(plans[i].required_pairs);
-      if(lv<=latestReleased)continue;
-      var ok=(lv===1)
-        ? (directL>=1 && directR>=1)
-        : (loanNum(liveStats.pairs)>=req);
-      if(ok){next=plans[i];break;}
+      var p=plans[i],lv=loanNum(p.level_no);
+      if(!lv||released[lv])continue;
+      if(!flmPlanPairReached(p,liveStats))continue;
+      if(!flmPlanConditionSatisfied(p,liveStats,loans))continue;
+      next=p;break;
     }
     if(!next)return;
 
-    var nextLevel=loanNum(next.level_no);
-
-    // A completed loan-release transaction for this level is a hard stop.
-    // Amount checks are deliberately level-aware: Fund 1 is ₹1,000.
+    // Guard against an already-created wallet release for this configured level.
     var txR=await supabaseClient.from('wallet_transactions')
       .select('id,amount,net_amount,title,remarks,transaction_type,status,created_at')
       .eq('fl_id',flId).eq('wallet_type','loan')
-      .in('status',['completed','approved']).order('created_at',{ascending:false}).limit(200);
+      .in('status',['completed','approved']).order('created_at',{ascending:false}).limit(300);
     if(txR.error)throw txR.error;
-
-    var alreadyReleased=false;
+    var nextLevel=loanNum(next.level_no),already=false;
     (txR.data||[]).forEach(function(tx){
-      if(alreadyReleased)return;
-      var title=String(tx.title||'');
-      var remarks=String(tx.remarks||'');
-      var blob=title+' '+remarks;
+      var blob=String(tx.title||'')+' '+String(tx.remarks||'');
       var m=blob.match(/(?:fund|loan)\s*(?:level\s*)?(\d+)/i);
-      var lvl=m?parseInt(m[1],10):0;
-      var amt=loanNum(tx.net_amount!=null?tx.net_amount:tx.amount);
-      if(lvl===nextLevel)alreadyReleased=true;
-      // Legacy transactions may not have a level in remarks/title.
-      if(!lvl && nextLevel===1 && amt===1000)alreadyReleased=true;
-      if(!lvl && nextLevel===2 && amt===2000)alreadyReleased=true;
-      if(!lvl && nextLevel===3 && amt===4000)alreadyReleased=true;
-      if(!lvl && nextLevel===4 && amt===8000)alreadyReleased=true;
-      if(!lvl && nextLevel===5 && amt===16000)alreadyReleased=true;
+      if(m && parseInt(m[1],10)===nextLevel)already=true;
     });
-    if(alreadyReleased)return;
+    if(already)return;
 
-    // If member_loans already has a released row for this level, do not call again.
-    var rowForLevel=loans.find(function(x){return loanNum(x.plan_level||x.level_no)===nextLevel;});
-    if(rowForLevel){
-      var rs=String(rowForLevel.release_status||'').toLowerCase();
-      var st=String(rowForLevel.status||'').toLowerCase();
-      if(!!rowForLevel.released_at||!!rowForLevel.paid_at||
-         ['released','completed','disbursed','withdrawn'].indexOf(st)>=0||
-         ['released','completed','disbursed','withdrawn'].indexOf(rs)>=0)return;
+    var row=loans.find(function(x){return loanNum(x.plan_level||x.level_no)===nextLevel;});
+    if(row){
+      var rst=String(row.release_status||'').toLowerCase(),st=String(row.status||'').toLowerCase();
+      if(!!row.released_at||!!row.paid_at||['released','completed','disbursed','withdrawn'].indexOf(st)>=0||['released','completed','disbursed','withdrawn'].indexOf(rst)>=0)return;
     }
 
-    // Final wallet safety for Fund 1: if ₹1,000 is already sitting in the
-    // Fund Wallet, never call the release RPC again.
-    if(nextLevel===1){
-      var w1=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
-      if(!w1.error && loanNum(w1.data&&w1.data.loan_wallet)>=1000)return;
-    }
-
+    // Actual release remains atomic in the database RPC; this page only decides
+    // which configured level is ready. The database function must read loan_plans
+    // for the same flags (see the accompanying SQL migration).
     var rel=await supabaseClient.rpc('flm_release_loan_if_eligible',{p_fl_id:flId});
     if(rel.error)console.log('fund release:',rel.error.message);
-  }catch(e){
-    console.log('fund release gate:',e.message);
-  }
+  }catch(e){console.log('fund release gate:',e.message||e);}
 }
-
 async function loadLoanPanel(){
   if(!requireLogin()||!supabaseClient)return;
   var flId=getFlId();
@@ -2203,22 +2216,18 @@ async function loadLoanPanel(){
     var displayGross=nextPlan2?loanNum(nextPlan2.loan_amount):0;
     var displayPrev=nextPlan2?loanNum(nextPlan2.previous_loan_amount):0;
     var displayInc=nextPlan2?(nextPlan2.incremental_amount!=null?loanNum(nextPlan2.incremental_amount):Math.max(0,displayGross-displayPrev)):0;
-    var firstEligible=!latestLevel2 && loanNum(liveStats.directLeft)>=1 && loanNum(liveStats.directRight)>=1;
+    var firstEligible=Boolean(nextPlan2)&&flmPlanPairReached(nextPlan2,liveStats)&&flmPlanConditionSatisfied(nextPlan2,liveStats,loans);
     var eligibleAmount=nextPlan2 ? displayInc : 0;
-    var eligible=Boolean(nextPlan2) && (hasCanonicalEligibility ? Boolean(e && e.eligible) : (displayLevel===1 ? firstEligible : totalPairs>=loanNum(nextPlan2.required_pairs)));
+    var eligible=Boolean(nextPlan2) && flmPlanPairReached(nextPlan2,liveStats) && flmPlanConditionSatisfied(nextPlan2,liveStats,loans);
     // A pending/rejected/cancelled record must not be treated as an already released previous loan.
     // The UI only says eligible when the next configured plan's pair/direct requirement is met.
     v2.totalLeft=ql;v2.totalRight=qr;v2.directLeft=loanNum(liveStats.directLeft);v2.directRight=loanNum(liveStats.directRight);
     v2.level=displayLevel;v2.loanAmount=displayGross;v2.previousLoan=displayPrev;v2.incremental=displayInc;v2.eligible=eligible;
     var nextMsg;
     if(eligible){
-      nextMsg = displayLevel===1
-        ? 'Fund 1 eligible: 1 direct LEFT + 1 direct RIGHT referral completed.'
-        : ('Fund '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs completed.');
+      nextMsg = 'Fund '+displayLevel+' eligible: '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' pairs completed • '+flmPlanConditionText(nextPlan2)+'.';
     }else if(nextPlan2){
-      nextMsg = displayLevel===1
-        ? 'Fund 1 requires 1 direct LEFT + 1 direct RIGHT referral.'
-        : ('Fund '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' binary pairs.');
+      nextMsg = 'Fund '+displayLevel+' requires '+loanNum(nextPlan2.required_pairs)+':'+loanNum(nextPlan2.required_pairs)+' pairs • Condition: '+flmPlanConditionText(nextPlan2)+'.';
     }else{
       nextMsg = 'No next fund level is currently available.';
     }
@@ -2423,7 +2432,7 @@ async function loadLoanPanel(){
     }
 
     var pt=document.getElementById('loanPlansTable');
-    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No fund plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Company Fund</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(String(p.plan_name||('Fund '+lv)).replace(/^Loan\s+/i,'Fund '))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:900">'+loanMoney(inc)+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
+    if(pt){if(!plans.length)pt.innerHTML='<div style="padding:12px;color:#64748b">No fund plans found.</div>';else{var h='<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#eff6ff"><th style="padding:9px;text-align:left">Level</th><th style="padding:9px;text-align:left">Pairs</th><th style="padding:9px;text-align:right">Company Fund</th><th style="padding:9px">Condition</th><th style="padding:9px">Status</th></tr></thead><tbody>';plans.forEach(function(p){var lv=loanNum(p.level_no),req=loanNum(p.required_pairs),amt=loanNum(p.loan_amount),prev=loanNum(p.previous_loan_amount),inc=p.incremental_amount!=null?loanNum(p.incremental_amount):Math.max(0,amt-prev);h+='<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:9px;font-weight:800">'+loanEsc(String(p.plan_name||('Fund '+lv)).replace(/^Loan\s+/i,'Fund '))+'</td><td style="padding:9px">'+req+':'+req+'</td><td style="padding:9px;text-align:right;color:#059669;font-weight:900">'+loanMoney(inc)+'</td><td style="padding:9px">'+loanEsc(flmPlanConditionText(p))+'</td><td style="padding:9px">'+(flmPlanActive(p)?'Active':'Inactive')+'</td></tr>';});h+='</tbody></table>';pt.innerHTML=h;}}
     var hist=document.getElementById('myLoanHistory');
     if(hist){
       // Merge member_loans + wallet release tx as source of truth for history
