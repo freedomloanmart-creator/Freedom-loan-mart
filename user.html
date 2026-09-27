@@ -1509,7 +1509,9 @@ async function submitLoanWithdraw(method){
       var uiVal = uiLoan ? parseFloat(uiLoan.innerText.replace(/[^0-9.]/g,''))||0 : 0;
       if(uiVal>amt) amt=uiVal;
     }catch(e){}
-    var r=await supabaseClient.rpc('flm_request_full_loan_withdrawal_v2',{p_fl_id:flId,p_method:method});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+    var netAmt=Math.floor(amt*0.9); var dedAmt=amt-netAmt;
+     if(!confirm('Fund Withdrawal\n\nRequested: Rs.'+amt.toLocaleString('en-IN')+'\n10% deduction: Rs.'+dedAmt.toLocaleString('en-IN')+'\nYou receive: Rs.'+netAmt.toLocaleString('en-IN')+'\n\nConfirm withdrawal?')) return;
+     var r=await supabaseClient.rpc('flm_request_full_loan_withdrawal_v2',{p_fl_id:flId,p_method:method});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
       // FIX: After successful withdraw request, clear loan wallet to 0
       try{
         localStorage.setItem('flm_available_loan','0');
@@ -1519,7 +1521,7 @@ async function submitLoanWithdraw(method){
         var ta=document.getElementById('totalAmount'); if(ta){ var tot=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0); ta.innerText=money(tot); }
         var le=document.getElementById('loanEligible'); if(le) le.innerText='Processing: Rs.'+money(amt)+' pending';
       }catch(e){}
-      alert('Loan withdrawal request submitted for full Loan Wallet amount ₹'+loanNum(d.amount||amt).toLocaleString('en-IN')+'. Status: Processing.');var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
+      alert('Fund withdrawal submitted!\nRequested: ₹'+loanNum(amt).toLocaleString('en-IN')+'\n10% deduction: ₹'+loanNum(amt-Math.floor(amt*0.9)).toLocaleString('en-IN')+'\nYou will receive: ₹'+loanNum(Math.floor(amt*0.9)).toLocaleString('en-IN'));'var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
  var el=document.getElementById('matchingStoreBox');if(!el)return;var force=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25),bankBtn=document.getElementById('matchingBankBtn'),usdtBtn=document.getElementById('matchingUsdtBtn'),sb=document.getElementById('matchingStoreWithdrawBtn');
  if(!force){el.innerHTML='<div style="font-size:11px;color:#64748b">Store withdrawal activates after today reaches 25 paid pairs / ₹5,000. Until then the normal withdrawal options remain available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';if(sb)sb.style.display='none';return;}
