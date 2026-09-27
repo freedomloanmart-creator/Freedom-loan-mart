@@ -1268,9 +1268,8 @@ async function loadWalletData(){
     FLM_WALLET.rawLoan=grossLoan;
     FLM_WALLET.loanGross=grossLoan;
     FLM_WALLET.loanEligible=eligibleLoan;
-    FLM_WALLET.loan=availableLoan; FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+availableLoan; // FIXED
-    try{var _rw2=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',getFlId()).single(); if(!_rw2.error && _rw2.data) availableLoan=Number(_rw2.data.loan_wallet||0);}catch(_e){}
-     var lw2=document.getElementById('loanWallet');if(lw2)lw2.innerText=money(availableLoan); // FIXED: show actual DB only, never restore
+    FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+availableLoan;
+    var lw2=document.getElementById('loanWallet');if(lw2)lw2.innerText=money(availableLoan);
     var le2=document.getElementById('loanEligible');if(le2)le2.innerText=lv2.eligible?'Withdrawable: '+money(availableLoan):'Not currently eligible';
     // FIX: Update all wallet cards with correct loan value immediately
     try{
@@ -1510,7 +1509,7 @@ async function submitLoanWithdraw(method){
       if(uiVal>amt) amt=uiVal;
     }catch(e){}
     var netAmt=Math.floor(amt*0.9); var dedAmt=amt-netAmt;
-     if(!confirm('Fund Withdrawal\n\nRequested: Rs.'+amt.toLocaleString('en-IN')+'\n10% deduction: Rs.'+dedAmt.toLocaleString('en-IN')+'\nYou receive: Rs.'+netAmt.toLocaleString('en-IN')+'\n\nConfirm withdrawal?')) return;
+     if(!confirm('Fund Withdrawal\n\nRequested: Rs.'+amt.toLocaleString('en-IN')+'\n10% deduction: Rs.'+dedAmt.toLocaleString('en-IN')+'\nYou receive: Rs.'+netAmt.toLocaleString('en-IN')+'\n\nConfirm?')) return;
      var r=await supabaseClient.rpc('flm_request_full_loan_withdrawal_v2',{p_fl_id:flId,p_method:method});if(r.error)throw r.error;var d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
       // FIX: After successful withdraw request, clear loan wallet to 0
       try{
@@ -1521,7 +1520,7 @@ async function submitLoanWithdraw(method){
         var ta=document.getElementById('totalAmount'); if(ta){ var tot=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0); ta.innerText=money(tot); }
         var le=document.getElementById('loanEligible'); if(le) le.innerText='Processing: Rs.'+money(amt)+' pending';
       }catch(e){}
-      alert('Fund withdrawal submitted!\nRequested: ₹'+loanNum(amt).toLocaleString('en-IN')+'\n10% deduction: ₹'+loanNum(amt-Math.floor(amt*0.9)).toLocaleString('en-IN')+'\nYou will receive: ₹'+loanNum(Math.floor(amt*0.9)).toLocaleString('en-IN'));'var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
+      alert('Fund withdrawal submitted!\nRequested: Rs.'+loanNum(amt).toLocaleString('en-IN')+'\n10% deduction: Rs.'+loanNum(amt-Math.floor(amt*0.9)).toLocaleString('en-IN')+'\nYou receive: Rs.'+loanNum(Math.floor(amt*0.9)).toLocaleString('en-IN'));var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
  var el=document.getElementById('matchingStoreBox');if(!el)return;var force=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25),bankBtn=document.getElementById('matchingBankBtn'),usdtBtn=document.getElementById('matchingUsdtBtn'),sb=document.getElementById('matchingStoreWithdrawBtn');
  if(!force){el.innerHTML='<div style="font-size:11px;color:#64748b">Store withdrawal activates after today reaches 25 paid pairs / ₹5,000. Until then the normal withdrawal options remain available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';if(sb)sb.style.display='none';return;}
@@ -1632,10 +1631,9 @@ async function flmLoadLoanV2(){
    var w=await supabaseClient.from('wallets').select('loan_wallet').eq('fl_id',flId).single();
    if(w.error)console.log('loan wallet read:',w.error.message);
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
-    var _hasAnyWd=false; try{var _wc=await supabaseClient.from('wallet_transactions').select('id').eq('fl_id',flId).eq('wallet_type','loan').eq('transaction_type','withdrawal').limit(1); _hasAnyWd=!!(_wc.data&&_wc.data.length);}catch(_e){}
    // FIX CRITICAL: Don't show next level gross as available when not eligible
    // Wallet should be actual wallet balance only
-   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && !_hasAnyWd && syncWalletAmount>0){ // FIXED: never restore after any withdrawal
+   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && !_hasAnyWd && syncWalletAmount>0){ // FIXED 27-09
      // Only use sync if we are eligible for that level, else keep 0 or actual
      var isEligibleForNext = false;
      try{

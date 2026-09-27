@@ -1053,7 +1053,7 @@ async function loadAdminWithdrawals(){
   try{
     const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(500);
     if(r.error)throw r.error;
-    adminWithdrawalRows=r.data||[];
+    adminWithdrawalRows=(r.data||[]).sort(function(a,b){ function pri(x){var s=String(x.status||'').toLowerCase(); if(s==='processing'||s==='pending') return 0; return 1;} var pa=pri(a),pb=pri(b); if(pa!==pb) return pa-pb; return new Date(b.created_at)-new Date(a.created_at); });
     // Load only payout fields needed by the admin so every withdrawal card shows where the net amount must be sent.
     adminUserMap={};
     const flIds=[...new Set(adminWithdrawalRows.map(x=>safeText(x.fl_id||x.user_fl_id).trim().toUpperCase()).filter(Boolean))];
