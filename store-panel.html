@@ -29,10 +29,10 @@
 <div class="card"><h3>📦 My Stock</h3><div id="stockList"></div><button class="btn-blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
 </div>
 <script>
-const SUPABASE_URL='YOUR_SUPABASE_URL'; const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co'; const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
 let supabaseClient=null, currentStore=null;
-async function init(){ supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
-async function storeLogin(){
+function init(){ try{ supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }catch(e){ console.error('Supabase init failed', e); } }
+async function storeLogin(){ if(!supabaseClient){ init(); } if(!supabaseClient){ alert('Connection not ready. Refresh page.'); return; }
   const code=document.getElementById('storeCode').value.trim().toUpperCase();
   const phone=document.getElementById('storePhone').value.trim();
   if(!code||!phone){alert('Enter code and phone');return;}
