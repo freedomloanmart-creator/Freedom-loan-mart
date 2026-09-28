@@ -897,6 +897,36 @@ body{background:#eef2f7;color:#0f172a}
     <img id="registrationScreenshotImage" class="registration-shot-image" alt="Payment screenshot">
   </div>
 </div>
+<div 
+<!-- STORE DETAIL MANAGEMENT SECTION -->
+<div id="storeDetailSection" style="display:none;background:#fff;border:2px solid #7c3aed;border-radius:16px;padding:16px;margin-top:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div><div id="storeDetailName" style="font-size:18px;font-weight:900">🏪 Store</div><div id="storeDetailMeta" style="font-size:11px;color:#64748b"></div></div>
+    <button onclick="closeStoreDetail()" style="background:#f1f5f9;border:0;border-radius:8px;padding:8px 12px;font-weight:700">✖ Close</button>
+  </div>
+  <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:10px;margin-top:10px;font-size:12px">
+    📊 <b>Today redeemed coupons:</b> <span id="storeTodayCount" style="font-size:18px;font-weight:900;color:#059669">0</span>
+  </div>
+  <div id="storeSalesReport" style="margin-top:10px"></div>
+  <div style="margin-top:12px"><b>📦 Stock Management</b>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <input id="newProdName" placeholder="Product name" style="flex:2;padding:10px;border:1px solid #e2e8f0;border-radius:8px;min-width:120px">
+      <input id="newProdPrice" type="number" placeholder="Price" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:8px;min-width:70px">
+      <input id="newProdQty" type="number" placeholder="Qty" style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:8px;min-width:60px">
+      <button onclick="addNewProduct()" style="background:#059669;color:#fff;border:0;border-radius:8px;padding:10px 14px;font-weight:800">+ Add Product / Stock</button>
+    </div>
+    <div id="storeStockList" style="margin-top:10px"></div>
+  </div>
+  <div style="margin-top:12px"><b>🎫 Coupons Redeemed (Transaction History)</b><div id="storeCouponsList" style="margin-top:6px;max-height:250px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div></div>
+  <div style="margin-top:12px"><b>📋 Products Sent to Store</b><div id="storeProductsList" style="margin-top:6px;max-height:200px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div></div>
+  <div style="margin-top:12px"><b>📈 Stock History</b><div id="storeTxnsList" style="margin-top:6px;max-height:250px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div></div>
+  <div style="margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;font-size:11px">
+    <b>SQL needed (run once in Supabase):</b><br>
+    <code style="font-size:10px;word-break:break-all">CREATE TABLE IF NOT EXISTS store_inventory (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, store_id uuid REFERENCES stores(id), product_name text, price numeric DEFAULT 0, quantity int DEFAULT 0, low_alert int DEFAULT 10, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now());<br>
+    CREATE TABLE IF NOT EXISTS store_stock_history (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, store_id uuid, inventory_id uuid, change_qty int, new_qty int, note text, created_at timestamptz DEFAULT now());<br>
+    ALTER TABLE roi_coupons ADD COLUMN IF NOT EXISTS store_id uuid; ALTER TABLE roi_coupons ADD COLUMN IF NOT EXISTS redeemed_at timestamptz;</code>
+  </div>
+</div>
 <div id="storeEditor" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;padding:18px;overflow:auto"><div class="card" style="max-width:520px;margin:30px auto;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center"><h3>✏️ Edit Store</h3><button type="button" onclick="closeStoreEditor()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:7px 10px">✕</button></div><input id="editStoreId" type="hidden"><input id="editStoreName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="editStoreCode" class="input" placeholder="Store Code" style="margin-top:8px"><input id="editStorePhone" class="input" placeholder="Phone" style="margin-top:8px"><textarea id="editStoreAddress" class="input" placeholder="Address" style="margin-top:8px;min-height:70px"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreTown" class="input" placeholder="Town / City"><input id="editStorePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreLat" class="input" placeholder="Latitude"><input id="editStoreLng" class="input" placeholder="Longitude"></div><select id="editStoreStatus" class="input" style="margin-top:8px"><option value="active">Active</option><option value="inactive">Inactive</option></select><button type="button" onclick="saveStoreEdits()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store Changes</button><button type="button" onclick="deleteStore(document.getElementById('editStoreId').value,document.getElementById('editStoreName').value)" style="width:100%;margin-top:8px;background:#dc2626;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">🗑️ Delete Store</button></div></div>
 
 <script>
@@ -924,7 +954,7 @@ async function loadStoresAdmin(){
         '</div>'+
         '<div style="font-size:11px;color:#64748b;margin-top:5px">Code: '+(s.store_code||'-')+' | Phone: '+(s.phone||'-')+' | Pincode: '+(s.pincode||'-')+' | Town: '+(s.town||s.city||'-')+'</div>'+
         '<div style="font-size:11px;color:#64748b;margin-top:3px">'+(s.address||'-')+'</div>'+
-        '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">✏️ Edit Store</button>'+((s.latitude!=null&&s.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.latitude+','+s.longitude)+'" style="background:#0f766e;color:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:800">🗺️ View Map</a>':'')+'<button type="button" onclick="deleteStore(\''+id+'\')" style="background:#dc2626;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">🗑️ Delete</button>'+'</div></div>';
+        '<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><button type="button" onclick="openStoreDetail(\''+id+'\')" style="background:#7c3aed;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">📦 Manage Store</button><span id="lowstock-'+id+'" style="display:none;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer" onclick="openStoreDetail(\''+id+'\')" title="Low stock alert">ⓘ Low Stock</span><button type="button" onclick="editStore(\''+id+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">✏️ Edit Store</button>'+((s.latitude!=null&&s.longitude!=null)?'<a target="_blank" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.latitude+','+s.longitude)+'" style="background:#0f766e;color:#fff;text-decoration:none;border-radius:9px;padding:8px 12px;font-weight:800">🗺️ View Map</a>':'')+'<button type="button" onclick="deleteStore(\''+id+'\')" style="background:#dc2626;color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:800">🗑️ Delete</button>'+'</div></div>';
     }).join('');
   }catch(e){
     console.error('Store load failed:',e);
@@ -991,6 +1021,128 @@ async function saveStoreEdits(){
     await loadStoresAdmin();
   }catch(e){alert('❌ Store update failed: '+(e.message||e));}
 }
+
+
+// ===== STORE DETAIL MANAGEMENT - Full System =====
+let currentStoreId=null;
+async function openStoreDetail(storeId){
+  currentStoreId=storeId;
+  const client=await ensureSupabaseClient();
+  // Get store info
+  const sr=await client.from('stores').select('*').eq('id',storeId).single();
+  const s=sr.data||{};
+  document.getElementById('storeDetailName').innerText='🏪 '+(s.name||'Store');
+  document.getElementById('storeDetailMeta').innerText='Code: '+(s.store_code||'-')+' | '+(s.town||'')+' | '+(s.phone||'');
+  document.getElementById('storeDetailSection').style.display='block';
+  document.getElementById('storeDetailSection').scrollIntoView({behavior:'smooth'});
+  await loadStoreDetailAll();
+  checkLowStock(storeId);
+}
+function closeStoreDetail(){document.getElementById('storeDetailSection').style.display='none';currentStoreId=null;}
+async function loadStoreDetailAll(){
+  if(!currentStoreId) return;
+  await Promise.all([loadStoreStock(),loadStoreProducts(),loadStoreCoupons(),loadStoreTxns()]);
+}
+async function loadStoreStock(){
+  const client=await ensureSupabaseClient();
+  const el=document.getElementById('storeStockList');
+  el.innerHTML='<div style="padding:10px;color:#64748b">Loading stock...</div>';
+  try{
+    const r=await client.from('store_inventory').select('*').eq('store_id',currentStoreId).order('product_name');
+    if(r.error) throw r.error;
+    const rows=r.data||[];
+    if(!rows.length){el.innerHTML='<div style="padding:12px;color:#64748b">No stock yet. Add stock below.</div>';return;}
+    el.innerHTML=rows.map(function(p){
+      const low=(p.quantity||0)<=(p.low_alert||10);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid '+(low?'#fecaca':'#e2e8f0')+';border-radius:10px;margin-bottom:6px;background:'+(low?'#fef2f2':'#fff')+'">'
+      +'<div><b>'+(p.product_name||'')+'</b> '+(low?'<span style="background:#dc2626;color:#fff;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800">ⓘ LOW</span>':'')
+      +'<div style="font-size:11px;color:#64748b">Qty: '+(p.quantity||0)+' | Price: Rs.'+Number(p.price||0).toLocaleString('en-IN')+'</div></div>'
+      +'<div style="display:flex;gap:5px"><button onclick="adjustStoreStock(\''+p.id+'\',1)" style="background:#059669;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-weight:800">+ Add</button>'
+      +'<button onclick="adjustStoreStock(\''+p.id+'\',-1)" style="background:#dc2626;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-weight:800">- Remove</button></div></div>';
+    }).join('');
+  }catch(e){ el.innerHTML='<div style="padding:10px;color:#991b1b">Stock table not created yet. Run SQL below.</div>'; }
+}
+async function adjustStoreStock(invId, delta){
+  const client=await ensureSupabaseClient();
+  const qty=parseInt(prompt(delta>0?'How many to ADD?':'How many to REMOVE?', '10'));
+  if(!qty||qty<=0) return;
+  try{
+    const r=await client.from('store_inventory').select('quantity').eq('id',invId).single();
+    const newQty=Math.max(0,(r.data?.quantity||0)+(delta*qty));
+    const u=await client.from('store_inventory').update({quantity:newQty,updated_at:new Date().toISOString()}).eq('id',invId);
+    if(u.error) throw u.error;
+    // Log history
+    await client.from('store_stock_history').insert({store_id:currentStoreId,inventory_id:invId,change_qty:delta*qty,new_qty:newQty,note:delta>0?'Admin added stock':'Admin removed stock'});
+    await loadStoreStock(); checkLowStock(currentStoreId);
+  }catch(e){alert('Stock update failed: '+(e.message||e));}
+}
+async function addNewProduct(){
+  const name=document.getElementById('newProdName').value.trim();
+  const price=parseFloat(document.getElementById('newProdPrice').value)||0;
+  const qty=parseInt(document.getElementById('newProdQty').value)||0;
+  if(!name){alert('Product name required');return;}
+  const client=await ensureSupabaseClient();
+  try{
+    const r=await client.from('store_inventory').insert({store_id:currentStoreId,product_name:name,price:price,quantity:qty,low_alert:10});
+    if(r.error) throw r.error;
+    document.getElementById('newProdName').value='';document.getElementById('newProdPrice').value='';document.getElementById('newProdQty').value='';
+    await loadStoreStock(); checkLowStock(currentStoreId);
+    alert('✅ Product added to store');
+  }catch(e){alert('Failed: '+(e.message||e));}
+}
+async function loadStoreProducts(){
+  const client=await ensureSupabaseClient();
+  const el=document.getElementById('storeProductsList');
+  try{
+    const r=await client.from('store_inventory').select('*').eq('store_id',currentStoreId).order('created_at',{ascending:false}).limit(50);
+    const rows=r.data||[];
+    el.innerHTML=rows.length?rows.map(p=>'<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+(p.product_name||'')+'</b> - Qty: '+(p.quantity||0)+' - Rs.'+Number(p.price||0).toLocaleString('en-IN')+'</div>').join(''):'<div style="padding:10px;color:#64748b">No products sent yet</div>';
+  }catch(e){el.innerHTML='<div style="padding:10px;color:#64748b">-</div>';}
+}
+async function loadStoreCoupons(){
+  const client=await ensureSupabaseClient();
+  const el=document.getElementById('storeCouponsList');
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const r=await client.from('roi_coupons').select('*').eq('store_id',currentStoreId).order('redeemed_at',{ascending:false}).limit(100);
+    if(r.error) throw r.error;
+    const rows=r.data||[];
+    const todayCount=rows.filter(x=>String(x.redeemed_at||'').startsWith(today)&&x.status==='redeemed').length;
+    document.getElementById('storeTodayCount').innerText=todayCount;
+    el.innerHTML=rows.length?rows.map(c=>'<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+(c.coupon_code||'')+'</b> - Rs.'+Number(c.amount||0).toLocaleString('en-IN')+' - <span style="color:'+(c.status==='redeemed'?'#059669':'#d97706')+'">'+(c.status||'')+'</span><div style="font-size:10px;color:#64748b">'+(c.redeemed_at||c.created_at||'')+' | FL: '+(c.fl_id||'')+'</div></div>').join(''):'<div style="padding:10px;color:#64748b">No coupons redeemed yet</div>';
+  }catch(e){ el.innerHTML='<div style="padding:10px;color:#64748b">Coupon data will appear after store panel is used</div>'; document.getElementById('storeTodayCount').innerText='0'; }
+}
+async function loadStoreTxns(){
+  const client=await ensureSupabaseClient();
+  const el=document.getElementById('storeTxnsList');
+  try{
+    const r=await client.from('store_stock_history').select('*').eq('store_id',currentStoreId).order('created_at',{ascending:false}).limit(100);
+    if(r.error) throw r.error;
+    const rows=r.data||[];
+    // Sales report summary
+    const totalAdded=rows.filter(x=>(x.change_qty||0)>0).reduce((s,x)=>s+(x.change_qty||0),0);
+    const totalRemoved=rows.filter(x=>(x.change_qty||0)<0).reduce((s,x)=>s+Math.abs(x.change_qty||0),0);
+    document.getElementById('storeSalesReport').innerHTML='<div style="display:flex;gap:10px"><div style="background:#dcfce7;border-radius:10px;padding:10px;flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:#059669">'+totalAdded+'</div><div style="font-size:11px">Stock Added</div></div><div style="background:#fee2e2;border-radius:10px;padding:10px;flex:1;text-align:center"><div style="font-size:20px;font-weight:900;color:#dc2626">'+totalRemoved+'</div><div style="font-size:11px">Stock Sold/Removed</div></div></div>';
+    el.innerHTML=rows.length?rows.map(h=>'<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+(h.change_qty>0?'+':'')+(h.change_qty||0)+'</b> - '+(h.note||'')+'<div style="font-size:10px;color:#64748b">'+(h.created_at||'')+' | New qty: '+(h.new_qty||0)+'</div></div>').join(''):'<div style="padding:10px;color:#64748b">No history yet</div>';
+  }catch(e){ el.innerHTML='<div style="padding:10px;color:#64748b">-</div>'; }
+}
+async function checkLowStock(storeId){
+  try{
+    const client=await ensureSupabaseClient();
+    const r=await client.from('store_inventory').select('id').eq('store_id',storeId).lte('quantity',10);
+    const badge=document.getElementById('lowstock-'+storeId);
+    if(badge){ badge.style.display=(r.data&&r.data.length)?'inline-block':'none'; }
+  }catch(e){}
+}
+async function checkAllLowStocks(){
+  try{
+    const client=await ensureSupabaseClient();
+    const s=await client.from('stores').select('id');
+    for(const st of (s.data||[])){ await checkLowStock(st.id); }
+  }catch(e){}
+}
+// Auto-check low stocks when stores load
+setTimeout(checkAllLowStocks, 2000);
 
 let adminWithdrawalRows=[];
 let adminUserMap={};

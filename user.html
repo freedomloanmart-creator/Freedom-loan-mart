@@ -1485,7 +1485,59 @@ async function submitRoiRedeem(){
   showRoiCouponSuccess(newCode,amt);
  }catch(e){alert('ROI redemption failed: '+e.message);}
 }
-async function submitMatchingWithdraw(method){var forceStore=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25);if(forceStore){alert('Today reached the ₹5,000 / 25-pair daily cap. Matching withdrawal is Store-only today.');await checkMatchingStore();return;}var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();showSec('wallets',true);alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
+async 
+async function submitMatchingWithdrawNormal(){
+  var amt=getActionAmount();
+  if(amt<200){alert('Minimum matching withdrawal is Rs.200.');return;}
+  if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient available matching balance.');return;}
+  if(!(await ensurePayout('bank'))) return;
+  try{
+    var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:'bank',p_force_store:false});
+    if(r.error) throw r.error;
+    alert('Withdrawal request submitted. Status: Processing.');
+    await loadWalletData(); await loadWalletHistory();
+  }catch(e){alert('Withdrawal failed: '+e.message);}
+}
+async function handleMatchingStoreCoupon(){
+  var storeFound=false;
+  try{
+    if(navigator.geolocation){
+      var pos=await new Promise(function(res,rej){navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:8000,maximumAge:300000});});
+      var r=await supabaseClient.rpc('flm_nearest_store',{p_lat:pos.coords.latitude,p_lng:pos.coords.longitude,p_radius_km:25});
+      if(!r.error && r.data && r.data.length) storeFound=true;
+    }
+    if(!storeFound){
+      var ur=await supabaseClient.from('users').select('pincode').eq('fl_id',getFlId()).maybeSingle();
+      var pin=ur.data&&String(ur.data.pincode||'').trim();
+      if(pin){
+        var sr=await supabaseClient.from('stores').select('id').eq('status','active').eq('pincode',pin).limit(1);
+        if(!sr.error && sr.data && sr.data.length) storeFound=true;
+      }
+    }
+  }catch(e){console.log('store check',e.message);}
+  if(!storeFound){
+    if(confirm('No FLM Store within 25km.\nNormal Bank withdrawal will be enabled.\nContinue?')){ await submitMatchingWithdrawNormal(); }
+    return;
+  }
+  var amt=getActionAmount();
+  if(!amt||amt<500){alert('Minimum store coupon is Rs.500. Enter amount above.');return;}
+  if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient matching balance.');return;}
+  var code='FLM-M'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
+  if(!confirm('Store Coupon\n\nAmount: Rs.'+amt.toLocaleString('en-IN')+'\n\nShow it at FLM Store to redeem. Confirm?')) return;
+  try{
+    var ri=await supabaseClient.from('roi_coupons').insert({fl_id:getFlId(),coupon_code:code,amount:amt,status:'active',title:'Matching Store Coupon',remarks:'Matching store redemption (5000+ rule)'});
+    if(ri.error) throw ri.error;
+    var nw=Math.max(0,Number(FLM_WALLET.matching||0)-amt);
+    await supabaseClient.from('wallets').update({matching_wallet:nw}).eq('fl_id',getFlId());
+    await supabaseClient.from('wallet_transactions').insert({fl_id:getFlId(),wallet_type:'matching',transaction_type:'coupon',amount:amt,status:'completed',title:'Matching Store Coupon',remarks:'Coupon: '+code});
+    FLM_WALLET.matching=nw;
+    var mw=document.getElementById('matchingWallet'); if(mw) mw.innerText=money(nw);
+    alert('Store Coupon Generated!\n\nCode: '+code+'\nAmount: Rs.'+amt.toLocaleString('en-IN'));
+    await loadWalletData(); await loadWalletHistory();
+  }catch(e){alert('Coupon failed: '+(e.message||e));}
+}
+
+function submitMatchingWithdraw(method){var forceStore=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25);if(forceStore){await handleMatchingStoreCoupon();return;}var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();showSec('wallets',true);alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
 async function submitLoanWithdraw(method){
   var flId=getFlId();
   var st=await flmLoadLoanV2();
@@ -1633,7 +1685,7 @@ async function flmLoadLoanV2(){
    if(w.data)FLM_LOAN_V2.wallet=loanNum(w.data.loan_wallet);
    // FIX CRITICAL: Don't show next level gross as available when not eligible
    // Wallet should be actual wallet balance only
-   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && !_hasAnyWd && syncWalletAmount>0){ // FIXED 27-09
+   if(FLM_LOAN_V2.wallet<=0 && !loanWithdrawalPending && !_hasAnyWd && syncWalletAmount>0){ // FIXED 28-09
      // Only use sync if we are eligible for that level, else keep 0 or actual
      var isEligibleForNext = false;
      try{
