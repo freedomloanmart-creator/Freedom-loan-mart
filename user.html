@@ -1485,7 +1485,6 @@ async function submitRoiRedeem(){
   showRoiCouponSuccess(newCode,amt);
  }catch(e){alert('ROI redemption failed: '+e.message);}
 }
-async 
 async function submitMatchingWithdrawNormal(){
   var amt=getActionAmount();
   if(amt<200){alert('Minimum matching withdrawal is Rs.200.');return;}
