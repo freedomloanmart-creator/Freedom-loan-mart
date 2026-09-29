@@ -327,27 +327,16 @@ async function loadStoreRedemptionStatus(status){
   try{
     let allRows=[];
 
-    // IMPORTANT: Read the actual table directly. This avoids a mismatch
-    // between the store code and the RPC function parameters.
-    let q=await sb.from('flm_store_redemptions')
-      .select('id,coupon_code,fl_id,user_name,store_id,store_code,store_name,amount,status,created_at,updated_at')
-      .eq('store_id',currentStore.id)
-      .order('created_at',{ascending:false})
-      .limit(200);
-
+    // Use a SECURITY DEFINER RPC instead of reading the table directly.
+    // The anon browser role does not have direct SELECT permission on
+    // flm_store_redemptions, so direct .from(...) queries return
+    // "permission denied for table flm_store_redemptions".
+    const q=await sb.rpc('flm_store_get_redemptions',{
+      p_store_id: currentStore.id ? String(currentStore.id) : null,
+      p_store_code: currentStore.store_code ? String(currentStore.store_code) : null
+    });
     if(q.error) throw q.error;
     allRows=Array.isArray(q.data)?q.data:[];
-
-    // Fallback for old rows where store_id was not saved correctly.
-    if(!allRows.length && currentStore.store_code){
-      q=await sb.from('flm_store_redemptions')
-        .select('id,coupon_code,fl_id,user_name,store_id,store_code,store_name,amount,status,created_at,updated_at')
-        .eq('store_code',currentStore.store_code)
-        .order('created_at',{ascending:false})
-        .limit(200);
-      if(q.error) throw q.error;
-      allRows=Array.isArray(q.data)?q.data:[];
-    }
 
     storeRedemptionRows=(status && status !== 'all')
       ? allRows.filter(x=>String(x.status||'').trim().toLowerCase()===String(status).trim().toLowerCase())
