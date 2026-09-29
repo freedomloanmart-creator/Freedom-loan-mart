@@ -553,7 +553,7 @@ async function adminWalletAdjust(flId,walletType,direction){
 async function loadAdminWalletAdjustHistory(flId){
   const el=document.getElementById('walletAdjustHistory');if(!el||!supabaseClient)return;
   try{
-    const r=await supabaseClient.from('wallet_admin_adjustments').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(50);
+    const r=await supabaseClient.rpc('flm_admin_get_wallet_adjust_history',{p_fl_id:flId});
     if(r.error)throw r.error;
     const rows=r.data||[];
     if(!rows.length){el.innerHTML='<div style="padding:10px">No manual wallet adjustments for this member.</div>';return;}
@@ -924,7 +924,13 @@ body{background:#eef2f7;color:#0f172a}
     <b>SQL needed (run once in Supabase):</b><br>
     <code style="font-size:10px;word-break:break-all">CREATE TABLE IF NOT EXISTS store_inventory (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, store_id uuid REFERENCES stores(id), product_name text, price numeric DEFAULT 0, quantity int DEFAULT 0, low_alert int DEFAULT 10, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now());<br>
     CREATE TABLE IF NOT EXISTS store_stock_history (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, store_id uuid, inventory_id uuid, change_qty int, new_qty int, note text, created_at timestamptz DEFAULT now());<br>
-    ALTER TABLE roi_coupons ADD COLUMN IF NOT EXISTS store_id uuid; ALTER TABLE roi_coupons ADD COLUMN IF NOT EXISTS redeemed_at timestamptz;</code>
+    ALTER TABLE roi_coupons ADD COLUMN IF NOT EXISTS store_id uuid; ALTER TABLE roi_coupons ADD COLUMN IF NOT EXISTS redeemed_at timestamptz;<br>
+    GRANT SELECT,INSERT,UPDATE ON store_inventory TO anon,authenticated; GRANT SELECT,INSERT ON store_stock_history TO anon,authenticated;<br>
+    ALTER TABLE store_inventory ENABLE ROW LEVEL SECURITY; ALTER TABLE store_stock_history ENABLE ROW LEVEL SECURITY;<br>
+    DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='store_inventory' AND policyname='flm_store_inventory_anon_all') THEN CREATE POLICY flm_store_inventory_anon_all ON store_inventory FOR ALL TO anon,authenticated USING (true) WITH CHECK (true); END IF; END $$;<br>
+    DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='store_stock_history' AND policyname='flm_store_stock_history_anon_all') THEN CREATE POLICY flm_store_stock_history_anon_all ON store_stock_history FOR ALL TO anon,authenticated USING (true) WITH CHECK (true); END IF; END $$;<br>
+    CREATE OR REPLACE FUNCTION public.flm_admin_get_wallet_adjust_history(p_fl_id text) RETURNS SETOF public.wallet_admin_adjustments LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$ SELECT * FROM public.wallet_admin_adjustments WHERE upper(fl_id)=upper(p_fl_id) ORDER BY created_at DESC LIMIT 50 $$;<br>
+    GRANT EXECUTE ON FUNCTION public.flm_admin_get_wallet_adjust_history(text) TO anon,authenticated;</code>
   </div>
 </div>
 <div id="storeEditor" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;padding:18px;overflow:auto"><div class="card" style="max-width:520px;margin:30px auto;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center"><h3>✏️ Edit Store</h3><button type="button" onclick="closeStoreEditor()" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:7px 10px">✕</button></div><input id="editStoreId" type="hidden"><input id="editStoreName" class="input" placeholder="Store Name" style="margin-top:10px"><input id="editStoreCode" class="input" placeholder="Store Code" style="margin-top:8px"><input id="editStorePhone" class="input" placeholder="Phone" style="margin-top:8px"><textarea id="editStoreAddress" class="input" placeholder="Address" style="margin-top:8px;min-height:70px"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreTown" class="input" placeholder="Town / City"><input id="editStorePincode" class="input" placeholder="Pincode"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><input id="editStoreLat" class="input" placeholder="Latitude"><input id="editStoreLng" class="input" placeholder="Longitude"></div><select id="editStoreStatus" class="input" style="margin-top:8px"><option value="active">Active</option><option value="inactive">Inactive</option></select><button type="button" onclick="saveStoreEdits()" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">💾 Save Store Changes</button><button type="button" onclick="deleteStore(document.getElementById('editStoreId').value,document.getElementById('editStoreName').value)" style="width:100%;margin-top:8px;background:#dc2626;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:800">🗑️ Delete Store</button></div></div>
@@ -1060,7 +1066,7 @@ async function loadStoreStock(){
       +'<div style="display:flex;gap:5px"><button onclick="adjustStoreStock(\''+p.id+'\',1)" style="background:#059669;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-weight:800">+ Add</button>'
       +'<button onclick="adjustStoreStock(\''+p.id+'\',-1)" style="background:#dc2626;color:#fff;border:0;border-radius:8px;padding:7px 10px;font-weight:800">- Remove</button></div></div>';
     }).join('');
-  }catch(e){ el.innerHTML='<div style="padding:10px;color:#991b1b">Stock table not created yet. Run SQL below.</div>'; }
+  }catch(e){ const msg=String(e?.message||e||'Unknown error'); el.innerHTML='<div style="padding:10px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px"><b>Stock load failed</b><br>'+escapeHtml(msg)+'<br><span style="font-size:10px;color:#7f1d1d">If the table is missing, run the Store Inventory SQL shown below. If this is an RLS error, run the Store Inventory RLS SQL.</span></div>'; }
 }
 async function adjustStoreStock(invId, delta){
   const client=await ensureSupabaseClient();
