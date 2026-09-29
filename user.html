@@ -1476,8 +1476,28 @@ async function loadUserStoreRedemptions(){
  if(!el||!supabaseClient)return; var flId=getFlId(); if(!flId)return;
  el.innerHTML='<div style="text-align:center;color:#64748b;font-size:11px;padding:12px">Loading redemption status...</div>';
  try{
-  var r=await supabaseClient.from('store_redemptions').select('id,coupon_code,store_code,fl_id,user_name,amount,status,created_at,approved_at,approval_reason,rejected_at,rejection_reason,reprocessed_at').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);
-  if(r.error)throw r.error; var rows=r.data||[];
+  // Read redemption status through the existing user coupon-history RPC.
+  // Direct store_redemptions SELECT is blocked for the member client by RLS,
+  // so it can return an empty list even when the store has already redeemed the coupon.
+  var r=await supabaseClient.rpc('flm_user_roi_coupon_history',{p_fl_id:flId});
+  if(r.error)throw r.error;
+  var rows=(r.data||[]).filter(function(x){return x.redemption_id;}).map(function(x){
+   return {
+    id:x.redemption_id,
+    coupon_code:x.coupon_code,
+    store_code:x.store_code,
+    fl_id:flId,
+    user_name:getName()||flId,
+    amount:x.amount,
+    status:x.redemption_status||'processing',
+    created_at:x.redeemed_at||x.created_at,
+    approved_at:null,
+    approval_reason:x.approval_reason,
+    rejected_at:null,
+    rejection_reason:x.rejection_reason,
+    reprocessed_at:null
+   };
+  });
   if(!rows.length){if(sumEl)sumEl.innerHTML='';el.innerHTML='<div style="text-align:center;color:#64748b;font-size:11px;padding:16px">No store redemption records yet.</div>';return;}
   var counts={processing:0,approved:0,rejected:0}, amounts={processing:0,approved:0,rejected:0};
   rows.forEach(function(x){var st=String(x.status||'processing').toLowerCase();if(counts[st]!=null){counts[st]++;amounts[st]+=Number(x.amount||0);}});
