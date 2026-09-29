@@ -886,7 +886,32 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <div class="card" style="border:2px solid #0ea5e9"><div style="font-weight:900;color:#0369a1">📋 Configured Fund Levels</div><div id="flmFundPlansList" style="margin-top:10px">Open this section to load plans.</div></div>
 </div>
-<div id="sec-withdraw" style="display:none"><div class="card" style="background:linear-gradient(135deg,#172554,#4c1d95);color:#fff;border-radius:18px;padding:18px"><div style="font-size:19px;font-weight:900">💳 Withdrawals & Settlements</div><div style="font-size:11px;opacity:.85;margin-top:5px">Matching income, loan withdrawals and ROI/store redemptions are shown separately.</div><button onclick="loadAdminWithdrawals()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Finance Data</button></div><div class="grid2"><div class="dark-card"><div style="font-size:11px;color:#64748b">Processing</div><div id="wdPendingCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Approved</div><div id="wdApprovedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Rejected</div><div id="wdRejectedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Total Records</div><div id="wdTotalCount" style="font-size:24px;font-weight:900">0</div></div></div><div class="card" style="border:2px solid #2563eb"><b>🔎 Quick Filter</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input id="wdSearch" class="input" placeholder="Search FL ID / store / method" oninput="renderAdminWithdrawals()"><select id="wdStatus" class="input" onchange="renderAdminWithdrawals()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div><div class="card" style="border:2px solid #059669"><div style="font-weight:900;font-size:16px">💰 Matching / Loan Direct Withdrawals</div><div id="adminWithdrawList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card" style="border:2px solid #b45309"><div style="font-weight:900;font-size:16px">🏪 ROI Store Redemptions / Store Settlements</div><div id="adminStoreList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card"><div style="font-weight:900;font-size:16px">📋 Complete Finance History</div><div id="adminWithdrawHistory" style="margin-top:10px">Click Refresh Finance Data.</div></div></div>
+<div id="sec-withdraw" style="display:none"><div class="card" style="background:linear-gradient(135deg,#172554,#4c1d95);color:#fff;border-radius:18px;padding:18px"><div style="font-size:19px;font-weight:900">💳 Withdrawals & Settlements</div><div style="font-size:11px;opacity:.85;margin-top:5px">Matching income, loan withdrawals and ROI/store redemptions are shown separately.</div><button onclick="loadAdminWithdrawals()" style="width:100%;margin-top:12px;background:#fff;color:#1e3a8a;border:0;border-radius:10px;padding:12px;font-weight:800">🔄 Refresh Finance Data</button></div><div class="grid2"><div class="dark-card"><div style="font-size:11px;color:#64748b">Processing</div><div id="wdPendingCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Approved</div><div id="wdApprovedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Rejected</div><div id="wdRejectedCount" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Total Records</div><div id="wdTotalCount" style="font-size:24px;font-weight:900">0</div></div></div><div class="card" style="border:2px solid #2563eb"><b>🔎 Quick Filter</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><input id="wdSearch" class="input" placeholder="Search FL ID / store / method" oninput="renderAdminWithdrawals()"><select id="wdStatus" class="input" onchange="renderAdminWithdrawals()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div></div><div class="card" style="border:2px solid #059669"><div style="font-weight:900;font-size:16px">💰 Matching / Loan Direct Withdrawals</div><div id="adminWithdrawList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card" style="border:2px solid #b45309"><div style="font-weight:900;font-size:16px">🏪 ROI Store Redemptions / Store Settlements</div><div id="adminStoreList" style="margin-top:12px">Click Refresh Finance Data.</div></div><div class="card"><div style="font-weight:900;font-size:16px">📋 Complete Finance History</div><div id="adminWithdrawHistory" style="margin-top:10px">Click Refresh Finance Data.</div></div><div class="card" style="border:2px solid #7c3aed">
+  <div style="font-weight:900;font-size:17px">🏪 Store Coupon Redemption Approval</div>
+  <div style="font-size:11px;color:#64748b;margin-top:4px">
+    ROI coupon redemptions are approved/rejected separately from normal withdrawals.
+    Rejected coupons remain USED; the store can re-process the redemption.
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="dark-card"><div style="font-size:11px;color:#64748b">🟠 Processing</div><div id="srProcessingCount" style="font-size:24px;font-weight:900">0</div><div id="srProcessingAmount" style="font-size:12px;color:#d97706">₹0</div></div>
+    <div class="dark-card"><div style="font-size:11px;color:#64748b">✅ Approved / Paid</div><div id="srApprovedCount" style="font-size:24px;font-weight:900">0</div><div id="srApprovedAmount" style="font-size:12px;color:#059669">₹0</div></div>
+    <div class="dark-card"><div style="font-size:11px;color:#64748b">❌ Rejected</div><div id="srRejectedCount" style="font-size:24px;font-weight:900">0</div><div id="srRejectedAmount" style="font-size:12px;color:#dc2626">₹0</div></div>
+    <div class="dark-card"><div style="font-size:11px;color:#64748b">📋 Total</div><div id="srTotalCount" style="font-size:24px;font-weight:900">0</div><div id="srTotalAmount" style="font-size:12px;color:#475569">₹0</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+    <select id="srStoreFilter" class="input" onchange="loadStoreRedemptionApprovals()"><option value="">All Stores</option></select>
+    <select id="srStatusFilter" class="input" onchange="renderStoreRedemptionApprovals()">
+      <option value="processing">Processing</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All Status</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button onclick="loadStoreRedemptionApprovals()" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:900">🔄 Refresh</button>
+    <button onclick="bulkApproveSelectedStoreRedemptions()" style="flex:1;background:#059669;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:900">✅ Approve Selected</button>
+    <button onclick="approveAllPendingForSelectedStore()" style="flex:1;background:#7c3aed;color:#fff;border:0;border-radius:9px;padding:10px;font-weight:900">✅ Approve All This Store</button>
+  </div>
+  <div id="srBulkInfo" style="margin-top:8px;font-size:11px;color:#475569"></div>
+  <div id="storeRedemptionApprovalList" style="margin-top:12px">Click Refresh to load store redemption requests.</div>
+</div></div>
 </div>
 <div id="registrationScreenshotModal" class="registration-shot-modal" onclick="if(event.target===this)closeRegistrationScreenshot()">
   <div class="registration-shot-card">
@@ -1633,6 +1658,170 @@ document.addEventListener('DOMContentLoaded',function(){var u=document.getElemen
    setInterval(fdAdminUpdateClock,1000);fdAdminUpdateClock();
    setTimeout(function(){fdAdminLoadPaymentPreview();if(localStorage.getItem('flm_admin_last_section')==='fixedReturnsAdmin')fdAdminLoadAll();},300);
  });
+})();
+</script>
+
+<script>
+var adminStoreRedemptionRows = [];
+
+function srMoney(v){
+  return '₹' + Number(v || 0).toLocaleString('en-IN', {maximumFractionDigits:2});
+}
+function srEsc(v){
+  return typeof escapeHtml === 'function' ? escapeHtml(v == null ? '' : String(v)) :
+    String(v == null ? '' : v).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+}
+function srAdminName(){
+  try{ if(typeof getAdminId === 'function') return String(getAdminId() || 'ADMIN'); }catch(e){}
+  return 'ADMIN';
+}
+async function loadStoreRedemptionApprovals(){
+  const list=document.getElementById('storeRedemptionApprovalList');
+  if(!list || !window.supabaseClient) return;
+  list.innerHTML='<div style="padding:16px;text-align:center;color:#64748b">Loading store redemption requests...</div>';
+  try{
+    const r=await supabaseClient.rpc('flm_admin_store_redemptions',{p_status:'all',p_store_code:null});
+    if(r.error) throw r.error;
+    adminStoreRedemptionRows=Array.isArray(r.data)?r.data:[];
+    populateStoreRedemptionFilter();
+    updateStoreRedemptionSummary();
+    renderStoreRedemptionApprovals();
+  }catch(e){
+    list.innerHTML='<div style="padding:14px;background:#fef2f2;color:#991b1b;border-radius:10px">'+srEsc(e.message||'Could not load store redemption requests.')+'</div>';
+  }
+}
+function populateStoreRedemptionFilter(){
+  const el=document.getElementById('srStoreFilter'); if(!el)return;
+  const old=el.value||'', stores={};
+  adminStoreRedemptionRows.forEach(function(x){
+    const key=String(x.store_id||x.store_code||''); if(!key)return;
+    stores[key]={id:x.store_id||'',code:x.store_code||'',name:x.store_name||x.store_code||'Store'};
+  });
+  let h='<option value="">All Stores</option>';
+  Object.keys(stores).sort(function(a,b){return String(stores[a].name).localeCompare(String(stores[b].name));}).forEach(function(k){
+    const st=stores[k];
+    h+='<option value="'+srEsc(st.id||st.code)+'">'+srEsc(st.name)+(st.code?' ('+srEsc(st.code)+')':'')+'</option>';
+  });
+  el.innerHTML=h;
+  if([...el.options].some(function(o){return o.value===old;}))el.value=old;
+}
+function getFilteredStoreRedemptionRows(){
+  const store=document.getElementById('srStoreFilter')?.value||'';
+  const status=document.getElementById('srStatusFilter')?.value||'processing';
+  return adminStoreRedemptionRows.filter(function(x){
+    return (!store || String(x.store_id||'')===String(store) || String(x.store_code||'')===String(store)) &&
+           (status==='all' || String(x.status||'').toLowerCase()===status);
+  });
+}
+function updateStoreRedemptionSummary(){
+  const rows=adminStoreRedemptionRows||[], p=rows.filter(x=>String(x.status).toLowerCase()==='processing'),
+    a=rows.filter(x=>String(x.status).toLowerCase()==='approved'), r=rows.filter(x=>String(x.status).toLowerCase()==='rejected');
+  const sum=arr=>arr.reduce((t,x)=>t+Number(x.amount||0),0);
+  document.getElementById('srProcessingCount').innerText=p.length;
+  document.getElementById('srApprovedCount').innerText=a.length;
+  document.getElementById('srRejectedCount').innerText=r.length;
+  document.getElementById('srTotalCount').innerText=rows.length;
+  document.getElementById('srProcessingAmount').innerText=srMoney(sum(p));
+  document.getElementById('srApprovedAmount').innerText=srMoney(sum(a));
+  document.getElementById('srRejectedAmount').innerText=srMoney(sum(r));
+  document.getElementById('srTotalAmount').innerText=srMoney(sum(rows));
+}
+function renderStoreRedemptionApprovals(){
+  const list=document.getElementById('storeRedemptionApprovalList'), info=document.getElementById('srBulkInfo');
+  if(!list)return;
+  const rows=getFilteredStoreRedemptionRows(), processing=rows.filter(x=>String(x.status).toLowerCase()==='processing');
+  if(info)info.innerText=processing.length+' processing request(s) in the selected store/filter.';
+  if(!rows.length){list.innerHTML='<div style="padding:18px;text-align:center;color:#64748b;background:#f8fafc;border-radius:10px">No store redemption records found.</div>';return;}
+  let h='';
+  if(processing.length)h+='<div style="padding:8px 0;font-size:11px"><label><input type="checkbox" onchange="toggleAllStoreRedemptions(this.checked)"> Select all processing shown</label></div>';
+  rows.forEach(function(x){
+    const st=String(x.status||'').toLowerCase(), can=st==='processing';
+    const badge=st==='approved'?'<span style="background:#dcfce7;color:#166534;padding:3px 7px;border-radius:999px;font-weight:900">APPROVED</span>':
+      st==='rejected'?'<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:999px;font-weight:900">REJECTED</span>':
+      '<span style="background:#fef3c7;color:#92400e;padding:3px 7px;border-radius:999px;font-weight:900">PROCESSING</span>';
+    h+='<div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:9px;background:#fff"><div style="display:flex;gap:8px;align-items:flex-start">'+
+      (can?'<input class="sr-select-box" type="checkbox" data-id="'+srEsc(x.id)+'" style="margin-top:4px;width:18px;height:18px">':'')+
+      '<div style="flex:1"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+srEsc(x.store_name||x.store_code||'Store')+'</b><b style="font-size:16px">'+srMoney(x.amount)+'</b></div>'+
+      '<div style="font-size:11px;color:#475569;margin-top:5px">User: <b>'+srEsc(x.user_name||'-')+'</b> · FL ID: <b>'+srEsc(x.fl_id||'-')+'</b><br>Coupon: <b>'+srEsc(x.coupon_code||'-')+'</b><br>Date: '+srEsc(new Date(x.created_at).toLocaleString('en-IN'))+'</div>'+
+      '<div style="margin-top:8px">'+badge+'</div>'+
+      (x.approval_reason?'<div style="margin-top:7px;font-size:11px;background:#f0fdf4;padding:8px;border-radius:8px"><b>Payment / Approval:</b> '+srEsc(x.approval_reason)+'</div>':'')+
+      (x.rejection_reason?'<div style="margin-top:7px;font-size:11px;background:#fef2f2;padding:8px;border-radius:8px"><b>Reject reason:</b> '+srEsc(x.rejection_reason)+'</div>':'')+
+      (can?'<div style="display:flex;gap:7px;margin-top:10px"><button onclick="approveStoreRedemption(\''+srEsc(x.id)+'\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">✅ Approve</button><button onclick="rejectStoreRedemption(\''+srEsc(x.id)+'\')" style="flex:1;background:#dc2626;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">❌ Reject</button></div>':'')+
+      '</div></div></div>';
+  });
+  list.innerHTML=h;
+}
+function toggleAllStoreRedemptions(checked){document.querySelectorAll('.sr-select-box').forEach(el=>el.checked=checked);}
+function getSelectedStoreRedemptionIds(){return Array.from(document.querySelectorAll('.sr-select-box:checked')).map(el=>el.getAttribute('data-id')).filter(Boolean);}
+async function approveStoreRedemption(id){
+  const row=adminStoreRedemptionRows.find(x=>String(x.id)===String(id)); if(!row)return;
+  const ref=prompt('Payment Reference / UTR / Admin Note for '+(row.fl_id||'user')+' — '+srMoney(row.amount)+':','');
+  if(ref===null)return;
+  if(!ref.trim()){alert('Payment reference / approval note is required.');return;}
+  if(!confirm('Approve this redemption?\n\nUser: '+(row.user_name||row.fl_id)+'\nAmount: '+srMoney(row.amount)+'\nStore: '+(row.store_name||row.store_code)))return;
+  try{
+    const r=await supabaseClient.rpc('flm_admin_approve_store_redemption',{p_redemption_id:id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
+    if(r.error)throw r.error;
+    alert('✅ Redemption approved. Amount: '+srMoney(row.amount)); await loadStoreRedemptionApprovals();
+  }catch(e){alert('Approve failed: '+(e.message||e));}
+}
+async function rejectStoreRedemption(id){
+  const row=adminStoreRedemptionRows.find(x=>String(x.id)===String(id)); if(!row)return;
+  const reason=prompt('Enter mandatory rejection reason for '+(row.fl_id||'user')+':','');
+  if(reason===null)return;
+  if(!reason.trim()){alert('Rejection reason is required.');return;}
+  if(!confirm('Reject this redemption?\n\nAmount: '+srMoney(row.amount)+'\n\nUser coupon will remain USED.'))return;
+  try{
+    const r=await supabaseClient.rpc('flm_admin_reject_store_redemption',{p_redemption_id:id,p_rejected_by:srAdminName(),p_rejection_reason:reason.trim()});
+    if(r.error)throw r.error;
+    alert('❌ Redemption rejected. Store can re-process it.'); await loadStoreRedemptionApprovals();
+  }catch(e){alert('Reject failed: '+(e.message||e));}
+}
+async function bulkApproveSelectedStoreRedemptions(){
+  const ids=getSelectedStoreRedemptionIds();
+  if(!ids.length){alert('Select at least one PROCESSING request.');return;}
+  const rows=adminStoreRedemptionRows.filter(x=>ids.includes(String(x.id))&&String(x.status).toLowerCase()==='processing');
+  if(!rows.length){alert('No processing requests selected.');return;}
+  const stores=[...new Set(rows.map(x=>String(x.store_id||'')))].filter(Boolean);
+  if(stores.length!==1){alert('Bulk approval must contain requests from ONE store only.');return;}
+  const total=rows.reduce((t,x)=>t+Number(x.amount||0),0);
+  const ref=prompt('Bulk payment reference / UTR / admin note for '+rows.length+' request(s), total '+srMoney(total)+':','');
+  if(ref===null)return;
+  if(!ref.trim()){alert('Payment reference / approval note is required.');return;}
+  if(!confirm('Approve '+rows.length+' selected requests?\n\nStore: '+(rows[0].store_name||rows[0].store_code)+'\nTotal payment: '+srMoney(total)))return;
+  try{
+    const r=await supabaseClient.rpc('flm_admin_bulk_approve_store_redemptions',{p_store_id:rows[0].store_id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
+    if(r.error)throw r.error;
+    alert('✅ Bulk approval completed for '+Number(r.data||rows.length)+' request(s).\nTotal: '+srMoney(total)); await loadStoreRedemptionApprovals();
+  }catch(e){alert('Bulk approval failed: '+(e.message||e));}
+}
+async function approveAllPendingForSelectedStore(){
+  const storeId=document.getElementById('srStoreFilter')?.value||'';
+  if(!storeId){alert('First select ONE store from the Store filter.');return;}
+  const rows=adminStoreRedemptionRows.filter(x=>String(x.store_id||'')===String(storeId)&&String(x.status||'').toLowerCase()==='processing');
+  if(!rows.length){alert('No processing requests for this store.');return;}
+  const total=rows.reduce((t,x)=>t+Number(x.amount||0),0);
+  const ref=prompt('Payment reference / UTR / admin note for ALL '+rows.length+' pending request(s), total '+srMoney(total)+':','');
+  if(ref===null)return;
+  if(!ref.trim()){alert('Payment reference / approval note is required.');return;}
+  if(!confirm('Approve ALL pending requests for this store?\n\nStore: '+(rows[0].store_name||rows[0].store_code)+'\nRequests: '+rows.length+'\nTotal: '+srMoney(total)))return;
+  try{
+    const r=await supabaseClient.rpc('flm_admin_bulk_approve_store_redemptions',{p_store_id:rows[0].store_id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
+    if(r.error)throw r.error;
+    alert('✅ All pending requests for this store approved.\nTotal: '+srMoney(total)); await loadStoreRedemptionApprovals();
+  }catch(e){alert('Approve All failed: '+(e.message||e));}
+}
+(function(){
+  const oldLoad=window.loadAdminWithdrawals;
+  window.loadAdminWithdrawals=async function(){
+    if(typeof oldLoad==='function'){try{await oldLoad();}catch(e){}}
+    await loadStoreRedemptionApprovals();
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){if(document.getElementById('storeRedemptionApprovalList'))loadStoreRedemptionApprovals();},700);
+  });
 })();
 </script>
 </body></html>
