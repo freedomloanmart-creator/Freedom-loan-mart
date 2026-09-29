@@ -4,79 +4,119 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FLM Store Panel - Coupon Redemption</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,system-ui}body{background:#f0fdf4;color:#0f172a;padding:12px}.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;margin-top:8px}button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margin-top:10px;cursor:pointer}.btn-green{background:#059669;color:#fff}.btn-blue{background:#2563eb;color:#fff}</style>
-</head>
-<body>
-<div class="card" style="background:linear-gradient(135deg,#059669,#0d9488);color:#fff">
-<h2>🏪 FLM Store Panel</h2><p style="font-size:12px;opacity:.9">Coupon redemption for store owners</p>
-</div>
+<style>
+*{box-sizing:border-box;font-family:Inter,system-ui}body{margin:0;background:#f0fdf4;color:#0f172a;padding:12px}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px #0001}
+input{width:100%;padding:13px;border:1px solid #e2e8f0;border-radius:10px;margin-top:8px;font-size:16px}
+button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margin-top:10px;font-size:16px}
+.green{background:#059669;color:white}.blue{background:#2563eb;color:white}
+.ok{background:#dcfce7;color:#059669;padding:12px;border-radius:10px;font-weight:800}
+.err{background:#fee2e2;color:#dc2626;padding:12px;border-radius:10px;font-weight:700}
+.small{font-size:11px;color:#64748b}
+</style></head><body>
+
+<div class="card" style="background:linear-gradient(135deg,#059669,#0d9488);color:white">
+<h2>🏪 FLM Store Panel</h2><p>Coupon redemption for all active FLM stores</p></div>
+
 <div class="card" id="loginCard">
 <h3>Store Login</h3>
 <input id="storeCode" placeholder="Store Code (e.g. FLM-KHM-001)">
 <input id="storePhone" placeholder="Store Phone" type="tel">
-<button class="btn-green" onclick="storeLogin()">Login</button>
-</div>
+<button class="green" onclick="storeLogin()">Login</button>
+<div id="loginResult"></div></div>
+
 <div id="mainPanel" style="display:none">
-<div class="card"><h3 id="storeName">🏪 Store</h3><p id="storeMeta" style="font-size:11px;color:#64748b"></p>
-<div style="background:#fef3c7;border-radius:10px;padding:10px;margin-top:8px">Today redeemed: <b id="todayCount" style="font-size:20px;color:#059669">0</b></div>
-</div>
+<div class="card"><h3 id="storeName">🏪 Store</h3><p id="storeMeta" class="small"></p>
+<div style="background:#fef3c7;padding:10px;border-radius:10px">Today redeemed:
+<b id="todayCount" style="font-size:20px;color:#059669">0</b></div></div>
+
 <div class="card"><h3>🎫 Redeem Coupon</h3>
+<p class="small">Any valid unused ROI coupon can be redeemed at this active store.</p>
 <input id="couponCode" placeholder="Enter coupon code">
-<button class="btn-green" onclick="redeemCoupon()">✅ Redeem Coupon</button>
-<div id="redeemResult" style="margin-top:10px"></div>
+<button id="redeemBtn" class="green" onclick="redeemCoupon()">✅ Redeem Coupon</button>
+<div id="redeemResult"></div></div>
+
+<div class="card"><h3>📋 Today Redemptions</h3><div id="todayList"></div>
+<button class="blue" onclick="loadToday()">🔄 Refresh</button></div>
+
+<div class="card"><h3>📦 My Stock</h3><div id="stockList"></div>
+<button class="blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
 </div>
-<div class="card"><h3>📋 Today Redemptions</h3><div id="todayList"></div><button class="btn-blue" onclick="loadToday()">🔄 Refresh</button></div>
-<div class="card"><h3>📦 My Stock</h3><div id="stockList"></div><button class="btn-blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
-</div>
+
 <script>
-const SUPABASE_URL='YOUR_SUPABASE_URL'; const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
-let supabaseClient=null, currentStore=null;
-async function init(){ supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+const SUPABASE_URL='YOUR_SUPABASE_URL';
+const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
+let sb=null,currentStore=null;
+
+function msg(id,t,ok=false){document.getElementById(id).innerHTML='<div class="'+(ok?'ok':'err')+'">'+t+'</div>';}
+
+async function init(){sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}
+
 async function storeLogin(){
-  const code=document.getElementById('storeCode').value.trim().toUpperCase();
-  const phone=document.getElementById('storePhone').value.trim();
-  if(!code||!phone){alert('Enter code and phone');return;}
-  const r=await supabaseClient.from('stores').select('*').eq('store_code',code).eq('phone',phone).single();
-  if(r.error||!r.data){alert('Store not found. Check code/phone.');return;}
-  currentStore=r.data;
-  document.getElementById('loginCard').style.display='none';
-  document.getElementById('mainPanel').style.display='block';
-  document.getElementById('storeName').innerText='🏪 '+currentStore.name;
-  document.getElementById('storeMeta').innerText='Code: '+currentStore.store_code+' | '+(currentStore.town||'');
-  loadToday(); loadStock();
+ const code=document.getElementById('storeCode').value.trim().toUpperCase();
+ const phone=document.getElementById('storePhone').value.trim();
+ if(!code||!phone){msg('loginResult','Enter store code and phone.');return;}
+ const r=await sb.from('stores').select('*').eq('store_code',code).eq('phone',phone).limit(1);
+ if(r.error){msg('loginResult','Login error: '+r.error.message);return;}
+ if(!r.data?.length){msg('loginResult','Store not found. Check code/phone.');return;}
+ currentStore=r.data[0];
+ if(currentStore.is_active===false || (currentStore.status && String(currentStore.status).toLowerCase()!=='active')){
+   msg('loginResult','This store is inactive.');return;
+ }
+ document.getElementById('loginCard').style.display='none';
+ document.getElementById('mainPanel').style.display='block';
+ document.getElementById('storeName').innerText='🏪 '+(currentStore.name||'Store');
+ document.getElementById('storeMeta').innerText='Code: '+(currentStore.store_code||'')+' | '+(currentStore.town||currentStore.city||'');
+ await loadToday(); await loadStock();
 }
+
 async function redeemCoupon(){
-  const code=document.getElementById('couponCode').value.trim();
-  if(!code){alert('Enter coupon code');return;}
-  const res=document.getElementById('redeemResult');
-  res.innerHTML='Checking...';
-  try{
-    const r=await supabaseClient.rpc('flm_redeem_roi_coupon',{p_code:code,p_store_id:currentStore.id});
-    if(r.error) throw r.error;
-    const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
-    if(!d.success){res.innerHTML='<div style="color:#dc2626">\u274c '+(d.message||'Invalid coupon code')+'</div>';return;}
-    res.innerHTML='<div style="background:#dcfce7;padding:12px;border-radius:10px;color:#059669;font-weight:800">\u2705 Redeemed! Rs.'+Number(d.amount||0).toLocaleString('en-IN')+'<br><span style="font-size:11px">FL: '+(d.fl_id||'')+'</span></div>';
-    document.getElementById('couponCode').value='';
-    loadToday();
-  }catch(e){res.innerHTML='<div style="color:#dc2626">Error: '+(e.message||e)+'</div>';}
+ if(!currentStore){msg('redeemResult','Please login first.');return;}
+ const code=document.getElementById('couponCode').value.trim().toUpperCase();
+ if(!code){msg('redeemResult','Enter coupon code.');return;}
+ const btn=document.getElementById('redeemBtn');
+ btn.disabled=true;btn.innerText='Checking...';
+ document.getElementById('redeemResult').innerHTML='<div class="small">Checking coupon...</div>';
+ try{
+   const r=await sb.rpc('flm_redeem_roi_coupon',{
+     p_coupon_code:code,p_store_id:currentStore.id,p_redeemed_by:'STORE'
+   });
+   if(r.error)throw r.error;
+   const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+   if(!d.success){msg('redeemResult','❌ '+(d.message||'Invalid coupon code'));return;}
+   document.getElementById('redeemResult').innerHTML=
+     '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: Rs.'+
+     Number(d.amount||0).toLocaleString('en-IN')+
+     '<br><span class="small">FL ID: '+(d.fl_id||'')+' | Store: '+(d.store_name||'')+
+     '</span></div>';
+   document.getElementById('couponCode').value='';
+   await loadToday();
+ }catch(e){msg('redeemResult','❌ Error: '+(e.message||e));}
+ finally{btn.disabled=false;btn.innerText='✅ Redeem Coupon';}
 }
+
 async function loadToday(){
-  if(!currentStore) return;
-  const today=new Date().toISOString().split('T')[0];
-  const r=await supabaseClient.from('roi_coupons').select('*').eq('store_id',currentStore.id).eq('status','redeemed').order('redeemed_at',{ascending:false}).limit(100);
-  const rows=(r.data||[]);
-  const tcount=rows.filter(x=>String(x.redeemed_at||'').startsWith(today)).length;
-  document.getElementById('todayCount').innerText=tcount;
-  document.getElementById('todayList').innerHTML=rows.length?rows.map(c=>'<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+c.coupon_code+'</b> - Rs.'+Number(c.amount||0).toLocaleString('en-IN')+'<div style="font-size:10px;color:#64748b">'+(c.redeemed_at||'')+'</div></div>').join(''):'No redemptions yet';
+ if(!currentStore)return;
+ const r=await sb.from('roi_coupons').select('*').eq('store_id',currentStore.id)
+   .eq('status','redeemed').order('redeemed_at',{ascending:false}).limit(100);
+ if(r.error){document.getElementById('todayList').innerText='Unable to load redemptions';return;}
+ const rows=r.data||[],start=new Date();start.setHours(0,0,0,0);
+ document.getElementById('todayCount').innerText=rows.filter(x=>x.redeemed_at&&new Date(x.redeemed_at)>=start).length;
+ document.getElementById('todayList').innerHTML=rows.length?rows.map(c=>
+   '<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
+   (c.coupon_code||'')+'</b> - Rs.'+Number(c.amount||0).toLocaleString('en-IN')+
+   '<div class="small">'+(c.redeemed_at||'')+'</div></div>').join(''):'No redemptions yet';
 }
+
 async function loadStock(){
-  if(!currentStore) return;
-  const r=await supabaseClient.from('store_inventory').select('*').eq('store_id',currentStore.id).order('product_name');
-  const rows=(r.data||[]);
-  document.getElementById('stockList').innerHTML=rows.length?rows.map(p=>{
-    const low=(p.quantity||0)<=(p.low_alert||10);
-    return '<div style="padding:8px;border:1px solid '+(low?'#fecaca':'#e2e8f0')+';border-radius:8px;margin-bottom:6px;background:'+(low?'#fef2f2':'#fff')+'"><b>'+p.product_name+'</b> '+(low?'ⓘ LOW':'')+'<div style="font-size:11px">Qty: '+(p.quantity||0)+' | Rs.'+Number(p.price||0).toLocaleString('en-IN')+'</div></div>';
-  }).join(''):'No stock assigned';
+ if(!currentStore)return;
+ const r=await sb.from('store_inventory').select('*').eq('store_id',currentStore.id).order('product_name');
+ if(r.error){document.getElementById('stockList').innerText='Unable to load stock';return;}
+ const rows=r.data||[];
+ document.getElementById('stockList').innerHTML=rows.length?rows.map(p=>
+   '<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px">'+
+   '<b>'+(p.product_name||'')+'</b><div class="small">Qty: '+(p.quantity||0)+
+   ' | Rs.'+Number(p.price||0).toLocaleString('en-IN')+'</div></div>').join(''):'No stock assigned';
 }
 init();
 </script></body></html>
