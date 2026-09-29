@@ -325,8 +325,11 @@ async function loadStoreRedemptionStatus(status){
   box.innerHTML='<div class="small">Loading redemption records...</div>';
 
   try{
+    // DB function uses p_store_code + p_days.
+    // Keep status filtering on the client so Processing/Rejected buttons work.
     const r=await sb.rpc('flm_store_redemption_history',{
-      p_store_id:currentStore.id
+      p_store_code:currentStore.store_code,
+      p_days:365
     });
     if(r.error) throw r.error;
 
