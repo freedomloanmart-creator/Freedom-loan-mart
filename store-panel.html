@@ -325,20 +325,37 @@ async function loadStoreRedemptionStatus(status){
   box.innerHTML='<div class="small">Loading redemption records...</div>';
 
   try{
-    // DB function uses p_store_code + p_days.
-    // Keep status filtering on the client so Processing/Rejected buttons work.
-    const r=await sb.rpc('flm_store_redemption_history',{
-      p_store_code:currentStore.store_code,
-      p_days:365
-    });
-    if(r.error) throw r.error;
+    let allRows=[];
 
-    const allRows=Array.isArray(r.data)?r.data:[];
+    // IMPORTANT: Read the actual table directly. This avoids a mismatch
+    // between the store code and the RPC function parameters.
+    let q=await sb.from('flm_store_redemptions')
+      .select('id,coupon_code,fl_id,user_name,store_id,store_code,store_name,amount,status,created_at,updated_at')
+      .eq('store_id',currentStore.id)
+      .order('created_at',{ascending:false})
+      .limit(200);
+
+    if(q.error) throw q.error;
+    allRows=Array.isArray(q.data)?q.data:[];
+
+    // Fallback for old rows where store_id was not saved correctly.
+    if(!allRows.length && currentStore.store_code){
+      q=await sb.from('flm_store_redemptions')
+        .select('id,coupon_code,fl_id,user_name,store_id,store_code,store_name,amount,status,created_at,updated_at')
+        .eq('store_code',currentStore.store_code)
+        .order('created_at',{ascending:false})
+        .limit(200);
+      if(q.error) throw q.error;
+      allRows=Array.isArray(q.data)?q.data:[];
+    }
+
     storeRedemptionRows=(status && status !== 'all')
-      ? allRows.filter(x=>String(x.status||'').toLowerCase()===String(status).toLowerCase())
+      ? allRows.filter(x=>String(x.status||'').trim().toLowerCase()===String(status).trim().toLowerCase())
       : allRows;
+
     renderStoreRedemptionStatus();
   }catch(e){
+    console.error('Store redemption status error:',e);
     box.innerHTML='<div class="err">❌ '+srpEsc(e.message||e)+'</div>';
   }
 }
