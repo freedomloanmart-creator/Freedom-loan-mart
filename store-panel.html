@@ -23,7 +23,7 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 <input id="storeCode" placeholder="Store Code (e.g. FLM-KHM-001)">
 <input id="storePhone" placeholder="Store Phone" type="tel">
 <button class="green" onclick="storeLogin()">Login</button>
-<div id="loginResult"></div></div>
+<div id="loginResult"></div><div class="small" style="margin-top:8px">If Login does not respond, the error will now be shown here.</div></div>
 
 <div id="mainPanel" style="display:none">
 <div class="card"><h3 id="storeName">🏪 Store</h3><p id="storeMeta" class="small"></p>
@@ -43,80 +43,251 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 <button class="blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
 </div>
 
+
 <script>
 const SUPABASE_URL='YOUR_SUPABASE_URL';
 const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
-let sb=null,currentStore=null;
 
-function msg(id,t,ok=false){document.getElementById(id).innerHTML='<div class="'+(ok?'ok':'err')+'">'+t+'</div>';}
+let sb=null;
+let currentStore=null;
+let initialized=false;
 
-async function init(){sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}
+function msg(id,t,ok=false){
+  const el=document.getElementById(id);
+  if(el) el.innerHTML='<div class="'+(ok?'ok':'err')+'">'+t+'</div>';
+}
+
+function escapeHtml(v){
+  return String(v ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[m]));
+}
+
+function showLoginError(text){
+  msg('loginResult','❌ '+text,false);
+}
+
+async function init(){
+  try{
+    if(typeof supabase==='undefined'){
+      throw new Error('Supabase library did not load. Check internet connection.');
+    }
+    if(!SUPABASE_URL || SUPABASE_URL==='YOUR_SUPABASE_URL' ||
+       !SUPABASE_KEY || SUPABASE_KEY==='YOUR_SUPABASE_ANON_KEY'){
+      throw new Error('Supabase URL / ANON KEY is missing in this HTML file.');
+    }
+    sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    initialized=true;
+  }catch(e){
+    initialized=false;
+    showLoginError(e.message || String(e));
+  }
+}
 
 async function storeLogin(){
- const code=document.getElementById('storeCode').value.trim().toUpperCase();
- const phone=document.getElementById('storePhone').value.trim();
- if(!code||!phone){msg('loginResult','Enter store code and phone.');return;}
- const r=await sb.from('stores').select('*').eq('store_code',code).eq('phone',phone).limit(1);
- if(r.error){msg('loginResult','Login error: '+r.error.message);return;}
- if(!r.data?.length){msg('loginResult','Store not found. Check code/phone.');return;}
- currentStore=r.data[0];
- if(currentStore.is_active===false || (currentStore.status && String(currentStore.status).toLowerCase()!=='active')){
-   msg('loginResult','This store is inactive.');return;
- }
- document.getElementById('loginCard').style.display='none';
- document.getElementById('mainPanel').style.display='block';
- document.getElementById('storeName').innerText='🏪 '+(currentStore.name||'Store');
- document.getElementById('storeMeta').innerText='Code: '+(currentStore.store_code||'')+' | '+(currentStore.town||currentStore.city||'');
- await loadToday(); await loadStock();
+  const btn=document.querySelector('#loginCard button');
+  const codeEl=document.getElementById('storeCode');
+  const phoneEl=document.getElementById('storePhone');
+
+  const code=(codeEl?.value || '').trim().toUpperCase();
+  const phone=(phoneEl?.value || '').trim();
+
+  if(!code || !phone){
+    showLoginError('Enter store code and phone.');
+    return;
+  }
+
+  if(!initialized || !sb){
+    await init();
+    if(!initialized || !sb) return;
+  }
+
+  if(btn){
+    btn.disabled=true;
+    btn.innerText='Logging in...';
+  }
+  document.getElementById('loginResult').innerHTML =
+    '<div class="small">Checking store...</div>';
+
+  try{
+    // Store code is normalized to uppercase; phone remains text and is trimmed.
+    const r=await sb.from('stores')
+      .select('*')
+      .eq('store_code',code)
+      .eq('phone',phone)
+      .limit(1);
+
+    if(r.error){
+      throw new Error(r.error.message);
+    }
+
+    if(!r.data || !r.data.length){
+      showLoginError('Store not found. Check store code and phone number.');
+      return;
+    }
+
+    currentStore=r.data[0];
+
+    const inactive =
+      currentStore.is_active === false ||
+      (currentStore.status &&
+       String(currentStore.status).trim().toLowerCase() !== 'active');
+
+    if(inactive){
+      showLoginError('This store is inactive.');
+      currentStore=null;
+      return;
+    }
+
+    document.getElementById('loginCard').style.display='none';
+    document.getElementById('mainPanel').style.display='block';
+
+    document.getElementById('storeName').innerText =
+      '🏪 '+(currentStore.name || 'Store');
+
+    document.getElementById('storeMeta').innerText =
+      'Code: '+(currentStore.store_code || '')+
+      ' | '+(currentStore.town || currentStore.city || '');
+
+    document.getElementById('loginResult').innerHTML='';
+
+    await Promise.all([
+      loadToday(),
+      loadStock()
+    ]);
+
+  }catch(e){
+    console.error('Store login error:',e);
+    showLoginError(e?.message || String(e) || 'Unable to login.');
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.innerText='Login';
+    }
+  }
 }
 
 async function redeemCoupon(){
- if(!currentStore){msg('redeemResult','Please login first.');return;}
- const code=document.getElementById('couponCode').value.trim().toUpperCase();
- if(!code){msg('redeemResult','Enter coupon code.');return;}
- const btn=document.getElementById('redeemBtn');
- btn.disabled=true;btn.innerText='Checking...';
- document.getElementById('redeemResult').innerHTML='<div class="small">Checking coupon...</div>';
- try{
-   const r=await sb.rpc('flm_redeem_roi_coupon',{
-     p_coupon_code:code,p_store_id:currentStore.id,p_redeemed_by:'STORE'
-   });
-   if(r.error)throw r.error;
-   const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
-   if(!d.success){msg('redeemResult','❌ '+(d.message||'Invalid coupon code'));return;}
-   document.getElementById('redeemResult').innerHTML=
-     '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: Rs.'+
-     Number(d.amount||0).toLocaleString('en-IN')+
-     '<br><span class="small">FL ID: '+(d.fl_id||'')+' | Store: '+(d.store_name||'')+
-     '</span></div>';
-   document.getElementById('couponCode').value='';
-   await loadToday();
- }catch(e){msg('redeemResult','❌ Error: '+(e.message||e));}
- finally{btn.disabled=false;btn.innerText='✅ Redeem Coupon';}
+  if(!currentStore){
+    msg('redeemResult','Please login first.');
+    return;
+  }
+
+  const code=document.getElementById('couponCode').value.trim().toUpperCase();
+  if(!code){
+    msg('redeemResult','Enter coupon code.');
+    return;
+  }
+
+  const btn=document.getElementById('redeemBtn');
+  btn.disabled=true;
+  btn.innerText='Checking...';
+  document.getElementById('redeemResult').innerHTML=
+    '<div class="small">Checking coupon...</div>';
+
+  try{
+    const r=await sb.rpc('flm_redeem_roi_coupon',{
+      p_coupon_code:code,
+      p_store_id:currentStore.id,
+      p_redeemed_by:'STORE'
+    });
+
+    if(r.error) throw r.error;
+
+    const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+
+    if(!d.success){
+      msg('redeemResult','❌ '+(d.message||'Invalid coupon code'));
+      return;
+    }
+
+    document.getElementById('redeemResult').innerHTML=
+      '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: Rs.'+
+      Number(d.amount||0).toLocaleString('en-IN')+
+      '<br><span class="small">FL ID: '+escapeHtml(d.fl_id||'')+
+      ' | Store: '+escapeHtml(d.store_name||'')+
+      '</span></div>';
+
+    document.getElementById('couponCode').value='';
+    await loadToday();
+
+  }catch(e){
+    console.error('Redeem error:',e);
+    msg('redeemResult','❌ Error: '+(e?.message||String(e)));
+  }finally{
+    btn.disabled=false;
+    btn.innerText='✅ Redeem Coupon';
+  }
 }
 
 async function loadToday(){
- if(!currentStore)return;
- const r=await sb.from('roi_coupons').select('*').eq('store_id',currentStore.id)
-   .eq('status','redeemed').order('redeemed_at',{ascending:false}).limit(100);
- if(r.error){document.getElementById('todayList').innerText='Unable to load redemptions';return;}
- const rows=r.data||[],start=new Date();start.setHours(0,0,0,0);
- document.getElementById('todayCount').innerText=rows.filter(x=>x.redeemed_at&&new Date(x.redeemed_at)>=start).length;
- document.getElementById('todayList').innerHTML=rows.length?rows.map(c=>
-   '<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
-   (c.coupon_code||'')+'</b> - Rs.'+Number(c.amount||0).toLocaleString('en-IN')+
-   '<div class="small">'+(c.redeemed_at||'')+'</div></div>').join(''):'No redemptions yet';
+  if(!currentStore) return;
+
+  try{
+    const r=await sb.from('roi_coupons')
+      .select('*')
+      .eq('store_id',currentStore.id)
+      .eq('status','redeemed')
+      .order('redeemed_at',{ascending:false})
+      .limit(100);
+
+    if(r.error) throw r.error;
+
+    const rows=r.data||[];
+    const start=new Date();
+    start.setHours(0,0,0,0);
+
+    document.getElementById('todayCount').innerText =
+      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=start).length;
+
+    document.getElementById('todayList').innerHTML=rows.length
+      ? rows.map(c =>
+        '<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
+        escapeHtml(c.coupon_code||'')+'</b> - Rs.'+
+        Number(c.amount||0).toLocaleString('en-IN')+
+        '<div class="small">'+escapeHtml(c.redeemed_at||'')+
+        '</div></div>'
+      ).join('')
+      : 'No redemptions yet';
+
+  }catch(e){
+    console.error('Today load error:',e);
+    document.getElementById('todayList').innerText =
+      'Unable to load redemptions: '+(e?.message||String(e));
+  }
 }
 
 async function loadStock(){
- if(!currentStore)return;
- const r=await sb.from('store_inventory').select('*').eq('store_id',currentStore.id).order('product_name');
- if(r.error){document.getElementById('stockList').innerText='Unable to load stock';return;}
- const rows=r.data||[];
- document.getElementById('stockList').innerHTML=rows.length?rows.map(p=>
-   '<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px">'+
-   '<b>'+(p.product_name||'')+'</b><div class="small">Qty: '+(p.quantity||0)+
-   ' | Rs.'+Number(p.price||0).toLocaleString('en-IN')+'</div></div>').join(''):'No stock assigned';
+  if(!currentStore) return;
+
+  try{
+    const r=await sb.from('store_inventory')
+      .select('*')
+      .eq('store_id',currentStore.id)
+      .order('product_name');
+
+    if(r.error) throw r.error;
+
+    const rows=r.data||[];
+
+    document.getElementById('stockList').innerHTML=rows.length
+      ? rows.map(p =>
+        '<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px">'+
+        '<b>'+escapeHtml(p.product_name||'')+'</b><div class="small">Qty: '+
+        (p.quantity||0)+' | Rs.'+
+        Number(p.price||0).toLocaleString('en-IN')+
+        '</div></div>'
+      ).join('')
+      : 'No stock assigned';
+
+  }catch(e){
+    console.error('Stock load error:',e);
+    document.getElementById('stockList').innerText =
+      'Unable to load stock: '+(e?.message||String(e));
+  }
 }
-init();
-</script></body></html>
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+
+</body></html>
