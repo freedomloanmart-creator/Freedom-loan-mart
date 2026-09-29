@@ -2,53 +2,428 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Store Panel - Redemption & Wallets</title>
+<title>FLM Store Panel - Coupon Redemption</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;font-family:Inter,system-ui}body{margin:0;background:#f0fdf4;color:#0f172a;padding:12px}
-.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px #0001}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-input,select,textarea{width:100%;padding:13px;border:1px solid #e2e8f0;border-radius:10px;margin-top:8px;font-size:16px;background:#fff}
-button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margin-top:10px;font-size:16px}.green{background:#059669;color:white}.blue{background:#2563eb;color:white}.red{background:#dc2626;color:#fff}.gray{background:#f1f5f9;color:#334155}
-.ok{background:#dcfce7;color:#059669;padding:12px;border-radius:10px;font-weight:800}.err{background:#fee2e2;color:#dc2626;padding:12px;border-radius:10px;font-weight:700}.small{font-size:11px;color:#64748b}
-.wallet{border-radius:12px;padding:12px;border:1px solid #e2e8f0}.wallet b{font-size:21px}.status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900}.processing{background:#fef3c7;color:#92400e}.approved{background:#dcfce7;color:#166534}.rejected{background:#fee2e2;color:#991b1b}
-.tx{border:1px solid #e2e8f0;border-radius:12px;padding:11px;margin-bottom:8px}.tx-head{display:flex;justify-content:space-between;gap:8px}.note{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:10px;font-size:11px}
+.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px #0001}
+input{width:100%;padding:13px;border:1px solid #e2e8f0;border-radius:10px;margin-top:8px;font-size:16px}
+button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margin-top:10px;font-size:16px}
+.green{background:#059669;color:white}.blue{background:#2563eb;color:white}
+.ok{background:#dcfce7;color:#059669;padding:12px;border-radius:10px;font-weight:800}
+.err{background:#fee2e2;color:#dc2626;padding:12px;border-radius:10px;font-weight:700}
+.small{font-size:11px;color:#64748b}
 </style></head><body>
-<div class="card" style="background:linear-gradient(135deg,#059669,#0d9488);color:white"><h2>🏪 FLM Store Panel</h2><p>ROI coupon redemption • Admin settlement tracking</p></div>
 
-<div class="card" id="loginCard"><h3>Store Login</h3><input id="storeCode" placeholder="Store Code (e.g. FLM-PLR-001)"><input id="storePhone" placeholder="Store Phone" type="tel"><button class="green" onclick="storeLogin()">Login</button><div id="loginResult"></div></div>
+<div class="card" style="background:linear-gradient(135deg,#059669,#0d9488);color:white">
+<h2>🏪 FLM Store Panel</h2><p>Coupon redemption for all active FLM stores</p></div>
+
+<div class="card" id="loginCard">
+<h3>Store Login</h3>
+<input id="storeCode" placeholder="Store Code (e.g. FLM-KHM-001)">
+<input id="storePhone" placeholder="Store Phone" type="tel">
+<button class="green" onclick="storeLogin()">Login</button>
+<div id="loginResult"></div><div class="small" style="margin-top:8px">If Login does not respond, the error will now be shown here.</div></div>
 
 <div id="mainPanel" style="display:none">
-  <div class="card"><h3 id="storeName">🏪 Store</h3><p id="storeMeta" class="small"></p><div class="note">ℹ️ Store redemption flow: coupon is marked <b>USED</b> immediately for the member. It stays used even if admin rejects it. A rejected request can be re-processed by this store.</div></div>
+<div class="card"><h3 id="storeName">🏪 Store</h3><p id="storeMeta" class="small"></p>
+<div style="background:#fef3c7;padding:10px;border-radius:10px">Today redeemed:
+<b id="todayCount" style="font-size:20px;color:#059669">0</b></div></div>
 
-  <div class="card"><h3>💰 ROI Redemption Wallet</h3><div class="grid">
-    <div class="wallet"><div class="small">Processing</div><b id="wProcessing">₹0</b><div id="wProcessingCount" class="small">0 requests</div></div>
-    <div class="wallet"><div class="small">Approved / Paid</div><b id="wApproved">₹0</b><div id="wApprovedCount" class="small">0 requests</div></div>
-    <div class="wallet"><div class="small">Rejected</div><b id="wRejected">₹0</b><div id="wRejectedCount" class="small">0 requests</div></div>
-    <div class="wallet"><div class="small">All Time Total</div><b id="wTotal">₹0</b><div id="wTotalCount" class="small">0 requests</div></div>
-  </div></div>
-
-  <div class="card"><h3>🎫 Redeem Coupon</h3><p class="small">Enter an active ROI coupon. The member sees the coupon as used immediately; admin will later approve or reject the store settlement.</p><input id="couponCode" placeholder="Enter coupon code"><button id="redeemBtn" class="green" onclick="redeemCoupon()">✅ Redeem Coupon</button><div id="redeemResult"></div></div>
-
-  <div class="card"><h3>📋 Redemption Requests</h3><div class="grid"><select id="periodFilter" onchange="loadHistory()"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365" selected>Last 12 months</option></select><select id="statusFilter" onchange="loadHistory()"><option value="all">All Status</option><option value="processing">Processing</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></div><div id="historyList" style="margin-top:10px">Loading...</div><button class="blue" onclick="refreshAll()">🔄 Refresh</button></div>
-
-  <div class="card"><h3>📦 My Stock</h3><div id="stockList"></div><button class="blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
+<div class="card"><h3>🎫 Redeem Coupon</h3>
+<p class="small">Any valid unused ROI coupon can be redeemed at this active store.</p>
+<input id="couponCode" placeholder="Enter coupon code">
+<button id="redeemBtn" class="green" onclick="redeemCoupon()">✅ Redeem Coupon</button>
+<div id="redeemResult"></div>
+<div class="card" style="margin-top:12px;border:2px solid #7c3aed">
+  <div style="font-weight:900;font-size:16px">🏪 Store Redemption Status</div>
+  <div class="small" style="margin-top:4px">
+    Admin processing / approved / rejected amounts. Rejected requests can be processed again by the store.
+  </div>
+  <div id="storeRedeemSummary" style="margin-top:10px"></div>
+  <div style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap">
+    <button onclick="loadStoreRedemptionStatus()" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">🔄 Refresh</button>
+    <button onclick="loadStoreRedemptionStatus('processing')" style="flex:1;background:#f59e0b;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">🟠 Processing</button>
+    <button onclick="loadStoreRedemptionStatus('rejected')" style="flex:1;background:#dc2626;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">❌ Rejected</button>
+  </div>
+  <div id="storeRedemptionStatusList" style="margin-top:10px">Click Refresh to view redemption status.</div>
+</div>
 </div>
 
+<div class="card"><h3>📋 Today Redemptions</h3><div id="todayList"></div>
+<button class="blue" onclick="loadToday()">🔄 Refresh</button></div>
+
+<div class="card"><h3>📦 My Stock</h3><div id="stockList"></div>
+<button class="blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
+</div>
+
+
 <script>
-const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0MTgwMDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
-let sb=null,currentStore=null,initialized=false;
-function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
-function money(v){return '₹'+Number(v||0).toLocaleString('en-IN');}
-function msg(id,t,ok=false){const e=document.getElementById(id);if(e)e.innerHTML='<div class="'+(ok?'ok':'err')+'">'+t+'</div>';}
-async function init(){try{if(!window.supabase)throw new Error('Supabase library did not load.');sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);initialized=true;}catch(e){initialized=false;msg('loginResult','❌ '+e.message);}}
-async function storeLogin(){const btn=document.querySelector('#loginCard button'),code=(document.getElementById('storeCode').value||'').trim().toUpperCase(),phone=(document.getElementById('storePhone').value||'').trim();if(!code||!phone){msg('loginResult','Enter store code and phone.');return;}if(!initialized)await init();if(!sb)return;btn.disabled=true;btn.innerText='Logging in...';document.getElementById('loginResult').innerHTML='<div class="small">Checking store...</div>';try{const r=await sb.from('stores').select('*').eq('store_code',code).eq('phone',phone).limit(1);if(r.error)throw r.error;if(!r.data?.length)throw new Error('Store not found. Check store code and phone number.');currentStore=r.data[0];const inactive=currentStore.is_active===false||(currentStore.status&&String(currentStore.status).toLowerCase()!=='active');if(inactive){currentStore=null;throw new Error('This store is inactive.');}document.getElementById('loginCard').style.display='none';document.getElementById('mainPanel').style.display='block';document.getElementById('storeName').innerText='🏪 '+(currentStore.name||'Store');document.getElementById('storeMeta').innerText='Code: '+(currentStore.store_code||'')+' | '+(currentStore.town||currentStore.city||'')+' | '+(currentStore.phone||'');await refreshAll();}catch(e){console.error(e);msg('loginResult','❌ '+(e.message||e));}finally{btn.disabled=false;btn.innerText='Login';}}
-async function redeemCoupon(){if(!currentStore)return msg('redeemResult','Please login first.');const code=(document.getElementById('couponCode').value||'').trim().toUpperCase();if(!code)return msg('redeemResult','Enter coupon code.');const btn=document.getElementById('redeemBtn');btn.disabled=true;btn.innerText='Checking...';document.getElementById('redeemResult').innerHTML='<div class="small">Checking coupon...</div>';try{const r=await sb.rpc('flm_redeem_roi_coupon',{p_coupon_code:code,p_store_code:currentStore.store_code,p_redeemed_by:'STORE'});if(r.error)throw r.error;const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});if(!d.success){msg('redeemResult','❌ '+esc(d.message||'Invalid coupon code'));return;}document.getElementById('redeemResult').innerHTML='<div class="ok">✅ Coupon accepted by store.<br>Amount: '+money(d.amount)+'<br>User: <b>'+esc(d.user_name||'Member')+'</b> ('+esc(d.fl_id||'')+')<br><span class="small">Status: PROCESSING — waiting for admin approval.</span></div>';document.getElementById('couponCode').value='';await refreshAll();}catch(e){console.error(e);msg('redeemResult','❌ Error: '+esc(e.message||String(e)));}finally{btn.disabled=false;btn.innerText='✅ Redeem Coupon';}}
-async function loadSummary(){if(!currentStore)return;try{const r=await sb.rpc('flm_store_redemption_summary',{p_store_code:currentStore.store_code});if(r.error)throw r.error;const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});document.getElementById('wProcessing').innerText=money(d.processing_amount);document.getElementById('wApproved').innerText=money(d.approved_amount);document.getElementById('wRejected').innerText=money(d.rejected_amount);document.getElementById('wTotal').innerText=money(Number(d.processing_amount||0)+Number(d.approved_amount||0)+Number(d.rejected_amount||0));document.getElementById('wProcessingCount').innerText=(d.processing_count||0)+' requests';document.getElementById('wApprovedCount').innerText=(d.approved_count||0)+' requests';document.getElementById('wRejectedCount').innerText=(d.rejected_count||0)+' requests';document.getElementById('wTotalCount').innerText=(d.total_count||0)+' requests';}catch(e){console.error('summary',e);}}
-function statusBadge(st){const s=String(st||'processing').toLowerCase();return '<span class="status '+s+'">'+s.toUpperCase()+'</span>';}
-async function loadHistory(){if(!currentStore)return;const el=document.getElementById('historyList');el.innerHTML='<div class="small">Loading...</div>';try{const days=Number(document.getElementById('periodFilter').value||365),filter=(document.getElementById('statusFilter').value||'all').toLowerCase();const r=await sb.rpc('flm_store_redemption_history',{p_store_code:currentStore.store_code,p_days:days});if(r.error)throw r.error;let rows=(r.data||[]);if(filter!=='all')rows=rows.filter(x=>String(x.status).toLowerCase()===filter);if(!rows.length){el.innerHTML='<div class="small">No redemption records.</div>';return;}el.innerHTML=rows.map(x=>{let action='';if(String(x.status).toLowerCase()==='rejected')action='<button class="gray" onclick="reprocess(\''+esc(x.id)+'\')">🔁 Re-process</button>';return '<div class="tx"><div class="tx-head"><b>'+esc(x.coupon_code||'')+'</b>'+statusBadge(x.status)+'</div><div style="margin-top:6px;font-weight:900">'+money(x.amount)+'</div><div class="small" style="margin-top:4px">User: <b>'+esc(x.user_name||'Member')+'</b> • FL ID: <b>'+esc(x.fl_id||'')+'</b></div><div class="small" style="margin-top:3px">Created: '+(x.created_at?new Date(x.created_at).toLocaleString():'—')+'</div>'+(x.approval_reason?'<div class="small" style="margin-top:5px;color:#166534">Admin approval/payment note: '+esc(x.approval_reason)+'</div>':'')+(x.rejection_reason?'<div class="small" style="margin-top:5px;color:#991b1b">Reject reason: '+esc(x.rejection_reason)+'</div>':'')+action+'</div>';}).join('');}catch(e){el.innerHTML='<div class="err">Unable to load records: '+esc(e.message||e)+'</div>';}}
-async function reprocess(id){if(!confirm('Re-process this rejected redemption? The member coupon will remain USED.'))return;try{const r=await sb.rpc('flm_store_reprocess_redemption',{p_redemption_id:id,p_store_code:currentStore.store_code});if(r.error)throw r.error;if(r.data!==true)throw new Error('This redemption cannot be re-processed.');alert('✅ Redemption moved back to PROCESSING.');await refreshAll();}catch(e){alert('Re-process failed: '+(e.message||e));}}
-async function loadStock(){if(!currentStore)return;const el=document.getElementById('stockList');try{const r=await sb.from('store_inventory').select('*').eq('store_id',currentStore.id).order('product_name');if(r.error)throw r.error;const rows=r.data||[];el.innerHTML=rows.length?rows.map(p=>'<div class="tx"><b>'+esc(p.product_name||'')+'</b><div class="small">Qty: '+(p.quantity||0)+' • '+money(p.price)+'</div></div>').join(''):'<div class="small">No stock assigned.</div>';}catch(e){el.innerHTML='<div class="small">Unable to load stock: '+esc(e.message||e)+'</div>';}}
-async function refreshAll(){await Promise.all([loadSummary(),loadHistory(),loadStock()]);}
+const SUPABASE_URL='YOUR_SUPABASE_URL';
+const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
+
+let sb=null;
+let currentStore=null;
+let initialized=false;
+
+function msg(id,t,ok=false){
+  const el=document.getElementById(id);
+  if(el) el.innerHTML='<div class="'+(ok?'ok':'err')+'">'+t+'</div>';
+}
+
+function escapeHtml(v){
+  return String(v ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[m]));
+}
+
+function showLoginError(text){
+  msg('loginResult','❌ '+text,false);
+}
+
+async function init(){
+  try{
+    if(typeof supabase==='undefined'){
+      throw new Error('Supabase library did not load. Check internet connection.');
+    }
+    if(!SUPABASE_URL || SUPABASE_URL==='YOUR_SUPABASE_URL' ||
+       !SUPABASE_KEY || SUPABASE_KEY==='YOUR_SUPABASE_ANON_KEY'){
+      throw new Error('Supabase URL / ANON KEY is missing in this HTML file.');
+    }
+    sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    initialized=true;
+  }catch(e){
+    initialized=false;
+    showLoginError(e.message || String(e));
+  }
+}
+
+async function storeLogin(){
+  const btn=document.querySelector('#loginCard button');
+  const codeEl=document.getElementById('storeCode');
+  const phoneEl=document.getElementById('storePhone');
+
+  const code=(codeEl?.value || '').trim().toUpperCase();
+  const phone=(phoneEl?.value || '').trim();
+
+  if(!code || !phone){
+    showLoginError('Enter store code and phone.');
+    return;
+  }
+
+  if(!initialized || !sb){
+    await init();
+    if(!initialized || !sb) return;
+  }
+
+  if(btn){
+    btn.disabled=true;
+    btn.innerText='Logging in...';
+  }
+  document.getElementById('loginResult').innerHTML =
+    '<div class="small">Checking store...</div>';
+
+  try{
+    // Store code is normalized to uppercase; phone remains text and is trimmed.
+    const r=await sb.from('stores')
+      .select('*')
+      .eq('store_code',code)
+      .eq('phone',phone)
+      .limit(1);
+
+    if(r.error){
+      throw new Error(r.error.message);
+    }
+
+    if(!r.data || !r.data.length){
+      showLoginError('Store not found. Check store code and phone number.');
+      return;
+    }
+
+    currentStore=r.data[0];
+
+    const inactive =
+      currentStore.is_active === false ||
+      (currentStore.status &&
+       String(currentStore.status).trim().toLowerCase() !== 'active');
+
+    if(inactive){
+      showLoginError('This store is inactive.');
+      currentStore=null;
+      return;
+    }
+
+    document.getElementById('loginCard').style.display='none';
+    document.getElementById('mainPanel').style.display='block';
+
+    document.getElementById('storeName').innerText =
+      '🏪 '+(currentStore.name || 'Store');
+
+    document.getElementById('storeMeta').innerText =
+      'Code: '+(currentStore.store_code || '')+
+      ' | '+(currentStore.town || currentStore.city || '');
+
+    document.getElementById('loginResult').innerHTML='';
+
+    await Promise.all([
+      loadToday(),
+      loadStock()
+    ]);
+
+  }catch(e){
+    console.error('Store login error:',e);
+    showLoginError(e?.message || String(e) || 'Unable to login.');
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.innerText='Login';
+    }
+  }
+}
+
+async function redeemCoupon(){
+  if(!currentStore){
+    msg('redeemResult','Please login first.');
+    return;
+  }
+
+  const code=document.getElementById('couponCode').value.trim().toUpperCase();
+  if(!code){
+    msg('redeemResult','Enter coupon code.');
+    return;
+  }
+
+  const btn=document.getElementById('redeemBtn');
+  btn.disabled=true;
+  btn.innerText='Checking...';
+  document.getElementById('redeemResult').innerHTML=
+    '<div class="small">Checking coupon...</div>';
+
+  try{
+    const r=await sb.rpc('flm_redeem_roi_coupon',{
+      p_coupon_code:code,
+      p_store_id:currentStore.id,
+      p_redeemed_by:'STORE'
+    });
+
+    if(r.error) throw r.error;
+
+    const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+
+    if(!d.success){
+      msg('redeemResult','❌ '+(d.message||'Invalid coupon code'));
+      return;
+    }
+
+    document.getElementById('redeemResult').innerHTML=
+      '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: Rs.'+
+      Number(d.amount||0).toLocaleString('en-IN')+
+      '<br><span class="small">FL ID: '+escapeHtml(d.fl_id||'')+
+      ' | Store: '+escapeHtml(d.store_name||'')+
+      '</span></div>';
+
+    document.getElementById('couponCode').value='';
+    await loadToday();
+
+  }catch(e){
+    console.error('Redeem error:',e);
+    msg('redeemResult','❌ Error: '+(e?.message||String(e)));
+  }finally{
+    btn.disabled=false;
+    btn.innerText='✅ Redeem Coupon';
+  }
+}
+
+async function loadToday(){
+  if(!currentStore) return;
+
+  try{
+    const r=await sb.from('roi_coupons')
+      .select('*')
+      .eq('store_id',currentStore.id)
+      .eq('status','redeemed')
+      .order('redeemed_at',{ascending:false})
+      .limit(100);
+
+    if(r.error) throw r.error;
+
+    const rows=r.data||[];
+    const start=new Date();
+    start.setHours(0,0,0,0);
+
+    document.getElementById('todayCount').innerText =
+      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=start).length;
+
+    document.getElementById('todayList').innerHTML=rows.length
+      ? rows.map(c =>
+        '<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
+        escapeHtml(c.coupon_code||'')+'</b> - Rs.'+
+        Number(c.amount||0).toLocaleString('en-IN')+
+        '<div class="small">'+escapeHtml(c.redeemed_at||'')+
+        '</div></div>'
+      ).join('')
+      : 'No redemptions yet';
+
+  }catch(e){
+    console.error('Today load error:',e);
+    document.getElementById('todayList').innerText =
+      'Unable to load redemptions: '+(e?.message||String(e));
+  }
+}
+
+async function loadStock(){
+  if(!currentStore) return;
+
+  try{
+    const r=await sb.from('store_inventory')
+      .select('*')
+      .eq('store_id',currentStore.id)
+      .order('product_name');
+
+    if(r.error) throw r.error;
+
+    const rows=r.data||[];
+
+    document.getElementById('stockList').innerHTML=rows.length
+      ? rows.map(p =>
+        '<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px">'+
+        '<b>'+escapeHtml(p.product_name||'')+'</b><div class="small">Qty: '+
+        (p.quantity||0)+' | Rs.'+
+        Number(p.price||0).toLocaleString('en-IN')+
+        '</div></div>'
+      ).join('')
+      : 'No stock assigned';
+
+  }catch(e){
+    console.error('Stock load error:',e);
+    document.getElementById('stockList').innerText =
+      'Unable to load stock: '+(e?.message||String(e));
+  }
+}
+
 document.addEventListener('DOMContentLoaded',init);
-</script></body></html>
+</script>
+
+
+<script>
+/* Store-side redemption status and wallet display.
+   Existing store-panel functions remain untouched. */
+
+let storeRedemptionRows = [];
+
+function srpMoney(v){
+  return '₹' + Number(v || 0).toLocaleString('en-IN',{maximumFractionDigits:2});
+}
+function srpEsc(v){
+  return escapeHtml(v == null ? '' : String(v));
+}
+
+async function loadStoreRedemptionStatus(status){
+  if(!currentStore || !sb) return;
+  const box=document.getElementById('storeRedemptionStatusList');
+  if(!box) return;
+  box.innerHTML='<div class="small">Loading redemption records...</div>';
+
+  try{
+    const r=await sb.rpc('flm_store_redemption_history',{
+      p_store_id:currentStore.id,
+      p_status:status || 'all'
+    });
+    if(r.error) throw r.error;
+
+    storeRedemptionRows=Array.isArray(r.data)?r.data:[];
+    renderStoreRedemptionStatus();
+  }catch(e){
+    box.innerHTML='<div class="err">❌ '+srpEsc(e.message||e)+'</div>';
+  }
+}
+
+function renderStoreRedemptionStatus(){
+  const box=document.getElementById('storeRedemptionStatusList');
+  const sum=document.getElementById('storeRedeemSummary');
+  if(!box) return;
+
+  const rows=storeRedemptionRows||[];
+  const p=rows.filter(x=>String(x.status||'').toLowerCase()==='processing');
+  const a=rows.filter(x=>String(x.status||'').toLowerCase()==='approved');
+  const r=rows.filter(x=>String(x.status||'').toLowerCase()==='rejected');
+  const total=arr=>arr.reduce((n,x)=>n+Number(x.amount||0),0);
+
+  if(sum){
+    sum.innerHTML=
+      '<div class="grid2">'+
+      '<div class="dark-card"><div class="small">🟠 Processing</div><b>'+srpMoney(total(p))+'</b></div>'+
+      '<div class="dark-card"><div class="small">✅ Approved</div><b>'+srpMoney(total(a))+'</b></div>'+
+      '<div class="dark-card"><div class="small">❌ Rejected</div><b>'+srpMoney(total(r))+'</b></div>'+
+      '<div class="dark-card"><div class="small">📋 Total</div><b>'+srpMoney(total(rows))+'</b></div>'+
+      '</div>';
+  }
+
+  if(!rows.length){
+    box.innerHTML='<div class="small">No redemption records found.</div>';
+    return;
+  }
+
+  box.innerHTML=rows.map(function(x){
+    const st=String(x.status||'').toLowerCase();
+    const badge=st==='approved'
+      ? '<span class="ok">✅ COMPLETED</span>'
+      : st==='rejected'
+      ? '<span class="err">❌ REJECTED</span>'
+      : '<span style="color:#b45309;font-weight:900">🟠 ADMIN PROCESSING</span>';
+
+    const retry=st==='rejected'
+      ? '<button onclick="retryRejectedStoreRedemption(\''+srpEsc(x.id)+'\')" style="margin-top:8px;background:#7c3aed;color:#fff;border:0;border-radius:8px;padding:8px;font-weight:900">🔁 Process Again</button>'
+      : '';
+
+    return '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px">'+
+      '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+srpEsc(x.user_name||x.fl_id||'-')+'</b><b>'+srpMoney(x.amount)+'</b></div>'+
+      '<div class="small">FL ID: '+srpEsc(x.fl_id||'-')+'<br>Coupon: '+srpEsc(x.coupon_code||'-')+
+      '<br>'+srpEsc(x.created_at ? new Date(x.created_at).toLocaleString('en-IN') : '')+'</div>'+
+      '<div style="margin-top:7px">'+badge+'</div>'+
+      (x.rejection_reason?'<div style="margin-top:6px;padding:7px;background:#fef2f2;border-radius:7px;font-size:11px"><b>Reject reason:</b> '+srpEsc(x.rejection_reason)+'</div>':'')+
+      (x.approval_reason?'<div style="margin-top:6px;padding:7px;background:#f0fdf4;border-radius:7px;font-size:11px"><b>Payment reference:</b> '+srpEsc(x.approval_reason)+'</div>':'')+
+      retry+'</div>';
+  }).join('');
+}
+
+async function retryRejectedStoreRedemption(id){
+  if(!currentStore || !sb) return;
+  if(!confirm('Process this rejected redemption again?')) return;
+  try{
+    const r=await sb.rpc('flm_store_reprocess_redemption',{
+      p_redemption_id:id,
+      p_store_id:currentStore.id
+    });
+    if(r.error) throw r.error;
+    alert('✅ Redemption moved back to admin processing.');
+    await loadStoreRedemptionStatus();
+  }catch(e){
+    alert('Re-process failed: '+(e.message||e));
+  }
+}
+
+async function loadStoreWallets(){
+  if(!currentStore || !sb) return;
+  try{
+    const r=await sb.rpc('flm_store_wallet_summary',{p_store_id:currentStore.id});
+    if(r.error) return;
+    const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.innerText=srpMoney(v);};
+    set('storeWalletRoi',d.roi_redeem||d.roi_wallet||0);
+    set('storeWalletMatching',d.matching_redeem||d.matching_wallet||0);
+    set('storeWalletBills',d.store_bills||d.bill_wallet||0);
+    set('storeWalletOrders',d.product_orders||d.order_wallet||0);
+  }catch(e){}
+}
+
+(function(){
+  const oldLoadToday=window.loadToday;
+  window.loadToday=async function(){
+    if(typeof oldLoadToday==='function'){try{await oldLoadToday();}catch(e){}}
+    await loadStoreRedemptionStatus();
+    await loadStoreWallets();
+  };
+})();
+</script>
+</body></html>
