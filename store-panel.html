@@ -45,8 +45,8 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 
 
 <script>
-const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+const SUPABASE_URL='YOUR_SUPABASE_URL';
+const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
 
 let sb=null;
 let currentStore=null;
@@ -205,7 +205,7 @@ async function redeemCoupon(){
       '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: Rs.'+
       Number(d.amount||0).toLocaleString('en-IN')+
       '<br><span class="small">FL ID: '+escapeHtml(d.fl_id||'')+
-      ' | Store: '+escapeHtml(d.store_name||'')+
+      ' | Store: '+escapeHtml(currentStore?.name||currentStore?.store_code||'')+
       '</span></div>';
 
     document.getElementById('couponCode').value='';
@@ -224,21 +224,15 @@ async function loadToday(){
   if(!currentStore) return;
 
   try{
-    const r=await sb.from('roi_coupons')
-      .select('*')
-      .eq('store_id',currentStore.id)
-      .eq('status','redeemed')
-      .order('redeemed_at',{ascending:false})
-      .limit(100);
+    // Read through a SECURITY DEFINER RPC instead of querying roi_coupons directly.
+    const r=await sb.rpc('flm_store_today_redemptions',{
+      p_store_id: currentStore.id
+    });
 
     if(r.error) throw r.error;
 
-    const rows=r.data||[];
-    const start=new Date();
-    start.setHours(0,0,0,0);
-
-    document.getElementById('todayCount').innerText =
-      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=start).length;
+    const rows=Array.isArray(r.data) ? r.data : [];
+    document.getElementById('todayCount').innerText=rows.length;
 
     document.getElementById('todayList').innerHTML=rows.length
       ? rows.map(c =>
@@ -252,6 +246,7 @@ async function loadToday(){
 
   }catch(e){
     console.error('Today load error:',e);
+    document.getElementById('todayCount').innerText='0';
     document.getElementById('todayList').innerText =
       'Unable to load redemptions: '+(e?.message||String(e));
   }
