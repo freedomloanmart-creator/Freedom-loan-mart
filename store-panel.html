@@ -13,6 +13,17 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 .ok{background:#dcfce7;color:#059669;padding:12px;border-radius:10px;font-weight:800}
 .err{background:#fee2e2;color:#dc2626;padding:12px;border-radius:10px;font-weight:700}
 .small{font-size:11px;color:#64748b}
+
+.redeem-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999}
+.redeem-modal{width:100%;max-width:390px;background:#fff;border-radius:22px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.28);text-align:center}
+.redeem-modal .success-icon{width:64px;height:64px;border-radius:50%;background:#dcfce7;color:#059669;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:34px;font-weight:900}
+.redeem-modal h2{margin:6px 0 8px;color:#059669;font-size:22px}
+.redeem-modal .redeem-info{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px;text-align:left;margin-top:14px}
+.redeem-modal .row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #e2e8f0}
+.redeem-modal .row:last-child{border-bottom:0}
+.redeem-modal .label{color:#64748b;font-size:13px}.redeem-modal .value{font-weight:900;color:#0f172a;text-align:right}
+.redeem-modal .amount{font-size:22px;color:#059669}
+.redeem-modal .close-btn{background:#2563eb;color:#fff;border:0;border-radius:11px;padding:13px;width:100%;font-size:16px;font-weight:900;margin-top:16px}
 </style></head><body>
 
 <div class="card" style="background:linear-gradient(135deg,#059669,#0d9488);color:white">
@@ -59,8 +70,8 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 
 
 <script>
-const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+const SUPABASE_URL='YOUR_SUPABASE_URL';
+const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
 
 let sb=null;
 let currentStore=null;
@@ -181,6 +192,20 @@ async function storeLogin(){
   }
 }
 
+function showRedeemSuccessModal(d){
+  const modal=document.getElementById('redeemSuccessModal');
+  if(!modal)return;
+  document.getElementById('modalUserName').innerText=d.user_name||'User';
+  document.getElementById('modalFlId').innerText=d.fl_id||'-';
+  document.getElementById('modalAmount').innerText='₹'+Number(d.amount||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+  document.getElementById('modalCoupon').innerText=d.coupon_code||'-';
+  modal.style.display='flex';
+}
+function closeRedeemSuccessModal(){
+  const modal=document.getElementById('redeemSuccessModal');
+  if(modal)modal.style.display='none';
+}
+
 async function redeemCoupon(){
   if(!currentStore){
     msg('redeemResult','Please login first.');
@@ -216,11 +241,14 @@ async function redeemCoupon(){
     }
 
     document.getElementById('redeemResult').innerHTML=
-      '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: Rs.'+
+      '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: ₹'+
       Number(d.amount||0).toLocaleString('en-IN')+
-      '<br><span class="small">FL ID: '+escapeHtml(d.fl_id||'')+
-      ' | Store: '+escapeHtml(d.store_name||'')+
+      '<br><span class="small">User: '+escapeHtml(d.user_name||'User')+
+      ' | FL ID: '+escapeHtml(d.fl_id||'')+
       '</span></div>';
+
+    // Show a clear confirmation popup so the store can verify who redeemed the coupon.
+    showRedeemSuccessModal(d);
 
     document.getElementById('couponCode').value='';
     await loadToday();
@@ -236,31 +264,50 @@ async function redeemCoupon(){
 
 async function loadToday(){
   if(!currentStore) return;
-
   try{
+    // Use the store redemption history because it contains the member name + FL ID.
+    const hr=await sb.rpc('flm_store_redemption_history',{
+      p_store_code:currentStore.store_code,
+      p_days:365
+    });
+
+    if(!hr.error && Array.isArray(hr.data)){
+      const rows=hr.data||[];
+      const startDay=new Date();
+      startDay.setHours(0,0,0,0);
+      document.getElementById('todayCount').innerText=
+        rows.filter(x=>x.created_at && new Date(x.created_at)>=startDay).length;
+      document.getElementById('todayList').innerHTML=rows.length
+        ? rows.map(x =>
+          '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.coupon_code||'')+'</b><b>₹'+Number(x.amount||0).toLocaleString('en-IN')+'</b></div>'+
+          '<div style="margin-top:4px"><b>👤 '+escapeHtml(x.user_name||'User')+'</b> <span class="small">('+escapeHtml(x.fl_id||'-')+')</span></div>'+
+          '<div class="small">'+escapeHtml(x.created_at||'')+'</div></div>'
+        ).join('')
+        : 'No redemptions yet';
+      return;
+    }
+
+    // Fallback for older SQL versions.
     const r=await sb.from('roi_coupons')
       .select('*')
       .eq('store_id',currentStore.id)
       .eq('status','redeemed')
       .order('redeemed_at',{ascending:false})
       .limit(100);
-
     if(r.error) throw r.error;
-
     const rows=r.data||[];
-    const start=new Date();
-    start.setHours(0,0,0,0);
-
-    document.getElementById('todayCount').innerText =
-      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=start).length;
-
+    const startDay=new Date();
+    startDay.setHours(0,0,0,0);
+    document.getElementById('todayCount').innerText=
+      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=startDay).length;
     document.getElementById('todayList').innerHTML=rows.length
       ? rows.map(c =>
-        '<div style="padding:8px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
-        escapeHtml(c.coupon_code||'')+'</b> - Rs.'+
+        '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
+        escapeHtml(c.coupon_code||'')+'</b> - ₹'+
         Number(c.amount||0).toLocaleString('en-IN')+
-        '<div class="small">'+escapeHtml(c.redeemed_at||'')+
-        '</div></div>'
+        '<div><b>👤 '+escapeHtml(c.user_name||'User')+'</b> <span class="small">('+escapeHtml(c.fl_id||'-')+')</span></div>'+
+        '<div class="small">'+escapeHtml(c.redeemed_at||'')+'</div></div>'
       ).join('')
       : 'No redemptions yet';
 
@@ -302,6 +349,8 @@ async function loadStock(){
 }
 
 document.addEventListener('DOMContentLoaded',init);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeRedeemSuccessModal();});
+document.getElementById('redeemSuccessModal')?.addEventListener('click',e=>{if(e.target.id==='redeemSuccessModal')closeRedeemSuccessModal();});
 </script>
 
 
@@ -325,26 +374,15 @@ async function loadStoreRedemptionStatus(status){
   box.innerHTML='<div class="small">Loading redemption records...</div>';
 
   try{
-    let allRows=[];
-
-    // Use a SECURITY DEFINER RPC instead of reading the table directly.
-    // The anon browser role does not have direct SELECT permission on
-    // flm_store_redemptions, so direct .from(...) queries return
-    // "permission denied for table flm_store_redemptions".
-    const q=await sb.rpc('flm_store_get_redemptions',{
-      p_store_id: currentStore.id ? String(currentStore.id) : null,
-      p_store_code: currentStore.store_code ? String(currentStore.store_code) : null
+    const r=await sb.rpc('flm_store_redemption_history',{
+      p_store_id:currentStore.id,
+      p_status:status || 'all'
     });
-    if(q.error) throw q.error;
-    allRows=Array.isArray(q.data)?q.data:[];
+    if(r.error) throw r.error;
 
-    storeRedemptionRows=(status && status !== 'all')
-      ? allRows.filter(x=>String(x.status||'').trim().toLowerCase()===String(status).trim().toLowerCase())
-      : allRows;
-
+    storeRedemptionRows=Array.isArray(r.data)?r.data:[];
     renderStoreRedemptionStatus();
   }catch(e){
-    console.error('Store redemption status error:',e);
     box.innerHTML='<div class="err">❌ '+srpEsc(e.message||e)+'</div>';
   }
 }
