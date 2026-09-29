@@ -29,10 +29,10 @@
 <div class="card"><h3>📦 My Stock</h3><div id="stockList"></div><button class="btn-blue" onclick="loadStock()">🔄 Refresh Stock</button></div>
 </div>
 <script>
-const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co'; const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+const SUPABASE_URL='YOUR_SUPABASE_URL'; const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
 let supabaseClient=null, currentStore=null;
-function init(){ try{ supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }catch(e){ console.error('Supabase init failed', e); } }
-async function storeLogin(){ if(!supabaseClient){ init(); } if(!supabaseClient){ alert('Connection not ready. Refresh page.'); return; }
+async function init(){ supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+async function storeLogin(){
   const code=document.getElementById('storeCode').value.trim().toUpperCase();
   const phone=document.getElementById('storePhone').value.trim();
   if(!code||!phone){alert('Enter code and phone');return;}
@@ -51,13 +51,11 @@ async function redeemCoupon(){
   const res=document.getElementById('redeemResult');
   res.innerHTML='Checking...';
   try{
-    const r=await supabaseClient.from('roi_coupons').select('*').eq('coupon_code',code).single();
-    if(r.error||!r.data){res.innerHTML='<div style="color:#dc2626">❌ Invalid coupon code</div>';return;}
-    const c=r.data;
-    if(c.status==='redeemed'){res.innerHTML='<div style="color:#dc2626">❌ Already redeemed on '+(c.redeemed_at||'')+'</div>';return;}
-    const u=await supabaseClient.from('roi_coupons').update({status:'redeemed',store_id:currentStore.id,redeemed_at:new Date().toISOString()}).eq('id',c.id);
-    if(u.error) throw u.error;
-    res.innerHTML='<div style="background:#dcfce7;padding:12px;border-radius:10px;color:#059669;font-weight:800">✅ Redeemed! Rs.'+Number(c.amount||0).toLocaleString('en-IN')+'<br><span style="font-size:11px">FL: '+(c.fl_id||'')+'</span></div>';
+    const r=await supabaseClient.rpc('flm_redeem_roi_coupon',{p_code:code,p_store_id:currentStore.id});
+    if(r.error) throw r.error;
+    const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
+    if(!d.success){res.innerHTML='<div style="color:#dc2626">\u274c '+(d.message||'Invalid coupon code')+'</div>';return;}
+    res.innerHTML='<div style="background:#dcfce7;padding:12px;border-radius:10px;color:#059669;font-weight:800">\u2705 Redeemed! Rs.'+Number(d.amount||0).toLocaleString('en-IN')+'<br><span style="font-size:11px">FL: '+(d.fl_id||'')+'</span></div>';
     document.getElementById('couponCode').value='';
     loadToday();
   }catch(e){res.innerHTML='<div style="color:#dc2626">Error: '+(e.message||e)+'</div>';}
