@@ -758,8 +758,8 @@ async function loadInvite(){
 
     var lwc=document.getElementById('leftWingCount');if(lwc)lwc.innerText=lw;
     var rwc=document.getElementById('rightWingCount');if(rwc)rwc.innerText=rw;
-    var lp=document.getElementById('leftPlacement');if(lp)lp.innerText=Number(liveStats.directLeft||0)>0?'Filled':'Open';
-    var rp=document.getElementById('rightPlacement');if(rp)rp.innerText=Number(liveStats.directRight||0)>0?'Filled':'Open';
+    var lp=document.getElementById('leftPlacement');if(lp)lp.innerText=Number(liveStats.directLeft||0)>0?'Filled':(Number(liveStats.directLeftAll||0)>0?String(liveStats.directLeftAll):'Open'); /* NEW: Filled=active only */
+    var rp=document.getElementById('rightPlacement');if(rp)rp.innerText=Number(liveStats.directRight||0)>0?'Filled':(Number(liveStats.directRightAll||0)>0?String(liveStats.directRightAll):'Open'); /* NEW: Filled=active only */
 
     var lls=document.getElementById('leftLinkStatus');
     if(lls)lls.innerText=Number(liveStats.directLeft||0)>0?(Number(liveStats.directLeft||0)+' members'):'Open';
@@ -936,18 +936,21 @@ async function flmFetchTeamStats(rootFlId){
     // STRICT direct counts: direct_sponsor_id / original registration sponsor only.
     // sponsor_id is binary placement and may represent spillover; never count it here.
     var directUsers=await flmGetDirectReferralUsers(root,users);
-    var directSides=flmCountDirectSides(directUsers);
+    var directSides=flmCountDirectSides(directUsers.filter(function(u){return u.is_active;})); /* NEW: ACTIVE directs only */
     out.directLeft=directSides.left;
     out.directRight=directSides.right;
+    var directAllSides=flmCountDirectSides(directUsers); /* all directs incl. inactive, for placement display */
+    out.directLeftAll=directAllSides.left;
+    out.directRightAll=directAllSides.right;
 
     var rootGroup=treeByParent[root]||{left:null,right:null};
     var queue=[];
     if(rootGroup.left){
-      out.left++;
+      if(rootGroup.left.is_active)out.left++; /* ACTIVE only */
       queue.push({fl:String(rootGroup.left.fl_id).toUpperCase(),rootSide:'left'});
     }
     if(rootGroup.right){
-      out.right++;
+      if(rootGroup.right.is_active)out.right++; /* ACTIVE only */
       queue.push({fl:String(rootGroup.right.fl_id).toUpperCase(),rootSide:'right'});
     }
 
@@ -960,8 +963,8 @@ async function flmFetchTeamStats(rootFlId){
         var child=String(u.fl_id||'').trim().toUpperCase();
         if(!child||seen[child])return;
         seen[child]=true;
-        if(node.rootSide==='left')out.left++;
-        else if(node.rootSide==='right')out.right++;
+        if(node.rootSide==='left'){if(u.is_active)out.left++;} /* ACTIVE only */
+        else if(node.rootSide==='right'){if(u.is_active)out.right++;} /* ACTIVE only */
         queue.push({fl:child,rootSide:node.rootSide});
       });
     }
