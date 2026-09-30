@@ -69,9 +69,25 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 </div>
 
 
+<!-- Redeem success popup -->
+<div id="redeemSuccessModal" class="redeem-modal-backdrop" role="dialog" aria-modal="true">
+  <div class="redeem-modal">
+    <div class="success-icon">✓</div>
+    <h2>Coupon Redeemed Successfully!</h2>
+    <div style="color:#475569;font-size:14px">Please verify the customer details below.</div>
+    <div class="redeem-info">
+      <div class="row"><span class="label">👤 Username</span><span id="modalUserName" class="value">-</span></div>
+      <div class="row"><span class="label">🆔 User ID</span><span id="modalFlId" class="value">-</span></div>
+      <div class="row"><span class="label">💰 Amount</span><span id="modalAmount" class="value amount">₹0</span></div>
+      <div class="row"><span class="label">🎫 Coupon Code</span><span id="modalCoupon" class="value">-</span></div>
+    </div>
+    <button type="button" class="close-btn" onclick="closeRedeemSuccessModal()">Close</button>
+  </div>
+</div>
+
 <script>
-const SUPABASE_URL='YOUR_SUPABASE_URL';
-const SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
 
 let sb=null;
 let currentStore=null;
