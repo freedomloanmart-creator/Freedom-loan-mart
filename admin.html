@@ -1088,7 +1088,18 @@ async function loadStoreDetailAll(){
   await Promise.all([loadStoreStock(),loadStoreProducts(),loadStoreCoupons(),loadStoreTxns(),loadStoreDetailRedemptionApprovals()]);
 }
 
+async function syncLegacyStoreRedemptions(){
+  try{
+    if(!supabaseClient) return;
+    await supabaseClient.rpc('flm_admin_sync_legacy_store_redemptions');
+  }catch(e){
+    // Optional migration helper. Ignore when SQL has not been installed yet.
+    console.warn('Legacy redemption sync skipped:',e?.message||e);
+  }
+}
+
 async function loadStoreDetailRedemptionApprovals(){
+  await syncLegacyStoreRedemptions();
   const el=document.getElementById('storeDetailRedemptionList');
   if(!el || !currentStoreId) return;
   el.innerHTML='<div style="padding:10px;text-align:center;color:#64748b">Loading redemption requests...</div>';
@@ -1730,6 +1741,7 @@ function srAdminName(){
   return 'ADMIN';
 }
 async function loadStoreRedemptionApprovals(){
+  await syncLegacyStoreRedemptions();
   const list=document.getElementById('storeRedemptionApprovalList');
   if(!list || !window.supabaseClient) return;
   list.innerHTML='<div style="padding:16px;text-align:center;color:#64748b">Loading store redemption requests...</div>';
