@@ -59,10 +59,7 @@ function validateRegistrationIdentity(mobile,email){
 
 async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash, screenshotData) {
   if (!supabaseClient) {
-    if(!pinToken){
-      localStorage.setItem('flm_registration_pending',JSON.stringify({sponsor_id:sponsorId,side,full_name:fullName,mobile,email,password,payment_method:paymentMethod,utr_hash:utrHash,screenshot_data:screenshotData,status:'pending',created_at:new Date().toISOString()}));
-      return {success:true,pending:true,message:'Payment proof submitted. Admin approval pending.'};
-    }
+    
     const flId='FL'+Math.floor(100000+Math.random()*900000);
     const user={fl_id:flId,sponsor_id:sponsorId,side,full_name:fullName,mobile,email,password,pin_token:pinToken,payment_method:paymentMethod,utr_hash:utrHash};
     localStorage.setItem('flm_user_'+flId,JSON.stringify(user));
@@ -95,6 +92,7 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
       const flId='FL'+Math.floor(100000+Math.random()*900000);
       const {data:userData,error:userError}=await supabaseClient.from('users').insert({
         fl_id:flId,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        is_active:true,activated_at:new Date().toISOString(),
         left_own:0,right_own:0,left_spillover:0,right_spillover:0
       }).select().single();
       if(userError){
@@ -127,7 +125,21 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
       return {success:true,flId,message:'Registration Success - FL ID: '+flId+' - Token/Pin accepted'};
     }
 
-    if(!utrHash) return {success:false,message:'Token lekunte UPI UTR or USDT Hash mandatory - 2000 Rs'};
+    // NEW: Free registration (no PIN, no payment) -> INACTIVE user, activate within 72h with PIN
+    if(!utrHash && !screenshotData){
+      const flIdF='FL'+Math.floor(100000+Math.random()*900000);
+      const {error:uErr}=await supabaseClient.from('users').insert({
+        fl_id:flIdF,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        is_active:false,left_own:0,right_own:0,left_spillover:0,right_spillover:0
+      });
+      if(uErr) throw uErr;
+      await supabaseClient.from('wallets').insert({fl_id:flIdF,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
+      await supabaseClient.from('binary_summary').insert({fl_id:flIdF,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
+      if(sponsorId){ try{ await updateSponsorBinary(sponsorId,side); }catch(e){ console.log('sponsor binary:',e.message); } }
+      try{ if(window.localStorage){ window.localStorage.setItem('flm_session',JSON.stringify({flId:flIdF,name:fullName,email,mobile,sponsorId,side})); } }catch(e){}
+      return {success:true,flId:flIdF,message:'Registration Success - FL ID: '+flIdF+' (Inactive - PIN tho 72 hrs lopu activate chesukondi)'};
+    }
+    if(!utrHash) return {success:false,message:'UPI UTR or USDT Hash mandatory - 2000 Rs (leda PIN lekunda free ga register avvandi)'};
     if(!screenshotData) return {success:false,message:'Payment screenshot upload cheyyali.'};
 
     const req={
@@ -252,32 +264,25 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 </div>
 <div class="card">
 <h2 style="text-align:center;color:#0f172a;font-size:20px">Registration</h2>
-<div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">PoomX Kit Rs.2000 | Token/Pin or Direct Payment | UPI + USDT BEP20</div>
+<div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">Free Registration | Activate later with PIN/Token (Rs.2000) within 72 hours</div>
 <label style="font-size:11px;color:#64748b">SPONSOR ID</label>
 <input id="sponsor" value="FL100001">
 <div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <div><label style="font-size:11px">SIDE</label><select id="side"><option value="left">Left</option><option value="right">Right</option></select></div>
-<div><label style="font-size:11px">PIN / TOKEN (Optional - Okate Field)</label><input id="pinToken" placeholder="FLMPIN... or FLTKN..."></div>
-</div>
-<div style="margin-top:6px;display:flex;gap:8px">
-<button onclick="checkToken()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:700;cursor:pointer">Check Token Valid?</button>
-<span style="flex:1;font-size:10px;color:#64748b;padding:6px">Token unte ok - Lekapothe payment chesi enter avutharu - Pin=Token okate</span>
-</div>
 <label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Enter Full Name" autocomplete="name">
 <label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="Enter 10-digit Mobile Number" inputmode="numeric" autocomplete="tel" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);showMobileValidation()" onblur="showMobileValidation();checkIdentityAvailability()">
 <label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="Enter Email Address" autocomplete="email" onblur="checkIdentityAvailability()">
-<label style="font-size:11px">PASSWORD</label><input id="password" type="password" placeholder="Create Password" autocomplete="new-password">
-<div id="paymentSection">
+<label style="font-size:11px">PASSWORD</label><div style="position:relative"><input id="password" type="password" placeholder="Create Password" autocomplete="new-password" style="width:100%;padding-right:44px;box-sizing:border-box"><span onclick="togglePw()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;user-select:none" id="pwEye">👁️</span></div><script>function togglePw(){var p=document.getElementById('password'),e=document.getElementById('pwEye');if(p.type==='password'){p.type='text';e.textContent='🙈';}else{p.type='password';e.textContent='👁️';}}</script>
+<div id="paymentSection" style="display:none">
 <div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
 <div class="tabs"><div class="tab active" id="tabUPI" onclick="setPay('UPI')">UPI Payment</div><div class="tab usdt" id="tabUSDT" onclick="setPay('USDT')">USDT BEP20</div></div>
 <div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 <div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - Live INR equivalent</b><br><span style="font-size:9px;font-family:monospace">Admin configured BEP20 address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 </div>
-<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Conditions:</b> 36 pairs=Rs.4000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover | Payment cheste screenshot + UTR/Hash mandatory</div>
-<button class="btn" onclick="register()">Register Now - Rs.2000</button>
+<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Note:</b> Registration is FREE. After joining, activate your ID with a PIN/Token (Rs.2000) within 72 hours from the user panel. 36 pairs=Rs.4000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover</div>
+<button class="btn" onclick="register()">✅ Register Now (Free)</button>
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
-<div style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
+<div style="display:none" style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
   <b style="font-size:12px">Registration Status</b>
   <div style="font-size:10px;color:#64748b;margin:5px 0 8px">To check your payment registration status, enter your registered Mobile Number and UTR/Hash.</div>
   <input id="statusMobile" placeholder="Registered Mobile Number" inputmode="numeric">
@@ -419,10 +424,8 @@ async function register(){
   const mobile=document.getElementById('mobile').value.trim();
   const email=document.getElementById('email').value.trim();
   const password=document.getElementById('password').value.trim()||'123456';
-  const pinToken=document.getElementById('pinToken').value.trim();
-  const utr=document.getElementById('upiUtr').value.trim();
-  const hash=document.getElementById('usdtHash').value.trim();
-  const file=payMethod==='UPI'?document.getElementById('upiScreenshot')?.files?.[0]:document.getElementById('usdtScreenshot')?.files?.[0];
+  const pinToken=''; // NEW: no token at registration
+  const utr=''; const hash=''; const file=null;
   const msg=document.getElementById('msg');
   const registerBtn=document.querySelector('button[onclick="register()"]');
   if(registrationInProgress){return;}
@@ -430,19 +433,15 @@ async function register(){
   registrationInProgress=true;
   if(registerBtn){registerBtn.disabled=true;registerBtn.style.opacity='0.65';registerBtn.style.cursor='not-allowed';registerBtn.textContent='⏳ Registering... Please wait';}
   const identityError=validateRegistrationIdentity(mobile,email);
-  if(identityError){msg.innerHTML='<span style=color:#dc2626>❌ '+identityError+'</span>';return;}
-  if(!pinToken){
-    if(payMethod==='UPI'&&!utr){msg.innerHTML='<span style=color:#dc2626>Token lekunte UTR mandatory - Enter UTR</span>';return;}
-    if(payMethod==='USDT'&&!hash){msg.innerHTML='<span style=color:#dc2626>Token lekunte Hash mandatory</span>';return;}
-    if(!file){msg.innerHTML='<span style=color:#dc2626>Payment screenshot upload cheyyali</span>';return;}
-  }
+  if(identityError){msg.innerHTML='<span style=color:#dc2626>❌ '+identityError+'</span>';registrationInProgress=false;if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}return;}
+  
   msg.innerHTML='<span style=color:#2563eb>⏳ Checking registration details...</span>';
   try{
     const lim=await checkIdentityLimit(mobile,email);
     const mobileUsed=lim.mobileCount+lim.mobilePending;
     const emailUsed=lim.emailCount+lim.emailPending;
-    if(mobileUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This mobile number has already completed 7 IDs. Please use a different mobile number.</span>';return;}
-    if(emailUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This email address has already completed 7 IDs. Please use a different email address.</span>';return;}
+    if(mobileUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This mobile number has already completed 7 IDs. Please use a different mobile number.</span>';registrationInProgress=false;if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}return;}
+    if(emailUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This email address has already completed 7 IDs. Please use a different email address.</span>';registrationInProgress=false;if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}return;}
     if(mobileUsed>0 || emailUsed>0){
       msg.innerHTML='<span style=color:#2563eb>ℹ️ Mobile IDs used: '+mobileUsed+'/7 • Email IDs used: '+emailUsed+'/7</span>';
     }
@@ -478,7 +477,7 @@ async function register(){
     }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
   }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';} finally {
     registrationInProgress=false;
-    if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='Register Now - Rs.2000';}
+    if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}
   }
 }
 
