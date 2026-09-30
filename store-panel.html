@@ -279,56 +279,74 @@ async function redeemCoupon(){
 }
 
 async function loadToday(){
-  if(!currentStore) return;
+  if(!currentStore || !sb) return;
+
   try{
-    // Use the store redemption history because it contains the member name + FL ID.
-    const hr=await sb.rpc('flm_store_redemption_history',{
-      p_store_code:currentStore.store_code,
-      p_days:365
+    let rows = [];
+
+    // PRIMARY: SECURITY DEFINER RPC used by the working Store Panel version.
+    // This avoids RLS problems when reading roi_coupons directly.
+    const todayRpc = await sb.rpc('flm_store_today_redemptions',{
+      p_store_id: currentStore.id
     });
 
-    if(!hr.error && Array.isArray(hr.data)){
-      const rows=hr.data||[];
-      const startDay=new Date();
-      startDay.setHours(0,0,0,0);
-      document.getElementById('todayCount').innerText=
-        rows.filter(x=>x.created_at && new Date(x.created_at)>=startDay).length;
-      document.getElementById('todayList').innerHTML=rows.length
-        ? rows.map(x =>
-          '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px">'+
-          '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.coupon_code||'')+'</b><b>₹'+Number(x.amount||0).toLocaleString('en-IN')+'</b></div>'+
-          '<div style="margin-top:4px"><b>👤 '+escapeHtml(x.user_name||'User')+'</b> <span class="small">('+escapeHtml(x.fl_id||'-')+')</span></div>'+
-          '<div class="small">'+escapeHtml(x.created_at||'')+'</div></div>'
-        ).join('')
-        : 'No redemptions yet';
-      return;
+    if(!todayRpc.error && Array.isArray(todayRpc.data)){
+      rows = todayRpc.data || [];
+    }else{
+      // FALLBACK: redemption history RPC.
+      const hr = await sb.rpc('flm_store_redemption_history',{
+        p_store_code: currentStore.store_code,
+        p_days: 365
+      });
+      if(!hr.error && Array.isArray(hr.data)){
+        const startDay = new Date();
+        startDay.setHours(0,0,0,0);
+        rows = (hr.data || []).filter(x =>
+          x.created_at && new Date(x.created_at) >= startDay
+        );
+      }else{
+        // FINAL FALLBACK: direct table query.
+        const r = await sb.from('roi_coupons')
+          .select('*')
+          .eq('store_id',currentStore.id)
+          .eq('status','redeemed')
+          .order('redeemed_at',{ascending:false})
+          .limit(100);
+        if(r.error) throw r.error;
+
+        const startDay = new Date();
+        startDay.setHours(0,0,0,0);
+        rows = (r.data || []).filter(x =>
+          x.redeemed_at && new Date(x.redeemed_at) >= startDay
+        );
+      }
     }
 
-    // Fallback for older SQL versions.
-    const r=await sb.from('roi_coupons')
-      .select('*')
-      .eq('store_id',currentStore.id)
-      .eq('status','redeemed')
-      .order('redeemed_at',{ascending:false})
-      .limit(100);
-    if(r.error) throw r.error;
-    const rows=r.data||[];
-    const startDay=new Date();
-    startDay.setHours(0,0,0,0);
-    document.getElementById('todayCount').innerText=
-      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=startDay).length;
-    document.getElementById('todayList').innerHTML=rows.length
-      ? rows.map(c =>
-        '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
-        escapeHtml(c.coupon_code||'')+'</b> - ₹'+
-        Number(c.amount||0).toLocaleString('en-IN')+
-        '<div><b>👤 '+escapeHtml(c.user_name||'User')+'</b> <span class="small">('+escapeHtml(c.fl_id||'-')+')</span></div>'+
-        '<div class="small">'+escapeHtml(c.redeemed_at||'')+'</div></div>'
-      ).join('')
-      : 'No redemptions yet';
+    todayRedemptionRows = rows || [];
+
+    document.getElementById('todayCount').innerText =
+      todayRedemptionRows.length;
+
+    document.getElementById('todayList').innerHTML =
+      todayRedemptionRows.length
+        ? todayRedemptionRows.map(x =>
+          '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+
+          escapeHtml(x.coupon_code||'')+'</b><b>₹'+
+          Number(x.amount||0).toLocaleString('en-IN')+'</b></div>'+
+          '<div style="margin-top:4px"><b>👤 '+
+          escapeHtml(x.user_name||'User')+'</b> <span class="small">('+
+          escapeHtml(x.fl_id||'-')+')</span></div>'+
+          '<div class="small">'+
+          escapeHtml(x.redeemed_at||x.created_at||'')+
+          '</div></div>'
+        ).join('')
+        : 'No redemptions yet';
 
   }catch(e){
     console.error('Today load error:',e);
+    todayRedemptionRows = [];
+    document.getElementById('todayCount').innerText='0';
     document.getElementById('todayList').innerText =
       'Unable to load redemptions: '+(e?.message||String(e));
   }
@@ -375,6 +393,7 @@ document.getElementById('redeemSuccessModal')?.addEventListener('click',e=>{if(e
    Existing store-panel functions remain untouched. */
 
 let storeRedemptionRows = [];
+let todayRedemptionRows = [];
 
 function srpMoney(v){
   return '₹' + Number(v || 0).toLocaleString('en-IN',{maximumFractionDigits:2});
@@ -396,32 +415,49 @@ async function loadStoreRedemptionStatus(status){
     });
     if(r.error) throw r.error;
 
-    storeRedemptionRows=Array.isArray(r.data)?r.data:[];
+    let rows=Array.isArray(r.data)?r.data:[];
 
-    // Fallback: immediately show store-redeemed coupons as PROCESSING.
-    // The redemption RPC can be empty while roi_coupons already contains
-    // the successful store redemption. In that case use the same secure
-    // today-redemptions RPC that powers the Today Redemptions section.
-    if(!storeRedemptionRows.length && (!status || status==='all')){
-      try{
-        const tr=await sb.rpc('flm_store_today_redemptions',{p_store_id:currentStore.id});
-        if(!tr.error && Array.isArray(tr.data)){
-          storeRedemptionRows=tr.data.map(function(x){
-            return {
-              id:x.id||x.redemption_id||x.coupon_id||x.coupon_code,
-              status:'processing',
-              amount:x.amount||0,
-              coupon_code:x.coupon_code||'',
-              user_name:x.user_name||'User',
-              fl_id:x.fl_id||'',
-              created_at:x.redeemed_at||x.created_at||null
-            };
-          });
-        }
-      }catch(_e){}
+    // If the status RPC has no rows, use the confirmed redeemed records
+    // already loaded for this store. Store redemption is pending admin action,
+    // so these are shown as ADMIN PROCESSING.
+    if(!rows.length && (!status || status==='processing') &&
+       Array.isArray(todayRedemptionRows) && todayRedemptionRows.length){
+      rows=todayRedemptionRows.map(function(x){
+        return {
+          id:x.id || x.redemption_id || x.coupon_id || '',
+          status:'processing',
+          amount:Number(x.amount||0),
+          user_name:x.user_name || 'User',
+          fl_id:x.fl_id || '',
+          coupon_code:x.coupon_code || '',
+          created_at:x.redeemed_at || x.created_at || '',
+          rejection_reason:'',
+          approval_reason:''
+        };
+      });
     }
+
+    storeRedemptionRows=rows;
     renderStoreRedemptionStatus();
   }catch(e){
+    // Even if the history RPC is unavailable, do not lose the already
+    // confirmed Store redemptions from the screen.
+    if((!status || status==='processing') &&
+       Array.isArray(todayRedemptionRows) && todayRedemptionRows.length){
+      storeRedemptionRows=todayRedemptionRows.map(function(x){
+        return {
+          id:x.id || x.redemption_id || x.coupon_id || '',
+          status:'processing',
+          amount:Number(x.amount||0),
+          user_name:x.user_name || 'User',
+          fl_id:x.fl_id || '',
+          coupon_code:x.coupon_code || '',
+          created_at:x.redeemed_at || x.created_at || ''
+        };
+      });
+      renderStoreRedemptionStatus();
+      return;
+    }
     box.innerHTML='<div class="err">❌ '+srpEsc(e.message||e)+'</div>';
   }
 }
