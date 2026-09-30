@@ -241,20 +241,11 @@ async function redeemCoupon(){
     '<div class="small">Checking coupon...</div>';
 
   try{
-    let r=await sb.rpc('flm_redeem_roi_coupon',{
+    const r=await sb.rpc('flm_redeem_roi_coupon',{
       p_coupon_code:code,
-      p_store_code:currentStore.store_code,
+      p_store_id:currentStore.id,
       p_redeemed_by:'STORE'
     });
-
-    if(r.error){
-      const r2=await sb.rpc('flm_redeem_roi_coupon',{
-        p_coupon_code:code,
-        p_store_id:currentStore.id,
-        p_redeemed_by:'STORE'
-      });
-      if(!r2.error) r=r2;
-    }
 
     if(r.error) throw r.error;
 
@@ -289,66 +280,50 @@ async function redeemCoupon(){
 
 async function loadToday(){
   if(!currentStore) return;
-
   try{
-    let hr=await sb.rpc('flm_store_redemption_history',{
+    // Use the store redemption history because it contains the member name + FL ID.
+    const hr=await sb.rpc('flm_store_redemption_history',{
       p_store_code:currentStore.store_code,
       p_days:365
     });
 
-    let rows = (!hr.error && Array.isArray(hr.data)) ? (hr.data||[]) : [];
-
-    if(hr.error){
-      const hr2=await sb.rpc('flm_store_redemption_history',{
-        p_store_id:currentStore.id,
-        p_status:'all'
-      });
-      if(!hr2.error && Array.isArray(hr2.data)) rows=hr2.data||[];
+    if(!hr.error && Array.isArray(hr.data)){
+      const rows=hr.data||[];
+      const startDay=new Date();
+      startDay.setHours(0,0,0,0);
+      document.getElementById('todayCount').innerText=
+        rows.filter(x=>x.created_at && new Date(x.created_at)>=startDay).length;
+      document.getElementById('todayList').innerHTML=rows.length
+        ? rows.map(x =>
+          '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px">'+
+          '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.coupon_code||'')+'</b><b>₹'+Number(x.amount||0).toLocaleString('en-IN')+'</b></div>'+
+          '<div style="margin-top:4px"><b>👤 '+escapeHtml(x.user_name||'User')+'</b> <span class="small">('+escapeHtml(x.fl_id||'-')+')</span></div>'+
+          '<div class="small">'+escapeHtml(x.created_at||'')+'</div></div>'
+        ).join('')
+        : 'No redemptions yet';
+      return;
     }
 
-    // Also show older redeemed coupons that exist in roi_coupons but
-    // do not yet have a row in the newer store-redemption workflow table.
-    if(!rows.length){
-      const r=await sb.from('roi_coupons')
-        .select('*')
-        .eq('store_id',currentStore.id)
-        .eq('status','redeemed')
-        .order('redeemed_at',{ascending:false})
-        .limit(100);
-
-      if(!r.error){
-        rows=(r.data||[]).map(c=>({
-          id:c.id,
-          coupon_code:c.coupon_code,
-          fl_id:c.fl_id,
-          user_name:c.user_name || c.full_name || 'User',
-          amount:c.amount,
-          status:'processing',
-          created_at:c.redeemed_at
-        }));
-      }
-    }
-
+    // Fallback for older SQL versions.
+    const r=await sb.from('roi_coupons')
+      .select('*')
+      .eq('store_id',currentStore.id)
+      .eq('status','redeemed')
+      .order('redeemed_at',{ascending:false})
+      .limit(100);
+    if(r.error) throw r.error;
+    const rows=r.data||[];
     const startDay=new Date();
     startDay.setHours(0,0,0,0);
-
-    document.getElementById('todayCount').innerText =
-      rows.filter(x=>{
-        const dt=x.created_at || x.redeemed_at;
-        return dt && new Date(dt)>=startDay;
-      }).length;
-
+    document.getElementById('todayCount').innerText=
+      rows.filter(x=>x.redeemed_at && new Date(x.redeemed_at)>=startDay).length;
     document.getElementById('todayList').innerHTML=rows.length
-      ? rows.map(x =>
-        '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px">'+
-        '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+
-        escapeHtml(x.coupon_code||'')+'</b><b>₹'+
-        Number(x.amount||0).toLocaleString('en-IN')+'</b></div>'+
-        '<div style="margin-top:4px"><b>👤 '+
-        escapeHtml(x.user_name||'User')+'</b> <span class="small">('+
-        escapeHtml(x.fl_id||'-')+')</span></div>'+
-        '<div class="small">'+escapeHtml(x.created_at || x.redeemed_at || '')+
-        '</div></div>'
+      ? rows.map(c =>
+        '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px"><b>'+
+        escapeHtml(c.coupon_code||'')+'</b> - ₹'+
+        Number(c.amount||0).toLocaleString('en-IN')+
+        '<div><b>👤 '+escapeHtml(c.user_name||'User')+'</b> <span class="small">('+escapeHtml(c.fl_id||'-')+')</span></div>'+
+        '<div class="small">'+escapeHtml(c.redeemed_at||'')+'</div></div>'
       ).join('')
       : 'No redemptions yet';
 
@@ -358,6 +333,7 @@ async function loadToday(){
       'Unable to load redemptions: '+(e?.message||String(e));
   }
 }
+
 async function loadStock(){
   if(!currentStore) return;
 
@@ -414,26 +390,65 @@ async function loadStoreRedemptionStatus(status){
   box.innerHTML='<div class="small">Loading redemption records...</div>';
 
   try{
+    // Primary: use the store-code based RPC used by the working Today Redemptions flow.
     let r=await sb.rpc('flm_store_redemption_history',{
       p_store_code:currentStore.store_code,
       p_days:365
     });
+
+    let rows=(!r.error && Array.isArray(r.data)) ? (r.data||[]) : [];
+
+    // Compatibility fallback for older RPC signature.
     if(r.error){
       const r2=await sb.rpc('flm_store_redemption_history',{
         p_store_id:currentStore.id,
         p_status:status || 'all'
       });
-      if(!r2.error) r=r2;
-    }
-    if(r.error) throw r.error;
-
-    if(Array.isArray(r.data) && status && status !== 'all'){
-      r.data=r.data.filter(x=>String(x.status||'').toLowerCase()===String(status).toLowerCase());
+      if(!r2.error && Array.isArray(r2.data)) rows=r2.data||[];
     }
 
-    storeRedemptionRows=Array.isArray(r.data)?r.data:[];
+    // Final fallback: read the actual redemption table directly.
+    if(!rows.length){
+      const q=await sb.from('flm_store_redemptions')
+        .select('id,coupon_code,fl_id,store_id,store_code,store_name,amount,status,created_at,updated_at')
+        .eq('store_id',currentStore.id)
+        .order('created_at',{ascending:false})
+        .limit(100);
+      if(!q.error) rows=q.data||[];
+    }
+
+    // Apply the selected status filter on the client.
+    if(status && status!=='all'){
+      rows=rows.filter(x=>String(x.status||'processing').toLowerCase()===String(status).toLowerCase());
+    }
+
+    // Fill the member name when the RPC/table row does not include it.
+    try{
+      const qr=await sb.from('roi_coupons')
+        .select('coupon_code,fl_id,user_name,full_name')
+        .eq('store_id',currentStore.id)
+        .limit(200);
+      if(!qr.error && Array.isArray(qr.data)){
+        const nameMap={};
+        qr.data.forEach(q=>{
+          if(q.coupon_code){
+            nameMap[String(q.coupon_code).toUpperCase()]=q.user_name||q.full_name||q.fl_id||'User';
+          }
+        });
+        rows=rows.map(x=>Object.assign({},x,{
+          user_name:x.user_name||x.username||x.full_name||nameMap[String(x.coupon_code||'').toUpperCase()]||x.fl_id||'User'
+        }));
+      }else{
+        rows=rows.map(x=>Object.assign({},x,{user_name:x.user_name||x.username||x.full_name||x.fl_id||'User'}));
+      }
+    }catch(nameErr){
+      rows=rows.map(x=>Object.assign({},x,{user_name:x.user_name||x.username||x.full_name||x.fl_id||'User'}));
+    }
+
+    storeRedemptionRows=rows;
     renderStoreRedemptionStatus();
   }catch(e){
+    console.error('Store redemption status error:',e);
     box.innerHTML='<div class="err">❌ '+srpEsc(e.message||e)+'</div>';
   }
 }
@@ -491,17 +506,10 @@ async function retryRejectedStoreRedemption(id){
   if(!currentStore || !sb) return;
   if(!confirm('Process this rejected redemption again?')) return;
   try{
-    let r=await sb.rpc('flm_store_reprocess_redemption',{
+    const r=await sb.rpc('flm_store_reprocess_redemption',{
       p_redemption_id:id,
-      p_store_code:currentStore.store_code
+      p_store_id:currentStore.id
     });
-    if(r.error){
-      const r2=await sb.rpc('flm_store_reprocess_redemption',{
-        p_redemption_id:id,
-        p_store_id:currentStore.id
-      });
-      if(!r2.error) r=r2;
-    }
     if(r.error) throw r.error;
     alert('✅ Redemption moved back to admin processing.');
     await loadStoreRedemptionStatus();
