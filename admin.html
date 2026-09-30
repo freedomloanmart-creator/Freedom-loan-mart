@@ -1685,6 +1685,31 @@ async function loadStoreRedemptionApprovals(){
     const r=await supabaseClient.rpc('flm_admin_store_redemptions',{p_status:'all',p_store_code:null});
     if(r.error) throw r.error;
     adminStoreRedemptionRows=Array.isArray(r.data)?r.data:[];
+
+    // Fallback: RPC empty ayithe roi_coupons nundi redeemed coupons ni processing ga chupinchu
+    if(!adminStoreRedemptionRows.length){
+      const r2=await supabaseClient.from('roi_coupons')
+        .select('*')
+        .eq('status','redeemed')
+        .order('redeemed_at',{ascending:false})
+        .limit(200);
+      if(!r2.error){
+        adminStoreRedemptionRows=(r2.data||[]).map(c=>({
+          id:c.id,
+          coupon_code:c.coupon_code,
+          fl_id:c.fl_id,
+          user_name:c.username||c.user_name||c.full_name||c.name||'User',
+          username:c.username||c.user_name||c.full_name||c.name||'User',
+          amount:c.amount,
+          status:'processing',
+          store_id:c.store_id,
+          store_code:c.store_code||'',
+          store_name:c.store_name||c.store_code||'Store',
+          created_at:c.redeemed_at,
+          _from_roi_coupons:true
+        }));
+      }
+    }
     populateStoreRedemptionFilter();
     updateStoreRedemptionSummary();
     renderStoreRedemptionApprovals();
