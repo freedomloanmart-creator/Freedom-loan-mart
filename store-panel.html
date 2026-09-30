@@ -390,22 +390,36 @@ async function loadStoreRedemptionStatus(status){
   box.innerHTML='<div class="small">Loading redemption records...</div>';
 
   try{
-    // IMPORTANT: flm_store_redemption_history accepts STORE CODE + DAYS.
-    // The previous version incorrectly sent p_store_id/p_status, so the
-    // Today Redemptions list worked but Processing/Approved/Rejected stayed ₹0.
-    let r=await sb.rpc('flm_store_redemption_history',{
-      p_store_code:currentStore.store_code,
-      p_days:365
+    const r=await sb.rpc('flm_store_redemption_history',{
+      p_store_id:currentStore.id,
+      p_status:status || 'all'
     });
     if(r.error) throw r.error;
 
-    let rows=Array.isArray(r.data)?r.data:[];
-    // The RPC returns all statuses. Apply the button filter in the browser.
-    if(status && status!=='all'){
-      const wanted=String(status).toLowerCase();
-      rows=rows.filter(x=>String(x.status||'processing').toLowerCase()===wanted);
+    storeRedemptionRows=Array.isArray(r.data)?r.data:[];
+
+    // Fallback: immediately show store-redeemed coupons as PROCESSING.
+    // The redemption RPC can be empty while roi_coupons already contains
+    // the successful store redemption. In that case use the same secure
+    // today-redemptions RPC that powers the Today Redemptions section.
+    if(!storeRedemptionRows.length && (!status || status==='all')){
+      try{
+        const tr=await sb.rpc('flm_store_today_redemptions',{p_store_id:currentStore.id});
+        if(!tr.error && Array.isArray(tr.data)){
+          storeRedemptionRows=tr.data.map(function(x){
+            return {
+              id:x.id||x.redemption_id||x.coupon_id||x.coupon_code,
+              status:'processing',
+              amount:x.amount||0,
+              coupon_code:x.coupon_code||'',
+              user_name:x.user_name||'User',
+              fl_id:x.fl_id||'',
+              created_at:x.redeemed_at||x.created_at||null
+            };
+          });
+        }
+      }catch(_e){}
     }
-    storeRedemptionRows=rows;
     renderStoreRedemptionStatus();
   }catch(e){
     box.innerHTML='<div class="err">❌ '+srpEsc(e.message||e)+'</div>';
