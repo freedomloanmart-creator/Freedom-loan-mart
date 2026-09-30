@@ -213,7 +213,7 @@ async function storeLogin(){
 function showRedeemSuccessModal(d){
   const modal=document.getElementById('redeemSuccessModal');
   if(!modal)return;
-  document.getElementById('modalUserName').innerText=d.user_name||'User';
+  document.getElementById('modalUserName').innerText=resolveUserName(d);
   document.getElementById('modalFlId').innerText=d.fl_id||'-';
   document.getElementById('modalAmount').innerText='₹'+Number(d.amount||0).toLocaleString('en-IN',{maximumFractionDigits:2});
   document.getElementById('modalCoupon').innerText=d.coupon_code||'-';
@@ -270,7 +270,7 @@ async function redeemCoupon(){
     document.getElementById('redeemResult').innerHTML=
       '<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: ₹'+
       Number(d.amount||0).toLocaleString('en-IN')+
-      '<br><span class="small">User: '+escapeHtml(d.user_name||'User')+
+      '<br><span class="small">User: '+escapeHtml(resolveUserName(d))+
       ' | FL ID: '+escapeHtml(d.fl_id||'')+
       '</span></div>';
 
@@ -323,7 +323,7 @@ async function loadToday(){
           id:c.id,
           coupon_code:c.coupon_code,
           fl_id:c.fl_id,
-          user_name:c.user_name || c.full_name || 'User',
+          user_name:resolveUserName(c),
           amount:c.amount,
           status:'processing',
           created_at:c.redeemed_at
@@ -347,7 +347,7 @@ async function loadToday(){
         escapeHtml(x.coupon_code||'')+'</b><b>₹'+
         Number(x.amount||0).toLocaleString('en-IN')+'</b></div>'+
         '<div style="margin-top:4px"><b>👤 '+
-        escapeHtml(x.user_name||'User')+'</b> <span class="small">('+
+        escapeHtml(resolveUserName(x))+'</b> <span class="small">('+
         escapeHtml(x.fl_id||'-')+')</span></div>'+
         '<div class="small">'+escapeHtml(x.created_at || x.redeemed_at || '')+
         '</div></div>'
@@ -408,6 +408,10 @@ function srpMoney(v){
 function srpEsc(v){
   return escapeHtml(v == null ? '' : String(v));
 }
+function resolveUserName(o){
+  o=o||{};
+  return o.username||o.user_name||o.full_name||o.name||o.customer_name||'User';
+}
 
 async function loadStoreRedemptionStatus(status){
   if(!currentStore || !sb) return;
@@ -448,7 +452,7 @@ async function loadStoreRedemptionStatus(status){
           id:c.id,
           coupon_code:c.coupon_code,
           fl_id:c.fl_id,
-          user_name:c.user_name||c.full_name||'User',
+          user_name:resolveUserName(c),
           amount:c.amount,
           status:'processing',
           created_at:c.redeemed_at
@@ -500,7 +504,7 @@ function renderStoreRedemptionStatus(){
       : '';
 
     return '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px">'+
-      '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+srpEsc(x.user_name||x.fl_id||'-')+'</b><b>'+srpMoney(x.amount)+'</b></div>'+
+      '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+srpEsc(resolveUserName(x)!=='User'?resolveUserName(x):(x.fl_id||'-'))+'</b><b>'+srpMoney(x.amount)+'</b></div>'+
       '<div class="small">FL ID: '+srpEsc(x.fl_id||'-')+'<br>Coupon: '+srpEsc(x.coupon_code||'-')+
       '<br>'+srpEsc(x.created_at ? new Date(x.created_at).toLocaleString('en-IN') : '')+'</div>'+
       '<div style="margin-top:7px">'+badge+'</div>'+
