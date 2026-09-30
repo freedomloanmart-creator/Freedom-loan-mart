@@ -1505,17 +1505,17 @@ async function loadUserStoreRedemptions(){
      el.innerHTML='<div style="text-align:center;color:#64748b;font-size:11px;padding:16px">No store redemption records yet.</div>';
      return;
    }
-   var counts={processing:0,approved:0,rejected:0}, amounts={processing:0,approved:0,rejected:0};
-   rows.forEach(function(x){var st=String(x.status||'processing').toLowerCase();if(counts[st]!=null){counts[st]++;amounts[st]+=Number(x.amount||0);}});
+   var counts={used:0,approved:0,rejected:0}, amounts={used:0,approved:0,rejected:0};
+   rows.forEach(function(x){var raw=String(x.status||'processing').toLowerCase();var st=raw==='processing'?'used':raw;if(counts[st]!=null){counts[st]++;amounts[st]+=Number(x.amount||0);}});
    if(sumEl)sumEl.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">'+
-    '<div style="background:#fff7ed;border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:#9a3412">PROCESSING</div><b style="font-size:14px;color:#c2410c">'+money(amounts.processing)+'</b><div style="font-size:9px;color:#64748b">'+counts.processing+' request(s)</div></div>'+
+    '<div style="background:#fff7ed;border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:#9a3412">USED</div><b style="font-size:14px;color:#c2410c">'+money(amounts.used)+'</b><div style="font-size:9px;color:#64748b">'+counts.used+' coupon(s)</div></div>'+
     '<div style="background:#ecfdf5;border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:#166534">APPROVED</div><b style="font-size:14px;color:#059669">'+money(amounts.approved)+'</b><div style="font-size:9px;color:#64748b">'+counts.approved+' request(s)</div></div>'+
     '<div style="background:#fef2f2;border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:#991b1b">REJECTED</div><b style="font-size:14px;color:#dc2626">'+money(amounts.rejected)+'</b><div style="font-size:9px;color:#64748b">'+counts.rejected+' request(s)</div></div></div>';
    el.innerHTML=rows.map(function(x){
-    var st=String(x.status||'processing').toLowerCase();
-    /* USER VIEW: store redemption is complete immediately. Keep the real DB status untouched for Store/Admin. */
-    var cfg={label:'COMPLETED',icon:'✅',bg:'#ecfdf5',border:'#86efac',color:'#166534'};
-    var note=st==='approved'?'<div style="margin-top:8px;background:#fff;border-radius:8px;padding:8px;font-size:10px;color:#166534"><b>Payment:</b> Admin payment approved.</div>':st==='rejected'?'<div style="margin-top:8px;background:#fff;border-radius:8px;padding:8px;font-size:10px;color:#9a3412"><b>Store redemption:</b> Completed. Admin payment workflow has a rejected request.</div>':'<div style="margin-top:8px;background:#fff;border-radius:8px;padding:8px;font-size:10px;color:#166534">Coupon redemption at the FLM Store is <b>COMPLETED</b>. Admin payment processing continues separately.</div>';
+    var raw=String(x.status||'processing').toLowerCase();
+    var st=raw==='processing'?'used':raw;
+    var cfg=st==='approved'?{label:'APPROVED',icon:'✅',bg:'#ecfdf5',border:'#86efac',color:'#166534'}:st==='rejected'?{label:'REJECTED',icon:'❌',bg:'#fef2f2',border:'#fecaca',color:'#991b1b'}:{label:'USED',icon:'🎫',bg:'#fff7ed',border:'#fed7aa',color:'#9a3412'};
+    var note=st==='rejected'?'<div style="margin-top:8px;background:#fff;border-radius:8px;padding:8px;font-size:10px;color:#991b1b"><b>Reason:</b> '+flmEscHtml(x.rejection_reason||'Rejected by admin')+'</div>':st==='approved'?'<div style="margin-top:8px;background:#fff;border-radius:8px;padding:8px;font-size:10px;color:#166534"><b>Admin note:</b> '+flmEscHtml(x.approval_reason||'Approved')+'</div>':'<div style="margin-top:8px;background:#fff;border-radius:8px;padding:8px;font-size:10px;color:#9a3412">Coupon has been <b>USED</b> at the store. It will not return to active coupons. Admin payment processing is separate.</div>';
     return '<div style="background:'+cfg.bg+';border:1px solid '+cfg.border+';border-radius:13px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:12px;color:#0f172a">🎫 '+flmEscHtml(x.coupon_code||'')+'</b><span style="font-size:10px;font-weight:900;color:'+cfg.color+'">'+cfg.icon+' '+cfg.label+'</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px"><div><div style="font-size:9px;color:#64748b">USER ID</div><b style="font-size:11px">'+flmEscHtml(x.fl_id||flId)+'</b></div><div><div style="font-size:9px;color:#64748b">USER NAME</div><b style="font-size:11px">'+flmEscHtml(x.user_name||'')+'</b></div><div><div style="font-size:9px;color:#64748b">STORE</div><b style="font-size:11px">'+flmEscHtml(x.store_name||x.store_code||'FLM Store')+'</b></div><div><div style="font-size:9px;color:#64748b">AMOUNT</div><b style="font-size:14px">'+money(x.amount)+'</b></div></div><div style="font-size:9px;color:#64748b;margin-top:8px">Redeemed: '+new Date(x.created_at).toLocaleString()+'</div>'+note+'</div>';
    }).join('');
  }catch(e){
@@ -1526,7 +1526,7 @@ async function loadUserStoreRedemptions(){
      if(rr.error)throw rr.error;
      var fallback=(rr.data||[]).filter(function(x){return x.redemption_id;}).map(function(x){return {id:x.redemption_id,coupon_code:x.coupon_code,store_code:x.store_code,store_name:x.store_name,fl_id:flId,user_name:getName()||flId,amount:x.amount,status:x.redemption_status||'processing',created_at:x.redeemed_at||x.created_at,approval_reason:x.approval_reason,rejection_reason:x.rejection_reason};});
      if(fallback.length){
-       el.innerHTML=fallback.map(function(x){return '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:13px;padding:12px;margin-bottom:8px"><b>🎫 '+flmEscHtml(x.coupon_code||'')+'</b><span style="float:right;color:#9a3412;font-weight:900">🟠 '+String(x.status||'processing').toUpperCase()+'</span><div style="margin-top:8px;font-size:11px">Amount: <b>'+money(x.amount)+'</b><br>Store: '+flmEscHtml(x.store_name||x.store_code||'FLM Store')+'<br>Redeemed: '+new Date(x.created_at).toLocaleString()+'</div></div>';}).join('');
+       el.innerHTML=fallback.map(function(x){return '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:13px;padding:12px;margin-bottom:8px"><b>🎫 '+flmEscHtml(x.coupon_code||'')+'</b><span style="float:right;color:#9a3412;font-weight:900">🎫 '+(String(x.status||'processing').toLowerCase()==='processing'?'USED':String(x.status||'processing').toUpperCase())+'</span><div style="margin-top:8px;font-size:11px">Amount: <b>'+money(x.amount)+'</b><br>Store: '+flmEscHtml(x.store_name||x.store_code||'FLM Store')+'<br>Redeemed: '+new Date(x.created_at).toLocaleString()+'</div></div>';}).join('');
        return;
      }
    }catch(_rpcErr){}
@@ -1665,65 +1665,50 @@ async function loadWalletHistory(){
   var r=await supabaseClient.from('wallet_transactions').select('*').eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);
   if(r.error)throw r.error;
   var rows=r.data||[];
-  var g={matching:[],loan:[],fundRelease:[],roi:[],pins:[],other:[]};var fundReleaseByLevel={};
-  rows.forEach(function(x){
-   var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),remarks=String(x.remarks||'').toLowerCase(),st=String(x.status||'').toLowerCase();
-   if(y==='pin_purchase')g.pins.push(x);
-   else if(t==='matching'&&y==='withdrawal')g.matching.push(x);
-   else if(t==='loan'&&y==='withdrawal')g.loan.push(x);
-   else if(t==='loan'&&st==='completed'&&((title.indexOf('loan')>=0)||(title.indexOf('increment')>=0)||(y.indexOf('loan')>=0)||(y.indexOf('increment')>=0))){
-    var m=(remarks+' '+title).match(/(?:fund|loan)\s*(?:level\s*)?(\d+)/i);var lvl=m?parseInt(m[1],10):0;
-    if(!lvl){var amt=Number(x.net_amount!=null?x.net_amount:x.amount)||0;lvl=amt>=16000?5:amt>=8000?4:amt>=4000?3:amt>=2000?2:1;}
-    var key=String(lvl),prev=fundReleaseByLevel[key],isIncrement=(title.indexOf('increment')>=0||y.indexOf('increment')>=0);if(!prev||isIncrement)fundReleaseByLevel[key]=x;
-   }else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);
-  });
-
-  // IMPORTANT: Store coupon redemption is stored in flm_store_redemptions,
-  // not wallet_transactions. Add those rows to Transaction History too.
+  // A store redemption is recorded in flm_store_redemptions, not necessarily in wallet_transactions.
+  // Merge those rows into Transaction History so the user sees PROCESSING/APPROVED/REJECTED there too.
   try{
-   var sr=await supabaseClient.from('flm_store_redemptions')
-    .select('id,coupon_code,fl_id,store_id,store_code,store_name,amount,status,created_at,updated_at')
-    .eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);
-   if(!sr.error){
-    (sr.data||[]).forEach(function(x){
-     g.roi.push({
-      id:'store_redemption_'+String(x.id||''),
-      wallet_type:'roi',
-      transaction_type:'store_redemption',
-      title:'Store Coupon Redemption',
-      remarks:'Coupon: '+String(x.coupon_code||''),
-      coupon_code:x.coupon_code||'',
-      amount:Number(x.amount||0),
-      net_amount:Number(x.amount||0),
-      status:String(x.status||'processing').toLowerCase(),
-      method:'store',
-      store_id:x.store_id||'',store_name:x.store_name||'',store_code:x.store_code||'',
-      created_at:x.created_at,updated_at:x.updated_at
-     });
-    });
-   }
-  }catch(storeErr){console.log('Store redemption transaction history:',storeErr.message);}
-
+    var sr=await supabaseClient.from('flm_store_redemptions')
+      .select('id,coupon_code,fl_id,store_id,store_code,store_name,amount,status,created_at,updated_at')
+      .eq('fl_id',flId).order('created_at',{ascending:false}).limit(100);
+    if(!sr.error && sr.data && sr.data.length){
+      var existingCoupons={};
+      rows.forEach(function(x){if(x.coupon_code)existingCoupons[String(x.coupon_code).toLowerCase()]=true;});
+      sr.data.forEach(function(x){
+        var code=String(x.coupon_code||'');
+        if(code && existingCoupons[code.toLowerCase()])return;
+        rows.push({
+          id:'store-redemption-'+String(x.id||''),
+          fl_id:flId,
+          wallet_type:'roi',
+          transaction_type:'roi_coupon',
+          amount:Number(x.amount||0),
+          net_amount:Number(x.amount||0),
+          status:String(x.status||'processing').toLowerCase(),
+          title:'ROI Store Redemption',
+          method:'Store',
+          store_id:x.store_id,
+          store_code:x.store_code,
+          store_name:x.store_name,
+          coupon_code:code,
+          remarks:'Coupon redeemed at store. Admin processing status: '+String(x.status||'processing'),
+          created_at:x.created_at,
+          updated_at:x.updated_at
+        });
+      });
+      rows.sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
+    }
+  }catch(storeHistoryErr){console.log('store redemption transaction history:',storeHistoryErr.message||storeHistoryErr);}
+  if(!rows.length){el.innerHTML='<div style="text-align:center;color:#64748b;font-size:12px;padding:15px">No transactions yet.</div>';return;}
+  var g={matching:[],loan:[],fundRelease:[],roi:[],pins:[],other:[]};var fundReleaseByLevel={};
+  rows.forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),remarks=String(x.remarks||'').toLowerCase(),st=String(x.status||'').toLowerCase();if(y==='pin_purchase')g.pins.push(x);else if(t==='matching'&&y==='withdrawal')g.matching.push(x);else if(t==='loan'&&y==='withdrawal')g.loan.push(x);else if(t==='loan'&&st==='completed'&&((title.indexOf('loan')>=0)||(title.indexOf('increment')>=0)||(y.indexOf('loan')>=0)||(y.indexOf('increment')>=0))){var m=(remarks+' '+title).match(/(?:fund|loan)\s*(?:level\s*)?(\d+)/i);var lvl=m?parseInt(m[1],10):0;if(!lvl){var amt=Number(x.net_amount!=null?x.net_amount:x.amount)||0;lvl=amt>=16000?5:amt>=8000?4:amt>=4000?3:amt>=2000?2:1;}var key=String(lvl),prev=fundReleaseByLevel[key],isIncrement=(title.indexOf('increment')>=0||y.indexOf('increment')>=0);if(!prev||isIncrement)fundReleaseByLevel[key]=x;}else if(t==='roi'||y==='roi_coupon')g.roi.push(x);else g.other.push(x);});
   Object.keys(fundReleaseByLevel).sort(function(a,b){return Number(b)-Number(a);}).forEach(function(k){var x=fundReleaseByLevel[k];g.fundRelease.push(Object.assign({},x,{title:'Fund '+k+' Released'}));});
-
-  function card(x){
-   var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
-   var displayTitle=(x.title||x.wallet_type||'Transaction');
-   if(String(x.transaction_type||'').toLowerCase()==='store_redemption')displayTitle='🛒 Store Coupon Redemption';
-   if(String(x.wallet_type||'').toLowerCase()==='loan'&&String(x.transaction_type||'').toLowerCase()==='withdrawal'){displayTitle=displayTitle.replace(/\bLoan\b/gi,'Fund');}
-   var couponHtml='';
-   if(x.coupon_code){
-    var cc=flmEscHtml(x.coupon_code);
-    couponHtml='<div style="margin-top:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:8px"><div style="font-size:10px;font-weight:800;color:#166534">🎫 ROI Coupon</div><div style="display:flex;gap:6px;align-items:center;margin-top:5px"><span style="flex:1;font-size:12px;font-weight:900;word-break:break-all">'+cc+'</span><button type="button" onclick="copyRoiCoupon(\''+cc.replace(/'/g,"\\'")+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:7px;padding:7px 9px;font-size:10px;font-weight:800">Copy</button></div><div style="font-size:9px;color:#64748b;margin-top:4px">'+(String(x.transaction_type||'').toLowerCase()==='store_redemption'?'Coupon redeemed at store':'Show this code to store/admin for one-time redemption')+'</div></div>';
-   }
-   var extra='';
-   if(String(x.transaction_type||'').toLowerCase()==='store_redemption')extra='<div style="font-size:10px;color:#64748b;margin-top:4px">Store: '+flmEscHtml(x.store_name||x.store_code||'FLM Store')+(x.store_code?' • Code: '+flmEscHtml(x.store_code):'')+'</div>';
-   return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+displayTitle+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+flmEscHtml(x.store_name):'')+(x.store_code?' • Code: '+flmEscHtml(x.store_code):'')+'</div>'+extra+couponHtml+'</div>';
-  }
-  function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);}).map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}
+  function card(x){var st=String(x.status||'processing').toUpperCase(),net=x.net_amount!=null?x.net_amount:x.amount,c=st==='APPROVED'||st==='COMPLETED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';var displayTitle=(x.title||x.wallet_type||'Transaction');if(String(x.wallet_type||'').toLowerCase()==='loan'&&String(x.transaction_type||'').toLowerCase()==='withdrawal'){displayTitle=displayTitle.replace(/\bLoan\b/gi,'Fund');}var couponHtml='';if(x.coupon_code){var cc=flmEscHtml(x.coupon_code);couponHtml='<div style="margin-top:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:8px"><div style="font-size:10px;font-weight:800;color:#166534">🎫 ROI Coupon</div><div style="display:flex;gap:6px;align-items:center;margin-top:5px"><span style="flex:1;font-size:12px;font-weight:900;word-break:break-all">'+cc+'</span><button type="button" onclick="copyRoiCoupon(\''+cc.replace(/'/g,"\\'")+'\')" style="background:#2563eb;color:#fff;border:0;border-radius:7px;padding:7px 9px;font-size:10px;font-weight:800">Copy</button></div><div style="font-size:9px;color:#64748b;margin-top:4px">'+(st==='COMPLETED'?'Redeemed once':st==='PROCESSING'?'Redeemed at store • Admin processing':'Coupon status: '+st.toLowerCase())+'</div></div>';}return '<div style="border-bottom:1px solid #e2e8f0;padding:11px 2px"><div style="display:flex;justify-content:space-between"><b style="font-size:12px">'+displayTitle+'</b><b style="font-size:12px">'+money(net)+'</b></div><div style="font-size:10px;color:#64748b;margin-top:4px">Requested: '+money(x.amount)+' • '+(x.method||'')+' • '+new Date(x.created_at).toLocaleString()+'</div><div style="font-size:10px;margin-top:4px;font-weight:800;color:'+c+'">'+st+(x.store_name?' • Store: '+flmEscHtml(x.store_name):'')+(x.store_code?' • Code: '+flmEscHtml(x.store_code):'')+'</div>'+couponHtml+'</div>';}
+  function group(t,a){return '<div style="margin-bottom:14px"><div style="font-weight:900;font-size:14px;color:#1e3a5a;margin-bottom:5px">'+t+'</div>'+(a.length?a.map(card).join(''):'<div style="padding:9px;color:#94a3b8;font-size:11px">No records.</div>')+'</div>';}
   el.innerHTML=group('💰 Matching Income Withdrawals',g.matching)+group('🏦 Fund Amount Withdrawals',g.loan)+group('📋 Company Fund Releases',g.fundRelease)+group('🎫 PIN Purchases',g.pins)+group('🛒 ROI Store Redemptions',g.roi)+(g.other.length?group('📋 Other Wallet Transactions',g.other):'');
  }catch(e){el.innerHTML='<div style="padding:12px;color:#dc2626;font-size:11px">Unable to load transaction history: '+e.message+'</div>';}
 }
+
 function loanNum(v){var n=Number(v);return Number.isFinite(n)?n:0;}
 function loanMoney(v){return 'Rs. '+loanNum(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function loanEsc(v){return String(v??'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});}
