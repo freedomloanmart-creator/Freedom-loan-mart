@@ -382,10 +382,11 @@ function flmUserRow(u){
  const left=Number(u.binary_left??u.left_tokens??0)||0;
  const right=Number(u.binary_right??u.right_tokens??0)||0;
  return `<div class="user-admin-row">
-   <div class="user-admin-main"><div class="user-admin-avatar">${escapeHtml(String(u.full_name||'?').trim().charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><div class="user-admin-name">${escapeHtml(u.full_name||'Unnamed')}</div><div class="user-admin-id">${escapeHtml(u.fl_id||'No FL ID')}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="user-edit-btn" onclick='adminViewAsUser(${JSON.stringify(u.fl_id||'')},${JSON.stringify(u.full_name||'')})'>👤 Open User</button><button class="user-edit-btn" onclick='openUserEditor(${safe})'>✏️ Edit</button></div></div>
+   <div class="user-admin-main"><div class="user-admin-avatar">${escapeHtml(String(u.full_name||'?').trim().charAt(0).toUpperCase())}</div><div style="min-width:0;flex:1"><div class="user-admin-name">${escapeHtml(u.full_name||'Unnamed')}</div><div class="user-admin-id">${escapeHtml(u.fl_id||'No FL ID')}</div>${(u.is_active===false||u.is_active===0)?'<div style="margin-top:3px"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#fee2e2;color:#991b1b">INACTIVE</span></div>':'<div style="margin-top:3px"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;background:#dcfce7;color:#166534">ACTIVE</span></div>'}</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="user-edit-btn" onclick='adminViewAsUser(${JSON.stringify(u.fl_id||'')},${JSON.stringify(u.full_name||'')})'>👤 Open User</button><button class="user-edit-btn" onclick='openUserEditor(${safe})'>${(u.is_active===false||u.is_active===0)?'<button class="user-edit-btn" style="background:#059669;color:#fff" onclick="flmAdminActivateUser(\''+escapeHtml(u.fl_id||'')+'\')">Activate</button>':''}✏️ Edit</button></div></div>
    <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml(u.sponsor_id||'—')}</b></div><div><span>🌳 Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
  </div>`;
 }
+async function flmAdminActivateUser(flId){flId=String(flId||'').trim().toUpperCase();if(!flId)return;if(!confirm('Activate '+flId+' directly without PIN?'))return;try{var r=await supabaseClient.rpc('flm_activate_user',{p_fl_id:flId,p_pin_code:null,p_activated_by:'ADMIN'});if(r.error)throw r.error;var d=r.data||{};if(!d.success){alert('FAILED: '+(d.message||'Activation failed'));return;}alert('SUCCESS: '+flId+' activated! Released: Rs.'+Number(d.released_amount||0));loadAdminUsers();}catch(e){alert('Activate failed: '+(e.message||e));}}
 function adminViewAsUser(flId, fullName){
  const id=String(flId||'').trim().toUpperCase();
  if(!id)return alert('Invalid FL ID.');
@@ -436,7 +437,11 @@ function renderAdminUsers(){
  const el=document.getElementById('usersList');
  const q=(document.getElementById('userAdminSearch')?.value||'').trim().toLowerCase();
  if(!el)return;
+ const sf=(document.getElementById('userAdminStatusFilter')?.value||'all');
+ const isInact=function(u){return (u.is_active===false||u.is_active===0||u.is_active==='false');};
  const rows=adminUsersCache.filter(u=>{
+   if(sf==='active'&&isInact(u))return false;
+   if(sf==='inactive'&&!isInact(u))return false;
    if(!q)return true;
    return [u.full_name,u.fl_id,u.mobile,u.email,u.sponsor_id,u.username].some(v=>String(v??'').toLowerCase().includes(q));
  });
@@ -451,7 +456,7 @@ function searchAdminUsers(){renderAdminUsers();const input=document.getElementBy
 async function flmAdminLoadAllUsers(){
   var all=[],from=0,step=1000;
   while(true){
-    var r=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,password,sponsor_id,side,created_at').range(from,from+step-1);
+    var r=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,password,sponsor_id,side,created_at,is_active,activated_at').range(from,from+step-1);
     if(r.error)throw r.error;
     var batch=r.data||[];all=all.concat(batch);
     if(batch.length<step || from>=10000)break;
@@ -692,7 +697,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-dashboard"><div class="card" style="background:#f0fdf4;border:2px solid #059669"><div style="font-weight:800;color:#065f46">✅  Version - All Sections Restored - Before Pins Session Files + Pins Logic</div><div style="font-size:11px;color:#166534;margin-top:6px">This is  version - Before pins session had 11 sections: Dashboard, Users, Pins, Store Locator, Create Store, Store Points, Sub Admin, Wallets, Binary, ROI, Withdraw - Now same + pins logic implemented - As you requested - 40KB+ file</div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Members</div><div style="font-size:24px;font-weight:800" id="statMembers">0</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pins</div><div style="font-size:24px;font-weight:800" id="statTokens">0</div></div></div><div class="grid2"><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Stores</div><div style="font-size:24px;font-weight:800" id="statStores">0</div><div style="font-size:11px;color:#64748b">Restored from 40KB+ before pins session</div></div><div class="dark-card"><div style="font-size:12px;color:#64748b">Total Pairs</div><div style="font-size:20px;font-weight:800" id="binaryPairs">0 pairs</div></div></div><div class="card"><h3>Recent Members - Real - Live DB</h3><div id="recentMembers">Loading...</div></div></div>
 <div id="sec-users" style="display:none">
 <div class="users-admin-header"><div><div class="users-admin-title">👥 Members Management</div><div class="users-admin-subtitle">Live DB • Edit member details and reset passwords when required</div></div><div class="users-admin-count"><b id="userAdminCount">0</b><span>Members</span></div></div>
-<div class="users-admin-toolbar"><div class="user-search-wrap">🔎<input id="userAdminSearch" autocomplete="off" enterkeyhint="search" oninput="filterAdminUsers()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAdminUsers();}" placeholder="Search name, FL ID, mobile or email..."><button type="button" class="user-search-btn" onclick="searchAdminUsers()">Search</button></div><button type="button" onclick="loadAdminUsers()" class="user-refresh-btn">🔄 Refresh</button></div><div id="userAdminResultCount" class="user-search-result"></div>
+<div class="users-admin-toolbar"><div class="user-search-wrap">🔎<input id="userAdminSearch" autocomplete="off" enterkeyhint="search" oninput="filterAdminUsers()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchAdminUsers();}" placeholder="Search name, FL ID, mobile or email..."><button type="button" class="user-search-btn" onclick="searchAdminUsers()">Search</button></div><select id="userAdminStatusFilter" class="input" style="max-width:140px" onchange="renderAdminUsers()"><option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select><button type="button" onclick="loadAdminUsers()" class="user-refresh-btn">🔄 Refresh</button></div><div id="userAdminResultCount" class="user-search-result"></div>
 <div id="usersList"><div class="user-loading">⏳ Loading members...</div></div>
 </div>
 <div id="userEditModal" class="user-edit-modal" onclick="if(event.target===this)closeUserEditor()"><div class="user-edit-card">
@@ -1110,6 +1115,10 @@ async function loadStoreDetailRedemptionApprovals(){
     if(r.error) throw r.error;
     const all=Array.isArray(r.data)?r.data:[];
     const rows=all.filter(x=>String(x.store_id||'')===String(currentStoreId));
+    // Keep the currently opened store's rows in the same array used by the
+    // existing Approve/Reject handlers. Without this, the buttons render but
+    // the handlers cannot find the clicked redemption and return silently.
+    adminStoreRedemptionRows=rows.slice();
     const processing=rows.filter(x=>String(x.status||'').toLowerCase()==='processing');
     const approved=rows.filter(x=>String(x.status||'').toLowerCase()==='approved');
     const rejected=rows.filter(x=>String(x.status||'').toLowerCase()==='rejected');
@@ -1749,6 +1758,19 @@ async function loadStoreRedemptionApprovals(){
     const r=await supabaseClient.rpc('flm_admin_store_redemptions',{p_status:'all',p_store_code:null});
     if(r.error) throw r.error;
     adminStoreRedemptionRows=Array.isArray(r.data)?r.data:[];
+    if(!adminStoreRedemptionRows.length){
+      const r2=await supabaseClient.from('roi_coupons')
+        .select('*').eq('status','redeemed').order('redeemed_at',{ascending:false}).limit(200);
+      if(!r2.error){
+        adminStoreRedemptionRows=(r2.data||[]).map(c=>({
+          id:c.id,coupon_code:c.coupon_code,fl_id:c.fl_id,
+          user_name:c.username||c.user_name||c.full_name||c.name||'User',
+          username:c.username||c.user_name||c.full_name||c.name||'User',
+          amount:c.amount,status:'processing',store_id:c.store_id,store_code:c.store_code||'',
+          store_name:c.store_name||c.store_code||'Store',created_at:c.redeemed_at,_from_roi_coupons:true
+        }));
+      }
+    }
     populateStoreRedemptionFilter();
     updateStoreRedemptionSummary();
     renderStoreRedemptionApprovals();
@@ -1826,7 +1848,7 @@ async function approveStoreRedemption(id){
   if(!ref.trim()){alert('Payment reference / approval note is required.');return;}
   if(!confirm('Approve this redemption?\n\nUser: '+(row.user_name||row.fl_id)+'\nAmount: '+srMoney(row.amount)+'\nStore: '+(row.store_name||row.store_code)))return;
   try{
-    const r=await supabaseClient.rpc('flm_admin_approve_store_redemption',{p_redemption_id:id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
+    const client=await ensureSupabaseClient(); if(!client) throw new Error('Supabase connection unavailable'); const r=await client.rpc('flm_admin_approve_store_redemption',{p_redemption_id:id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
     if(r.error)throw r.error;
     alert('✅ Redemption approved. Amount: '+srMoney(row.amount)); await loadStoreRedemptionApprovals(); if(currentStoreId) await loadStoreDetailRedemptionApprovals();
   }catch(e){alert('Approve failed: '+(e.message||e));}
@@ -1838,11 +1860,13 @@ async function rejectStoreRedemption(id){
   if(!reason.trim()){alert('Rejection reason is required.');return;}
   if(!confirm('Reject this redemption?\n\nAmount: '+srMoney(row.amount)+'\n\nUser coupon will remain USED.'))return;
   try{
-    const r=await supabaseClient.rpc('flm_admin_reject_store_redemption',{p_redemption_id:id,p_rejected_by:srAdminName(),p_rejection_reason:reason.trim()});
+    const client=await ensureSupabaseClient(); if(!client) throw new Error('Supabase connection unavailable'); const r=await client.rpc('flm_admin_reject_store_redemption',{p_redemption_id:id,p_rejected_by:srAdminName(),p_rejection_reason:reason.trim()});
     if(r.error)throw r.error;
     alert('❌ Redemption rejected. Store can re-process it.'); await loadStoreRedemptionApprovals(); if(currentStoreId) await loadStoreDetailRedemptionApprovals();
   }catch(e){alert('Reject failed: '+(e.message||e));}
 }
+window.approveStoreRedemption=approveStoreRedemption;
+window.rejectStoreRedemption=rejectStoreRedemption;
 async function bulkApproveSelectedStoreRedemptions(){
   const ids=getSelectedStoreRedemptionIds();
   if(!ids.length){alert('Select at least one PROCESSING request.');return;}

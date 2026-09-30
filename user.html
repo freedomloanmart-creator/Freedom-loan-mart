@@ -805,7 +805,7 @@ async function flmLoadAllUsers(){
   var all=[],from=0,step=1000;
   while(true){
     var r=await supabaseClient.from('users')
-      .select('fl_id,full_name,mobile,sponsor_id,direct_sponsor_id,side,created_at')
+      .select('fl_id,full_name,mobile,sponsor_id,direct_sponsor_id,side,created_at,is_active')
       .range(from,from+step-1);
     if(r.error)throw r.error;
     var batch=r.data||[];
@@ -1005,7 +1005,7 @@ function flmTreeEsc(v){
 function flmTreeArg(v){return encodeURIComponent(String(v==null?'':v));}
 function createNodeHtml(user,label,position,parentUser){
   if(!user){return '<div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:16px;padding:10px;min-width:105px;text-align:center;opacity:.8"><div style="font-size:9px;color:#94a3b8">'+flmTreeEsc(label)+'</div><div style="width:34px;height:34px;background:#e2e8f0;border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-weight:800">—</div><div style="font-size:10px;color:#94a3b8">Empty</div></div>';}
-  var initial=(user.full_name||user.fl_id||'U').charAt(0).toUpperCase(),name=user.full_name||user.fl_id,fl=String(user.fl_id||'').trim().toUpperCase(),arg=flmTreeArg(fl);
+  var act=!(user.is_active===false||user.is_active===0||user.is_active==='false'),initial=(user.full_name||user.fl_id||'U').charAt(0).toUpperCase(),name=user.full_name||user.fl_id,fl=String(user.fl_id||'').trim().toUpperCase(),arg=flmTreeArg(fl);
   var parentName=parentUser?(parentUser.full_name||parentUser.fl_id||'—'):'—';
   var parentFl=parentUser?String(parentUser.fl_id||'').trim().toUpperCase():'';
   var side=(String(position||'').slice(-1).toUpperCase()==='L')?'LEFT':(String(position||'').slice(-1).toUpperCase()==='R'?'RIGHT':'ROOT');
@@ -1013,9 +1013,9 @@ function createNodeHtml(user,label,position,parentUser){
   return '<div style="background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;min-width:150px;max-width:165px;text-align:center;cursor:pointer;box-shadow:0 2px 7px rgba(15,23,42,.06)" onclick="openTreeRoot(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' tree">'
     +'<div style="font-size:9px;color:#64748b;font-weight:800">'+flmTreeEsc(label)+'</div>'
     +'<div style="display:inline-block;margin-top:4px;padding:3px 7px;border-radius:999px;background:'+(side==='LEFT'?'#eff6ff':side==='RIGHT'?'#f0fdf4':'#f8fafc')+';color:'+(side==='LEFT'?'#1d4ed8':side==='RIGHT'?'#047857':'#475569')+';font-size:9px;font-weight:800">'+side+'</div>'
-    +'<div style="width:40px;height:40px;background:linear-gradient(135deg,#10b981,#059669);border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+flmTreeEsc(initial)+'</div>'
+    +'<div style="width:40px;height:40px;background:'+(act?'linear-gradient(135deg,#10b981,#059669)':'linear-gradient(135deg,#ef4444,#dc2626)')+';border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+flmTreeEsc(initial)+'</div>'
     +'<div style="font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;margin:auto">'+flmTreeEsc(name)+'</div>'
-    +'<div style="font-size:9px;color:#64748b;margin-top:2px">'+flmTreeEsc(fl)+'</div>'
+    +'<div style="font-size:9px;color:#64748b;margin-top:2px">'+flmTreeEsc(fl)+'</div>'+'<div style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:800;background:'+(act?'#dcfce7':'#fee2e2')+';color:'+(act?'#166534':'#991b1b')+'">'+(act?'🟢 ACTIVE':'🔴 INACTIVE')+'</div>'
     +'<div style="font-size:9px;color:#334155;margin-top:5px;line-height:1.25;white-space:normal">'+relation+'</div>'
     +'<div style="font-size:9px;color:#2563eb;margin-top:5px;font-weight:800">Tap to open full tree →</div></div>';
 }
@@ -3364,5 +3364,77 @@ async function claimReward(pairs, name){
   window.flmReconcileRoiDisplay=reconcileRoiDisplay;
   document.addEventListener('DOMContentLoaded',function(){setTimeout(reconcileRoiDisplay,1200);});
 })();
+</script>
+<script>
+/* ===== FLM ACTIVATION SYSTEM (2026-09-30) : free join -> inactive -> PIN activation in 72h ===== */
+var FLM_ACT={active:true,deadline:0,timer:null};
+async function flmCheckActivation(){
+  try{
+    if(!window.supabaseClient||typeof getFlId!=='function')return;
+    var fl=getFlId(); if(!fl)return;
+    var r=await supabaseClient.from('users').select('is_active,created_at').eq('fl_id',fl).single();
+    if(r.error||!r.data)return;
+    var active=!(r.data.is_active===false||r.data.is_active===0||r.data.is_active==='false');
+    FLM_ACT.active=active;
+    if(active){flmHideActivationUI();return;}
+    FLM_ACT.deadline=new Date(r.data.created_at||Date.now()).getTime()+72*3600*1000;
+    flmShowActivationUI(); flmStartActivationCountdown();
+  }catch(e){console.log('activation check:',e.message);}
+}
+function flmShowActivationUI(){
+  var b=document.getElementById('flmActBanner');
+  if(!b){b=document.createElement('div');b.id='flmActBanner';
+    b.style.cssText='background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px;box-shadow:0 4px 14px rgba(220,38,38,.35);position:sticky;top:8px;z-index:50;';
+    var main=document.getElementById('main');if(main)main.insertBefore(b,main.firstChild);}
+  b.style.display='block';
+  b.innerHTML='<div style="display:flex;align-items:center;gap:10px"><div style="font-size:26px">\u26A0\uFE0F</div><div style="flex:1"><div style="font-weight:900;font-size:14px">Please activate your plan!</div><div style="font-size:11px;opacity:.92">\u23F3 Offer time left: <b id="flmActCount">--</b><br>Complete your activation with PIN / Token in Pins session.</div></div><button onclick="showSec(\'tokens\')" style="background:#fff;color:#b91c1c;border:0;border-radius:9px;padding:10px 14px;font-weight:900;font-size:12px;white-space:nowrap">Activate Now \u2192</button></div>';
+  var c=document.getElementById('flmActCard');
+  if(!c){c=document.createElement('div');c.id='flmActCard';
+    c.style.cssText='background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b;border-radius:16px;padding:16px;margin-bottom:12px;';
+    var sec=document.getElementById('sec-dashboard');
+    if(sec){var f=sec.querySelector('.card');if(f&&f.parentNode)f.parentNode.insertBefore(c,f.nextSibling);}}
+  c.style.display='block';
+  c.innerHTML='<div style="font-weight:900;font-size:15px;color:#92400e">\uD83D\uDD14 Activation Required</div><div style="font-size:12px;color:#78350f;margin-top:6px">Your ID is <b>INACTIVE</b> - no income will be credited until activation. Activate within <b id="flmActCount2">--</b> to keep your full team, otherwise pre-activation team resets to 0.</div><button onclick="showSec(\'tokens\')" style="margin-top:10px;background:#b91c1c;color:#fff;border:0;border-radius:10px;padding:12px;width:100%;font-weight:900">\uD83C\uDFAB Activate with PIN \u2192</button>';
+  var pb=document.getElementById('flmActPinBox');
+  if(!pb){pb=document.createElement('div');pb.id='flmActPinBox';
+    pb.style.cssText='background:#fff;border:2px solid #7c3aed;border-radius:16px;padding:16px;margin-bottom:12px;';
+    var ts=document.getElementById('sec-tokens');if(ts)ts.insertBefore(pb,ts.firstChild);}
+  pb.style.display='block';
+  pb.innerHTML='<div style="font-weight:900;font-size:15px">\uD83C\uDFAB Activate My ID</div><div style="font-size:11px;color:#64748b;margin-top:4px">Enter your PIN / Token (Rs.2000) to activate. Your upliner can share a PIN with you, or purchase one here.</div><input id="flmActPin" placeholder="Enter PIN / Token" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;margin-top:10px"><button onclick="flmDoActivate()" id="flmActBtn" style="width:100%;margin-top:10px;background:#059669;color:#fff;border:0;border-radius:10px;padding:13px;font-weight:900">\u2705 Activate My ID</button><div id="flmActMsg" style="margin-top:8px;font-size:12px"></div>';
+}
+function flmHideActivationUI(){
+  ['flmActBanner','flmActCard','flmActPinBox'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
+  if(FLM_ACT.timer){clearInterval(FLM_ACT.timer);FLM_ACT.timer=null;}
+}
+function flmStartActivationCountdown(){
+  function tick(){var left=FLM_ACT.deadline-Date.now(),t='EXPIRED';
+    if(left>0){var h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000),s2=Math.floor(left%60000/1000);t=h+'h : '+m+'m : '+s2+'s';}
+    var a=document.getElementById('flmActCount');if(a)a.innerText=t;
+    var c2=document.getElementById('flmActCount2');if(c2)c2.innerText=t;}
+  tick();if(FLM_ACT.timer)clearInterval(FLM_ACT.timer);
+  FLM_ACT.timer=setInterval(tick,1000);
+}
+async function flmDoActivate(){
+  var pin=((document.getElementById('flmActPin')||{}).value||'').trim();
+  var msg=document.getElementById('flmActMsg');
+  if(!pin){if(msg)msg.innerHTML='<span style="color:#dc2626">Enter PIN first.</span>';return;}
+  var btn=document.getElementById('flmActBtn');if(btn){btn.disabled=true;btn.innerText='Activating...';}
+  try{
+    var r=await supabaseClient.rpc('flm_activate_user',{p_fl_id:getFlId(),p_pin_code:pin,p_activated_by:'SELF'});
+    if(r.error)throw r.error;
+    var d=r.data||{};
+    if(!d.success){if(msg)msg.innerHTML='<span style="color:#dc2626">\u274C '+(d.message||'Failed')+'</span>';}
+    else{if(msg)msg.innerHTML='<span style="color:#059669">\u2705 '+d.message+'! Released: Rs.'+Number(d.released_amount||0)+'</span>';setTimeout(function(){location.reload();},1600);}
+  }catch(e){if(msg)msg.innerHTML='<span style="color:#dc2626">\u274C '+(e.message||e)+'</span>';}
+  if(btn){btn.disabled=false;btn.innerText='\u2705 Activate My ID';}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(flmCheckActivation,900);
+  setTimeout(function(){var c=document.getElementById('binaryTreeContainer');
+    if(c&&!document.getElementById('flmTreeLegend')){var l=document.createElement('div');l.id='flmTreeLegend';
+      l.style.cssText='font-size:11px;color:#475569;margin-bottom:8px;text-align:center;';
+      l.innerHTML='\uD83D\uDFE2 <b>Green</b> = Active member &nbsp;\u2022&nbsp; \uD83D\uDD34 <b>Red</b> = Inactive member';
+      c.parentNode.insertBefore(l,c);}},1300);
+});
 </script>
 </body></html>
