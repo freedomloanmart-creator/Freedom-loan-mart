@@ -1430,7 +1430,7 @@ async function submitWalletPinPurchase(walletType){
 function showWalletWithdraw(walletType){
  if(walletType==='matching'){
   var box=document.getElementById('walletSubAction');if(!box)return;
-  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. Until the ₹5,000/day store condition is reached, Bank/USDT withdrawal is available.</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
+  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. ₹500–₹4,999: Bank/USDT withdrawal. ₹5,000 and above: Store Coupon (no cash).</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
   checkMatchingStore();
   return;
  }
@@ -1563,7 +1563,7 @@ async function submitRoiRedeem(){
 }
 async function submitMatchingWithdrawNormal(){
   var amt=getActionAmount();
-  if(amt<200){alert('Minimum matching withdrawal is Rs.200.');return;}
+  if(!amt||amt<500){alert('Minimum matching withdrawal is Rs.500.');return;}
   if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient available matching balance.');return;}
   if(!(await ensurePayout('bank'))) return;
   try{
@@ -1574,6 +1574,7 @@ async function submitMatchingWithdrawNormal(){
   }catch(e){alert('Withdrawal failed: '+e.message);}
 }
 async function handleMatchingStoreCoupon(){
+  var amt=getActionAmount();
   var storeFound=false;
   try{
     if(navigator.geolocation){
@@ -1590,11 +1591,11 @@ async function handleMatchingStoreCoupon(){
       }
     }
   }catch(e){console.log('store check',e.message);}
-  if(!storeFound){
+  if(!storeFound&&amt<5000){
     if(confirm('No FLM Store within 25km.\nNormal Bank withdrawal will be enabled.\nContinue?')){ await submitMatchingWithdrawNormal(); }
     return;
   }
-  var amt=getActionAmount();
+  if(!storeFound&&amt>=5000){alert('No FLM Store within 25km, but Rs.5000+ must be a Store Coupon.\nCoupon will be generated.');}
   if(!amt||amt<500){alert('Minimum store coupon is Rs.500. Enter amount above.');return;}
   if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient matching balance.');return;}
   var code='FLM-M'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
@@ -1612,7 +1613,7 @@ async function handleMatchingStoreCoupon(){
   }catch(e){alert('Coupon failed: '+(e.message||e));}
 }
 
-async function submitMatchingWithdraw(method){var forceStore=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25);if(forceStore){await handleMatchingStoreCoupon();return;}var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();showSec('wallets',true);alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
+async function submitMatchingWithdraw(method){var amt=getActionAmount();if(!amt||amt<500){alert('Minimum matching withdrawal is ₹500.');return;}if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient available matching balance.');return;}if(amt>=5000){await handleMatchingStoreCoupon();return;}if(!(await ensurePayout(method)))return;try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();showSec('wallets',true);alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
 async function submitLoanWithdraw(method){
   var flId=getFlId();
   var st=await flmLoadLoanV2();
@@ -1649,17 +1650,8 @@ async function submitLoanWithdraw(method){
       }catch(e){}
       alert('Fund withdrawal submitted!\nRequested: Rs.'+loanNum(amt).toLocaleString('en-IN')+'\n10% deduction: Rs.'+loanNum(amt-Math.floor(amt*0.9)).toLocaleString('en-IN')+'\nYou receive: Rs.'+loanNum(Math.floor(amt*0.9)).toLocaleString('en-IN'));var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
- var el=document.getElementById('matchingStoreBox');if(!el)return;var force=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25),bankBtn=document.getElementById('matchingBankBtn'),usdtBtn=document.getElementById('matchingUsdtBtn'),sb=document.getElementById('matchingStoreWithdrawBtn');
- if(!force){el.innerHTML='<div style="font-size:11px;color:#64748b">Store withdrawal activates after today reaches 25 paid pairs / ₹5,000. Until then the normal withdrawal options remain available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';if(sb)sb.style.display='none';return;}
- if(bankBtn)bankBtn.style.display='none';if(usdtBtn)usdtBtn.style.display='none';if(sb)sb.style.display='none';el.innerHTML='<div style="font-size:11px;color:#64748b">Checking your nearest FLM Store Point within 25 KM…</div>';
- try{
-  var store=null;
-  if(navigator.geolocation){var pos=await new Promise(function(resolve,reject){navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:300000});});var r=await supabaseClient.rpc('flm_nearest_store',{p_lat:pos.coords.latitude,p_lng:pos.coords.longitude,p_radius_km:25});if(r.error)throw r.error;store=(r.data&&r.data.length)?r.data[0]:null;}
-  if(!store){try{var ur=await supabaseClient.from('users').select('pincode').eq('fl_id',getFlId()).maybeSingle(),pin=ur.data&&String(ur.data.pincode||'').trim();if(pin){var sr=await supabaseClient.from('stores').select('name,store_code,address,town,pincode,latitude,longitude,status').eq('status','active').eq('pincode',pin).limit(1);if(!sr.error&&sr.data&&sr.data.length){var x=sr.data[0];store={store_name:x.name||'FLM Store',store_code:x.store_code||'',address:x.address||'',city:x.town||'',pincode:x.pincode||pin,distance_km:null};}}}catch(e){}}
-  FLM_WALLET.store=store;
-  if(store){el.innerHTML='<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;font-size:11px"><b>🏪 Store withdrawal required</b><br>'+flmTreeEsc(store.store_name||'FLM Store')+(store.distance_km!=null?' • '+Number(store.distance_km||0).toFixed(1)+' KM':'')+'<br><span style="color:#047857">Store Code: '+flmTreeEsc(store.store_code||'--')+'</span><br><span>Daily store withdrawal limit: ₹5,000</span><br><span>20% deduction: 10% store + 10% admin</span></div>';if(sb)sb.style.display='block';}
-  else el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>🏪 No FLM Store found within 25 KM.</b><br>Store withdrawal is mandatory after ₹5,000/day. Please ask Admin to add/activate a nearby Store Point. Bank/USDT is not enabled after the daily cap.</div>';
- }catch(e){FLM_WALLET.store=null;el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>📍 Location permission is needed.</b><br>Allow location access and tap again. After the daily ₹5,000 cap, Store withdrawal is mandatory.</div>';}
+ var el=document.getElementById('matchingStoreBox');if(!el)return;var bankBtn=document.getElementById('matchingBankBtn'),usdtBtn=document.getElementById('matchingUsdtBtn'),sb=document.getElementById('matchingStoreWithdrawBtn');
+ el.innerHTML='<div style="font-size:11px;color:#64748b">₹500 \u2013 ₹4,999: Bank/USDT withdrawal. ₹5,000 and above: Store Coupon will be generated (no cash withdrawal).</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';if(sb)sb.style.display='none';return;
 }
 async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>5000){alert('Store withdrawal maximum is ₹5,000 per day.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Store withdrawal request submitted. Maximum ₹5,000/day is enforced.');await loadWalletData();await loadWalletHistory();await checkMatchingStore();}catch(e){alert('Store withdrawal failed: '+e.message);}}
 async function loadWalletHistory(){
