@@ -943,6 +943,19 @@ body{background:#eef2f7;color:#0f172a}
     <div id="storeStockList" style="margin-top:10px"></div>
   </div>
   <div style="margin-top:12px"><b>🎫 Coupons Redeemed (Transaction History)</b><div id="storeCouponsList" style="margin-top:6px;max-height:250px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div></div>
+
+  <div style="margin-top:12px;background:#fff;border:2px solid #7c3aed;border-radius:12px;padding:12px">
+    <div style="font-weight:900;font-size:16px">🏪 Store Coupon Redemption Processing</div>
+    <div style="font-size:11px;color:#64748b;margin-top:4px">Process only the ROI coupons redeemed at this selected store. Approve or reject from here.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:10px">
+      <div style="background:#fef3c7;border-radius:9px;padding:8px;text-align:center"><div style="font-size:10px;color:#92400e">PROCESSING</div><b id="sdSrProcessingAmount" style="font-size:16px">₹0</b></div>
+      <div style="background:#dcfce7;border-radius:9px;padding:8px;text-align:center"><div style="font-size:10px;color:#166534">APPROVED</div><b id="sdSrApprovedAmount" style="font-size:16px">₹0</b></div>
+      <div style="background:#fee2e2;border-radius:9px;padding:8px;text-align:center"><div style="font-size:10px;color:#991b1b">REJECTED</div><b id="sdSrRejectedAmount" style="font-size:16px">₹0</b></div>
+    </div>
+    <button type="button" onclick="loadStoreDetailRedemptionApprovals()" style="width:100%;margin-top:9px;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:10px;font-weight:900">🔄 Refresh Redemption Requests</button>
+    <div id="storeDetailRedemptionList" style="margin-top:10px">Loading...</div>
+  </div>
+
   <div style="margin-top:12px"><b>📋 Products Sent to Store</b><div id="storeProductsList" style="margin-top:6px;max-height:200px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div></div>
   <div style="margin-top:12px"><b>📈 Stock History</b><div id="storeTxnsList" style="margin-top:6px;max-height:250px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div></div>
   <div style="margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;font-size:11px">
@@ -1072,7 +1085,46 @@ async function openStoreDetail(storeId){
 function closeStoreDetail(){document.getElementById('storeDetailSection').style.display='none';currentStoreId=null;}
 async function loadStoreDetailAll(){
   if(!currentStoreId) return;
-  await Promise.all([loadStoreStock(),loadStoreProducts(),loadStoreCoupons(),loadStoreTxns()]);
+  await Promise.all([loadStoreStock(),loadStoreProducts(),loadStoreCoupons(),loadStoreTxns(),loadStoreDetailRedemptionApprovals()]);
+}
+
+async function loadStoreDetailRedemptionApprovals(){
+  const el=document.getElementById('storeDetailRedemptionList');
+  if(!el || !currentStoreId) return;
+  el.innerHTML='<div style="padding:10px;text-align:center;color:#64748b">Loading redemption requests...</div>';
+  try{
+    const client=await ensureSupabaseClient();
+    if(!client) throw new Error('Supabase connection unavailable');
+    const r=await client.rpc('flm_admin_store_redemptions',{p_status:'all',p_store_code:null});
+    if(r.error) throw r.error;
+    const all=Array.isArray(r.data)?r.data:[];
+    const rows=all.filter(x=>String(x.store_id||'')===String(currentStoreId));
+    const processing=rows.filter(x=>String(x.status||'').toLowerCase()==='processing');
+    const approved=rows.filter(x=>String(x.status||'').toLowerCase()==='approved');
+    const rejected=rows.filter(x=>String(x.status||'').toLowerCase()==='rejected');
+    const sum=a=>a.reduce((t,x)=>t+Number(x.amount||0),0);
+    const money=v=>'₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+    const pe=document.getElementById('sdSrProcessingAmount'),ae=document.getElementById('sdSrApprovedAmount'),re=document.getElementById('sdSrRejectedAmount');
+    if(pe)pe.innerText=money(sum(processing)); if(ae)ae.innerText=money(sum(approved)); if(re)re.innerText=money(sum(rejected));
+    if(!rows.length){el.innerHTML='<div style="padding:12px;text-align:center;color:#64748b;background:#f8fafc;border-radius:9px">No redemption requests for this store.</div>';return;}
+    rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+    el.innerHTML=rows.map(x=>{
+      const st=String(x.status||'processing').toLowerCase();
+      const can=st==='processing';
+      const badge=st==='approved'?'<span style="background:#dcfce7;color:#166534;padding:3px 7px;border-radius:999px;font-weight:900">APPROVED</span>':st==='rejected'?'<span style="background:#fee2e2;color:#991b1b;padding:3px 7px;border-radius:999px;font-weight:900">REJECTED</span>':'<span style="background:#fef3c7;color:#92400e;padding:3px 7px;border-radius:999px;font-weight:900">PROCESSING</span>';
+      const id=String(x.id||'').replace(/'/g,"\'");
+      return '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">'+
+        '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+srEsc(x.user_name||x.fl_id||'-')+'</b><b>'+money(x.amount)+'</b></div>'+
+        '<div style="font-size:11px;color:#475569;margin-top:5px">FL ID: <b>'+srEsc(x.fl_id||'-')+'</b><br>Coupon: <b>'+srEsc(x.coupon_code||'-')+'</b><br>'+srEsc(x.created_at?new Date(x.created_at).toLocaleString('en-IN'):'')+'</div>'+
+        '<div style="margin-top:7px">'+badge+'</div>'+
+        (x.approval_reason?'<div style="margin-top:6px;font-size:11px;background:#f0fdf4;padding:7px;border-radius:7px"><b>Payment / Approval:</b> '+srEsc(x.approval_reason)+'</div>':'')+
+        (x.rejection_reason?'<div style="margin-top:6px;font-size:11px;background:#fef2f2;padding:7px;border-radius:7px"><b>Reject reason:</b> '+srEsc(x.rejection_reason)+'</div>':'')+
+        (can?'<div style="display:flex;gap:7px;margin-top:9px"><button type="button" onclick="approveStoreRedemption(\''+id+'\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">✅ Approve</button><button type="button" onclick="rejectStoreRedemption(\''+id+'\')" style="flex:1;background:#dc2626;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:900">❌ Reject</button></div>':'')+
+        '</div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="padding:10px;background:#fef2f2;color:#991b1b;border-radius:9px;font-size:12px">Unable to load redemption requests: '+srEsc(e.message||e)+'</div>';
+  }
 }
 async function loadStoreStock(){
   const client=await ensureSupabaseClient();
@@ -1685,31 +1737,6 @@ async function loadStoreRedemptionApprovals(){
     const r=await supabaseClient.rpc('flm_admin_store_redemptions',{p_status:'all',p_store_code:null});
     if(r.error) throw r.error;
     adminStoreRedemptionRows=Array.isArray(r.data)?r.data:[];
-
-    // Fallback: RPC empty ayithe roi_coupons nundi redeemed coupons ni processing ga chupinchu
-    if(!adminStoreRedemptionRows.length){
-      const r2=await supabaseClient.from('roi_coupons')
-        .select('*')
-        .eq('status','redeemed')
-        .order('redeemed_at',{ascending:false})
-        .limit(200);
-      if(!r2.error){
-        adminStoreRedemptionRows=(r2.data||[]).map(c=>({
-          id:c.id,
-          coupon_code:c.coupon_code,
-          fl_id:c.fl_id,
-          user_name:c.username||c.user_name||c.full_name||c.name||'User',
-          username:c.username||c.user_name||c.full_name||c.name||'User',
-          amount:c.amount,
-          status:'processing',
-          store_id:c.store_id,
-          store_code:c.store_code||'',
-          store_name:c.store_name||c.store_code||'Store',
-          created_at:c.redeemed_at,
-          _from_roi_coupons:true
-        }));
-      }
-    }
     populateStoreRedemptionFilter();
     updateStoreRedemptionSummary();
     renderStoreRedemptionApprovals();
@@ -1789,7 +1816,7 @@ async function approveStoreRedemption(id){
   try{
     const r=await supabaseClient.rpc('flm_admin_approve_store_redemption',{p_redemption_id:id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
     if(r.error)throw r.error;
-    alert('✅ Redemption approved. Amount: '+srMoney(row.amount)); await loadStoreRedemptionApprovals();
+    alert('✅ Redemption approved. Amount: '+srMoney(row.amount)); await loadStoreRedemptionApprovals(); if(currentStoreId) await loadStoreDetailRedemptionApprovals();
   }catch(e){alert('Approve failed: '+(e.message||e));}
 }
 async function rejectStoreRedemption(id){
@@ -1801,7 +1828,7 @@ async function rejectStoreRedemption(id){
   try{
     const r=await supabaseClient.rpc('flm_admin_reject_store_redemption',{p_redemption_id:id,p_rejected_by:srAdminName(),p_rejection_reason:reason.trim()});
     if(r.error)throw r.error;
-    alert('❌ Redemption rejected. Store can re-process it.'); await loadStoreRedemptionApprovals();
+    alert('❌ Redemption rejected. Store can re-process it.'); await loadStoreRedemptionApprovals(); if(currentStoreId) await loadStoreDetailRedemptionApprovals();
   }catch(e){alert('Reject failed: '+(e.message||e));}
 }
 async function bulkApproveSelectedStoreRedemptions(){
@@ -1819,7 +1846,7 @@ async function bulkApproveSelectedStoreRedemptions(){
   try{
     const r=await supabaseClient.rpc('flm_admin_bulk_approve_store_redemptions',{p_store_id:rows[0].store_id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
     if(r.error)throw r.error;
-    alert('✅ Bulk approval completed for '+Number(r.data||rows.length)+' request(s).\nTotal: '+srMoney(total)); await loadStoreRedemptionApprovals();
+    alert('✅ Bulk approval completed for '+Number(r.data||rows.length)+' request(s).\nTotal: '+srMoney(total)); await loadStoreRedemptionApprovals(); if(currentStoreId) await loadStoreDetailRedemptionApprovals();
   }catch(e){alert('Bulk approval failed: '+(e.message||e));}
 }
 async function approveAllPendingForSelectedStore(){
@@ -1835,7 +1862,7 @@ async function approveAllPendingForSelectedStore(){
   try{
     const r=await supabaseClient.rpc('flm_admin_bulk_approve_store_redemptions',{p_store_id:rows[0].store_id,p_approved_by:srAdminName(),p_approval_reason:ref.trim()});
     if(r.error)throw r.error;
-    alert('✅ All pending requests for this store approved.\nTotal: '+srMoney(total)); await loadStoreRedemptionApprovals();
+    alert('✅ All pending requests for this store approved.\nTotal: '+srMoney(total)); await loadStoreRedemptionApprovals(); if(currentStoreId) await loadStoreDetailRedemptionApprovals();
   }catch(e){alert('Approve All failed: '+(e.message||e));}
 }
 (function(){
