@@ -246,7 +246,7 @@ async function adminGeneratePinsWithBonus(qty) {
 
 </script>
 <title>FLM Registration</title>
-<!-- FLM REGISTER FULL BUILD: 36 PAIRS / RS.4000 / BUY-TOKENS SECTION REMOVED / ATOMIC PIN CLAIM -->
+<!-- FLM REGISTER FULL BUILD: 160 PAIRS / RS.16000 / BUY-TOKENS SECTION REMOVED / ATOMIC PIN CLAIM -->
 <style>
 *{box-sizing:border-box;font-family:Inter,system-ui}html,body{width:100%;overflow-x:hidden} body{margin:0;background:#eef2f7;padding:12px}
 .card{max-width:480px;margin:12px auto;background:#fff;border-radius:20px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb}
@@ -279,7 +279,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 <div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - Live INR equivalent</b><br><span style="font-size:9px;font-family:monospace">Admin configured BEP20 address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 </div>
-<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Note:</b> Registration is FREE. After joining, activate your ID with a PIN/Token (Rs.2000) within 72 hours from the user panel. 36 pairs=Rs.4000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover</div>
+<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Note:</b> Registration is FREE. After joining, activate your ID with a PIN/Token (Rs.2000) within 72 hours from the user panel. 160 pairs=Rs.16000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover</div>
 <button class="btn" onclick="register()">✅ Register Now (Free)</button>
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
 <div style="display:none" style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
@@ -347,43 +347,8 @@ function showMobileValidation(){
   else {box.style.color='#dc2626';box.textContent='❌ Mobile number must contain exactly 10 digits.';}
 }
 let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
-async function checkToken(){
-const token=document.getElementById('pinToken').value.trim();
-const sec=document.getElementById('paymentSection');
-const msgBox=document.getElementById('msg');
-if(!token){alert('Enter Token/Pin - FLMPIN... or FLTKN...');return;}
-if(!supabaseClient){alert('❌ Supabase not connected - Demo: Any FLM/FLT valid');return;}
-msgBox.innerHTML='<span style=color:#2563eb>⏳ Checking Pin/Token - Real DB...</span>';
-try{
-  const {data: allPins, error: err1} = await supabaseClient.from('pins').select('*').eq('pin_code', token.toUpperCase()).limit(1);
-  if(err1) throw err1;
-  if(!allPins || allPins.length===0){
-    msgBox.innerHTML='<span style=color:#dc2626>❌ Pin Wrong - Pin/Token not found in DB - Use valid FLMPIN... or FLTKN... from pins table</span>';
-    alert('❌ Pin Wrong - Not found: '+token);
-    if(sec) sec.style.display='block';
-    return;
-  }
-  const pin = allPins[0];
-  if(pin.status==='used'){
-    msgBox.innerHTML='<span style=color:#f59e0b>⚠️ This Pin Already Used - Used by: '+pin.used_by_mobile+' at '+new Date(pin.used_at).toLocaleString()+' - Use another unused pin</span>';
-    alert('⚠️ This Pin Already Used - Used by: '+pin.used_by_mobile);
-    if(sec) sec.style.display='none';
-    return;
-  }
-  if(pin.status==='unused'){
-    msgBox.innerHTML='<span style=color:#059669>✅ Correct - Pin/Token Valid & Unused - Amount Rs.'+pin.amount+' - No payment needed - Direct entry - Pin=Token same</span>';
-    alert('✅ Correct - Pin Valid & Unused: '+token+' - Amount Rs.'+pin.amount);
-    if(sec) sec.style.display='none';
-    return;
-  }
-} catch(e){
-  msgBox.innerHTML='<span style=color:#dc2626>❌ Error checking pin: '+e.message+'</span>';
-}
-}
-document.getElementById('pinToken').addEventListener('input',function(){
-const v=this.value.trim();const sec=document.getElementById('paymentSection');
-if(v){sec.style.display='none';}else{sec.style.display='block';}
-});
+/* checkToken removed - no token field at registration */
+/* pinToken field removed - activation happens in user panel */
 function applyReferralFromUrl(){
   const params = new URLSearchParams(window.location.search);
   const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
