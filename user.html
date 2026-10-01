@@ -1,5 +1,4 @@
 <!-- FLM_USER_FINAL_LOAN_AUTO_LEVELS_20260915 -->
-<!-- FLM_TREE_ACTIVE_INACTIVE_FIX_20261001 -->
 <!DOCTYPE html>
 <html><head><meta name="flm-build" content="20260923-direct-referral-fund1-fix-v2"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Freedom Loans Mart - Dashboard</title>
@@ -183,7 +182,7 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 <style>@keyframes flmAnnPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}#flmAnnMedia{width:100%;box-sizing:border-box;text-align:center}#flmAnnMedia img,#flmAnnMedia video{display:block;width:100%;max-width:100%;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center;border-radius:10px}#flmLoginAnnouncement{align-items:flex-start!important;padding:8px!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch}#flmLoginAnnouncement>div{width:min(100%,520px)!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important;overflow-x:hidden!important}@media(max-width:520px){#flmLoginAnnouncement>div{width:100%!important;border-radius:16px!important}#flmAnnMessage{padding:16px 14px!important}#flmAnnMedia{padding:0 12px 12px!important}}</style>
 <div class="menu" id="menu">
-<div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669">• Active</span></div></div>
+<div class="menu-head"><div style="width:72px;height:72px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)"><span style="font-size:28px;font-weight:800;color:#fff">FLM</span></div><div style="margin-top:12px;font-size:14px;font-weight:800;color:#0f172a">FREEDOM LOANS MART</div><div style="font-size:10px;color:#64748b;margin-top:2px">Way to your Financial Freedom</div><div style="margin-top:10px;background:#f1f5f9;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:6px"><div style="width:8px;height:8px;background:#10b981;border-radius:50%" id="menuDot"></div><span style="font-size:11px;font-weight:600;color:#0f172a" id="menuFlId">FL ID</span><span style="font-size:10px;color:#059669" id="menuStatus">• Active</span></div></div>
 <div style="padding:8px 0">
 <div class="menu-section">MY BUSINESS</div>
 <div class="menu-item active" onclick="showSec('dashboard')"><span style="width:32px;height:32px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:center">📊</span> Dashboard</div>
@@ -212,9 +211,9 @@ body{background:#eef2f7;color:#0f172a}
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
 <div id="sec-dashboard">
-<div class="card" style="background:linear-gradient(135deg,#1e3a8a 0%,#0e7490 50%,#14b8a6 100%);color:#fff;padding:20px;border-radius:20px"><div style="display:flex;align-items:center;gap:12px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:3px solid rgba(255,255,255,.3)" id="dashInitial">U</div><div style="min-width:0"><div style="font-size:11px;opacity:.8;letter-spacing:1px">MEMBER DASHBOARD</div><div style="font-size:18px;font-weight:800" id="dashName">Loading...</div><div style="font-size:13px;opacity:.9"><span id="dashFlId">FL ID</span> <span style="color:#86efac">• Active</span></div><div style="font-size:10px;margin-top:5px;opacity:.86">🕒 Joined: <span id="dashJoined">--</span></div></div></div><button class="btn-white" onclick="showSec('invite')">Invite members</button><button class="btn-outline" onclick="showSec('downline')">View tree</button></div>
+<div class="card" style="background:linear-gradient(135deg,#1e3a8a 0%,#0e7490 50%,#14b8a6 100%);color:#fff;padding:20px;border-radius:20px"><div style="display:flex;align-items:center;gap:12px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;border:3px solid rgba(255,255,255,.3)" id="dashInitial">U</div><div style="min-width:0"><div style="font-size:11px;opacity:.8;letter-spacing:1px">MEMBER DASHBOARD</div><div style="font-size:18px;font-weight:800" id="dashName">Loading...</div><div style="font-size:13px;opacity:.9"><span id="dashFlId">FL ID</span> <span style="color:#86efac" id="dashStatus">• Active</span></div><div style="font-size:10px;margin-top:5px;opacity:.86">🕒 Joined: <span id="dashJoined">--</span></div></div></div><button class="btn-white" onclick="showSec('invite')">Invite members</button><button class="btn-outline" onclick="showSec('downline')">View tree</button></div>
 <div class="card" style="background:#f0fdf4;border:1px solid #dcfce7"><div style="background:#dcfce7;color:#166534;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block">MATCHING BONUS</div><div style="font-size:15px;font-weight:800;margin-top:10px;color:#0f172a">Rs. 200 for every completed left and right pair</div><div style="font-size:13px;color:#2563eb;font-weight:700;margin-top:8px;cursor:pointer" onclick="showSec('downline')">Check network →</div></div>
-<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Profile</b><span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:11px">Active</span></div><div style="margin-top:12px;display:flex;flex-direction:column;gap:8px"><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Member ID</div><div style="font-size:14px;font-weight:700" id="pMemberId">FL ID</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Joined Date & Time</div><div style="font-size:14px;font-weight:700" id="pJoined">--</div><div style="font-size:10px;color:#94a3b8;margin-top:3px">IST</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Activation</div><div style="font-size:14px;font-weight:700" id="pActivation">--</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Sponsored by</div><div style="font-size:14px;font-weight:700" id="pSponsor">--</div></div></div></div>
+<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Profile</b><span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:999px;font-size:11px" id="profileStatus">Active</span></div><div style="margin-top:12px;display:flex;flex-direction:column;gap:8px"><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Member ID</div><div style="font-size:14px;font-weight:700" id="pMemberId">FL ID</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Joined Date & Time</div><div style="font-size:14px;font-weight:700" id="pJoined">--</div><div style="font-size:10px;color:#94a3b8;margin-top:3px">IST</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Activation</div><div style="font-size:14px;font-weight:700" id="pActivation">--</div></div><div style="background:#f8fafc;padding:12px;border-radius:12px"><div style="font-size:11px;color:#64748b">Sponsored by</div><div style="font-size:14px;font-weight:700" id="pSponsor">--</div></div></div></div>
 <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>Place a member</b><span style="color:#2563eb;font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('invite')">All links →</span></div><div style="margin-top:12px;display:flex;flex-direction:column;gap:10px"><div style="background:linear-gradient(135deg,#cbd5e1,#94a3b8);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyLeft()"><div style="font-size:11px;color:#475569">Left side</div><div style="font-size:16px;font-weight:800;margin-top:4px">Left link</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="leftLinkText">Click to copy</div></div><div style="background:linear-gradient(135deg,#a7f3d0,#6ee7b7);border-radius:16px;padding:16px;color:#0f172a;cursor:pointer" onclick="copyRight()"><div style="font-size:11px;color:#065f46">Right side</div><div style="font-size:16px;font-weight:800;margin-top:4px">Right link</div><div style="font-size:10px;margin-top:6px;background:rgba(255,255,255,.5);padding:4px 8px;border-radius:999px;display:inline-block" id="rightLinkText">Click to copy</div></div></div></div>
 <div class="card" style="background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><b>Earnings and wallets</b></div><span style="font-size:13px;font-weight:700;cursor:pointer" onclick="showSec('wallets')">Open wallet →</span></div>
 <div class="grid2"><div class="dark-card"><div style="font-size:12px;opacity:.8">Main Wallet</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="mainWallet">Rs. 0.00</div></div><div class="dark-card"><div style="font-size:12px;opacity:.8">ROI Credits</div><div style="font-size:20px;font-weight:800;margin-top:8px" id="roiCredits">0.00</div></div></div>
@@ -410,62 +409,8 @@ body{background:#eef2f7;color:#0f172a}
 </div>
 </div>
 
-<div id="treeModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this) closeTreeModal()">
-<div style="background:#fff;border-radius:20px;max-width:390px;width:100%;max-height:90dvh;overflow:auto;box-shadow:0 20px 40px rgba(0,0,0,.3)">
-  <div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div id="modalInitial" style="width:40px;height:40px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800">T</div>
-      <div>
-        <div style="font-weight:800" id="modalName">Member</div>
-        <div style="font-size:11px;opacity:.8" id="modalFl">FL000000</div>
-      </div>
-    </div>
-    <span onclick="closeTreeModal()" style="cursor:pointer;font-size:20px;background:rgba(255,255,255,.2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">×</span>
-  </div>
-  <div style="padding:16px">
-    <div style="text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px;margin-bottom:12px">
-      <div style="font-size:11px;color:#166534;font-weight:800">Selected member's complete binary team</div>
-      <div style="font-size:10px;color:#64748b;margin-top:3px">Left / Right counts include all descendants under that side.</div>
-    </div>
+<div id="treeModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:10000;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this) closeTreeModal()"><div style="background:#fff;border-radius:20px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.3)"><div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><div id="modalInitial" style="width:40px;height:40px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800">T</div><div><div style="font-weight:800" id="modalName">Theja k</div><div style="font-size:11px;opacity:.8" id="modalFl">FL241190</div></div></div><span onclick="closeTreeModal()" style="cursor:pointer;font-size:20px;background:rgba(255,255,255,.2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">×</span></div><div style="padding:16px"><div style="text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px;margin-bottom:12px"><div style="font-size:11px;color:#166534">Click chesina user details</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;border-radius:12px;padding:12px;text-align:center"><div style="font-size:11px;color:#1e40af">LEFT SIDE</div><div style="font-size:24px;font-weight:800;color:#1e40af;margin-top:4px" id="modalLeft">0</div><div style="font-size:10px;color:#3b82f6;margin-top:2px" id="modalLeftText">Left lo 0 mandi</div></div><div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;border-radius:12px;padding:12px;text-align:center"><div style="font-size:11px;color:#92400e">RIGHT SIDE</div><div style="font-size:24px;font-weight:800;color:#b45309;margin-top:4px" id="modalRight">0</div><div style="font-size:10px;color:#d97706;margin-top:2px" id="modalRightText">Right lo 0 mandi</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total Pairs</div><div style="font-weight:700" id="modalPairs">0</div></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Team Size</div><div style="font-weight:700" id="modalTeam">0</div></div></div><button onclick="closeTreeModal()" style="width:100%;margin-top:12px;background:#0f172a;color:#fff;border:0;border-radius:12px;padding:12px;font-weight:700;cursor:pointer">Close</button></div></div></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#166534;font-weight:800">🟢 ACTIVE LEFT</div>
-        <div style="font-size:26px;font-weight:900;color:#047857;margin-top:4px" id="modalActiveLeft">0</div>
-        <div style="font-size:10px;color:#059669;margin-top:2px">Active members</div>
-      </div>
-      <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#166534;font-weight:800">🟢 ACTIVE RIGHT</div>
-        <div style="font-size:26px;font-weight:900;color:#047857;margin-top:4px" id="modalActiveRight">0</div>
-        <div style="font-size:10px;color:#059669;margin-top:2px">Active members</div>
-      </div>
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#991b1b;font-weight:800">🔴 INACTIVE LEFT</div>
-        <div style="font-size:26px;font-weight:900;color:#dc2626;margin-top:4px" id="modalInactiveLeft">0</div>
-        <div style="font-size:10px;color:#ef4444;margin-top:2px">Inactive members</div>
-      </div>
-      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px;text-align:center">
-        <div style="font-size:10px;color:#991b1b;font-weight:800">🔴 INACTIVE RIGHT</div>
-        <div style="font-size:26px;font-weight:900;color:#dc2626;margin-top:4px" id="modalInactiveRight">0</div>
-        <div style="font-size:10px;color:#ef4444;margin-top:2px">Inactive members</div>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:10px;color:#64748b">TOTAL TEAM</div>
-        <div style="font-size:20px;font-weight:900" id="modalTeam">0</div>
-      </div>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:10px;color:#64748b">TOTAL PAIRS</div>
-        <div style="font-size:20px;font-weight:900" id="modalPairs">0</div>
-      </div>
-    </div>
-
-    <button onclick="closeTreeModal()" style="width:100%;margin-top:12px;background:#0f172a;color:#fff;border:0;border-radius:12px;padding:12px;font-weight:700;cursor:pointer">Close</button>
-  </div>
-</div>
-</div>
 <script>
 async function initDashboard(){
  var flId=getFlId();var name=getName();if(!flId){location.href='./login.html';return;}
@@ -479,7 +424,7 @@ async function initDashboard(){
  try{
   if(supabaseClient){
    var r=await supabaseClient.from('users').select('*').eq('fl_id',flId).single();var user=r.data;
-   if(user){var realName=user.full_name||name||flId;if(topNameEl) topNameEl.innerText=realName;if(dashNameEl) dashNameEl.innerText=realName;if(dashInit) dashInit.innerText=realName.charAt(0).toUpperCase();var joinedText=flmFormatJoinDateTime(user.created_at);var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl) pJoinedEl.innerText=joinedText;var dashJoinedEl=document.getElementById('dashJoined');if(dashJoinedEl) dashJoinedEl.innerText=joinedText;var pActEl=document.getElementById('pActivation');if(pActEl) pActEl.innerText=flmFormatJoinDateTime(user.created_at);var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl) pSponsorEl.innerText=user.sponsor_id||'None';}
+   if(user){var realName=user.full_name||name||flId;if(topNameEl) topNameEl.innerText=realName;if(dashNameEl) dashNameEl.innerText=realName;if(dashInit) dashInit.innerText=realName.charAt(0).toUpperCase();var joinedText=flmFormatJoinDateTime(user.created_at);var pJoinedEl=document.getElementById('pJoined');if(pJoinedEl) pJoinedEl.innerText=joinedText;var dashJoinedEl=document.getElementById('dashJoined');if(dashJoinedEl) dashJoinedEl.innerText=joinedText;var pActEl=document.getElementById('pActivation');if(pActEl) pActEl.innerText=user.activated_at?flmFormatJoinDateTime(user.activated_at):'Not activated';var pSponsorEl=document.getElementById('pSponsor');if(pSponsorEl) pSponsorEl.innerText=user.sponsor_id||'None';var isActive=!(user.is_active===false||user.is_active===0||user.is_active==='false');var dashStatusEl=document.getElementById('dashStatus');if(dashStatusEl){dashStatusEl.innerText=isActive?'• Active':'• Inactive';dashStatusEl.style.color=isActive?'#86efac':'#fca5a5';}var profileStatusEl=document.getElementById('profileStatus');if(profileStatusEl){profileStatusEl.innerText=isActive?'Active':'Inactive';profileStatusEl.style.background=isActive?'#dcfce7':'#fee2e2';profileStatusEl.style.color=isActive?'#166534':'#991b1b';}var menuStatusEl=document.getElementById('menuStatus');if(menuStatusEl){menuStatusEl.innerText=isActive?'• Active':'• Inactive';menuStatusEl.style.color=isActive?'#059669':'#dc2626';}var menuDotEl=document.getElementById('menuDot');if(menuDotEl) menuDotEl.style.background=isActive?'#10b981':'#ef4444';}
    var r2=await supabaseClient.from('binary_summary').select('*').eq('fl_id',flId).single();var bin=r2.data||{};var liveStats=await flmFetchTeamStats(flId);var liveToday=await flmFetchTodayMatchingStats(flId);
    {var lt=document.getElementById('leftTokens');if(lt) lt.innerText=liveStats.left;var rt=document.getElementById('rightTokens');if(rt) rt.innerText=liveStats.right;var lc=document.getElementById('leftCarry');if(lc) lc.innerText=bin.left_carry||0;var rc=document.getElementById('rightCarry');if(rc) rc.innerText=bin.right_carry||0;var tp=document.getElementById('totalPairs');if(tp) tp.innerText=liveStats.pairs;var ts=document.getElementById('teamSize');if(ts) ts.innerText=liveStats.teamSize;var dm=document.getElementById('dailyMatching');if(dm) dm.innerText=liveToday.pairs+' / 25 pairs';var db=document.getElementById('dailyBar');if(db) db.style.width=(Math.min(25,liveToday.pairs)/25*100)+'%';var remaining=5000-liveToday.income;if(remaining<0) remaining=0;var remEl=document.getElementById('remainingToday');if(remEl) remEl.innerText='Rs. '+remaining+' remaining today';}
    var r3=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();var wallet=r3.data;
@@ -1068,7 +1013,7 @@ function createNodeHtml(user,label,position,parentUser){
   var parentFl=parentUser?String(parentUser.fl_id||'').trim().toUpperCase():'';
   var side=(String(position||'').slice(-1).toUpperCase()==='L')?'LEFT':(String(position||'').slice(-1).toUpperCase()==='R'?'RIGHT':'ROOT');
   var relation=parentUser?('Under: '+flmTreeEsc(parentName)+' ('+flmTreeEsc(parentFl)+')'):'Top member';
-  return '<div style="background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;min-width:150px;max-width:165px;text-align:center;cursor:pointer;box-shadow:0 2px 7px rgba(15,23,42,.06)" onclick="handleTreeMemberClick(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' tree">'
+  return '<div style="background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;min-width:150px;max-width:165px;text-align:center;cursor:pointer;box-shadow:0 2px 7px rgba(15,23,42,.06)" onclick="openTreeRoot(decodeURIComponent(\''+arg+'\'))" title="Open '+flmTreeEsc(name)+' tree">'
     +'<div style="font-size:9px;color:#64748b;font-weight:800">'+flmTreeEsc(label)+'</div>'
     +'<div style="display:inline-block;margin-top:4px;padding:3px 7px;border-radius:999px;background:'+(side==='LEFT'?'#eff6ff':side==='RIGHT'?'#f0fdf4':'#f8fafc')+';color:'+(side==='LEFT'?'#1d4ed8':side==='RIGHT'?'#047857':'#475569')+';font-size:9px;font-weight:800">'+side+'</div>'
     +'<div style="width:40px;height:40px;background:'+(act?'linear-gradient(135deg,#10b981,#059669)':'linear-gradient(135deg,#ef4444,#dc2626)')+';border-radius:50%;margin:7px auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+flmTreeEsc(initial)+'</div>'
@@ -1079,153 +1024,12 @@ function createNodeHtml(user,label,position,parentUser){
 }
 function openPlacement(pos){alert('Placement available - '+pos);}
 function closeTreeModal(){var m=document.getElementById('treeModal');if(m)m.style.display='none';}
-async function flmFetchActiveInactiveTeamStats(rootFlId){
-  var out={
-    activeLeft:0,activeRight:0,
-    inactiveLeft:0,inactiveRight:0,
-    total:0,pairs:0
-  };
-  if(!supabaseClient||!rootFlId)return out;
-
-  try{
-    var users=await flmLoadAllUsers();
-    var placement=flmBuildBinaryPlacement(users);
-    var treeByParent=placement.treeByParent;
-    var root=String(rootFlId||'').trim().toUpperCase();
-    if(!root)return out;
-
-    var rootGroup=treeByParent[root]||{left:null,right:null};
-    var queue=[];
-    var seen={};
-
-    if(rootGroup.left){
-      var lf=String(rootGroup.left.fl_id||'').trim().toUpperCase();
-      if(lf){seen[lf]=true;queue.push({fl:lf,side:'left'});}
-      if(rootGroup.left.is_active)out.activeLeft++;
-      else out.inactiveLeft++;
-    }
-
-    if(rootGroup.right){
-      var rf=String(rootGroup.right.fl_id||'').trim().toUpperCase();
-      if(rf){seen[rf]=true;queue.push({fl:rf,side:'right'});}
-      if(rootGroup.right.is_active)out.activeRight++;
-      else out.inactiveRight++;
-    }
-
-    for(var i=0;i<queue.length;i++){
-      var node=queue[i];
-      var g=treeByParent[node.fl]||{left:null,right:null};
-
-      ['left','right'].forEach(function(branch){
-        var u=g[branch];
-        if(!u)return;
-
-        var child=String(u.fl_id||'').trim().toUpperCase();
-        if(!child||seen[child])return;
-
-        seen[child]=true;
-
-        if(node.side==='left'){
-          if(u.is_active)out.activeLeft++;
-          else out.inactiveLeft++;
-        }else{
-          if(u.is_active)out.activeRight++;
-          else out.inactiveRight++;
-        }
-
-        queue.push({fl:child,side:node.side});
-      });
-    }
-
-    out.total=
-      out.activeLeft+
-      out.activeRight+
-      out.inactiveLeft+
-      out.inactiveRight;
-
-    out.pairs=Math.min(
-      out.activeLeft+out.inactiveLeft,
-      out.activeRight+out.inactiveRight
-    );
-
-  }catch(e){
-    console.log('active/inactive team stats:',e.message||e);
-  }
-
-  return out;
-}
-
 async function showUserTreeDetails(flId,name){
-  var modal=document.getElementById('treeModal');
-  if(!modal)return;
-
-  modal.style.display='flex';
-
-  var mn=document.getElementById('modalName');
-  if(mn)mn.innerText=name||flId;
-
-  var mf=document.getElementById('modalFl');
-  if(mf)mf.innerText=String(flId||'').toUpperCase();
-
-  var mi=document.getElementById('modalInitial');
-  if(mi)mi.innerText=(name||flId||'U').charAt(0).toUpperCase();
-
-  // Show loading immediately.
-  ['modalActiveLeft','modalActiveRight','modalInactiveLeft','modalInactiveRight','modalTeam','modalPairs']
-    .forEach(function(id){
-      var el=document.getElementById(id);
-      if(el)el.innerText='…';
-    });
-
-  try{
-    var s=await flmFetchActiveInactiveTeamStats(flId);
-
-    var al=document.getElementById('modalActiveLeft');
-    if(al)al.innerText=s.activeLeft;
-
-    var ar=document.getElementById('modalActiveRight');
-    if(ar)ar.innerText=s.activeRight;
-
-    var il=document.getElementById('modalInactiveLeft');
-    if(il)il.innerText=s.inactiveLeft;
-
-    var ir=document.getElementById('modalInactiveRight');
-    if(ir)ir.innerText=s.inactiveRight;
-
-    var mt=document.getElementById('modalTeam');
-    if(mt)mt.innerText=s.total;
-
-    var mp=document.getElementById('modalPairs');
-    if(mp)mp.innerText=s.pairs;
-
-  }catch(e){
-    console.log('tree member details:',e.message||e);
-  }
-}
-
-async function handleTreeMemberClick(flId){
-  if(!requireLogin())return;
-
-  var target=String(flId||'').trim().toUpperCase();
-  if(!target)return;
-
-  try{
-    var users=await flmLoadAllUsers();
-    var selected=flmTreeFindUser(users,target);
-    var name=selected
-      ? (selected.full_name||selected.fl_id||target)
-      : target;
-
-    // Keep the existing behavior: selected member becomes current tree.
-    await openTreeRoot(target);
-
-    // Then show that selected member's active/inactive counts.
-    await showUserTreeDetails(target,name);
-
-  }catch(e){
-    console.log('tree member click:',e.message||e);
-    await showUserTreeDetails(target,target);
-  }
+  var modal=document.getElementById('treeModal');if(!modal)return;modal.style.display='flex';
+  var mn=document.getElementById('modalName');if(mn)mn.innerText=name||flId;
+  var mf=document.getElementById('modalFl');if(mf)mf.innerText=flId;
+  var mi=document.getElementById('modalInitial');if(mi)mi.innerText=(name||flId).charAt(0).toUpperCase();
+  try{var s=await flmFetchTeamStats(flId);var ml=document.getElementById('modalLeft');if(ml)ml.innerText=s.left;var mr=document.getElementById('modalRight');if(mr)mr.innerText=s.right;var mp=document.getElementById('modalPairs');if(mp)mp.innerText=s.pairs;var mt=document.getElementById('modalTeam');if(mt)mt.innerText=s.teamSize;}catch(e){}
 }
 function flmTreeStorageKey(){var fl=getFlId();return fl?'flm_tree_root_'+String(fl).toUpperCase():'';}
 function flmTreeFindUser(users,flId){var key=String(flId||'').trim().toUpperCase();for(var i=0;i<(users||[]).length;i++){if(String(users[i].fl_id||'').trim().toUpperCase()===key)return users[i];}return null;}
@@ -1626,7 +1430,7 @@ async function submitWalletPinPurchase(walletType){
 function showWalletWithdraw(walletType){
  if(walletType==='matching'){
   var box=document.getElementById('walletSubAction');if(!box)return;
-  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. ₹500–₹4,999: Bank/USDT withdrawal. ₹5,000 and above: Store Coupon (no cash).</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
+  box.innerHTML='<div id="matchingWithdrawInline" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px"><div style="font-size:11px;color:#166534">Minimum withdrawal ₹500. Until the ₹5,000/day store condition is reached, Bank/USDT withdrawal is available.</div><input id="walletActionAmount" type="number" min="500" step="1" placeholder="Enter matching withdrawal amount" style="width:100%;margin-top:8px;padding:12px;border:1px solid #e2e8f0;border-radius:10px"><div style="display:flex;gap:8px;margin-top:8px"><button id="matchingBankBtn" onclick="submitMatchingWithdraw(\'bank\')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Bank</button><button id="matchingUsdtBtn" onclick="submitMatchingWithdraw(\'usdt\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">USDT</button></div><button id="matchingStoreWithdrawBtn" onclick="submitMatchingStoreWithdraw()" style="display:none;width:100%;margin-top:8px;background:#b45309;color:#fff;border:0;border-radius:10px;padding:11px;font-weight:800">Withdraw at Selected Store</button><div id="matchingStoreBox" style="margin-top:8px"></div></div>';
   checkMatchingStore();
   return;
  }
@@ -1759,7 +1563,7 @@ async function submitRoiRedeem(){
 }
 async function submitMatchingWithdrawNormal(){
   var amt=getActionAmount();
-  if(!amt||amt<500){alert('Minimum matching withdrawal is Rs.500.');return;}
+  if(amt<200){alert('Minimum matching withdrawal is Rs.200.');return;}
   if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient available matching balance.');return;}
   if(!(await ensurePayout('bank'))) return;
   try{
@@ -1770,7 +1574,6 @@ async function submitMatchingWithdrawNormal(){
   }catch(e){alert('Withdrawal failed: '+e.message);}
 }
 async function handleMatchingStoreCoupon(){
-  var amt=getActionAmount();
   var storeFound=false;
   try{
     if(navigator.geolocation){
@@ -1787,11 +1590,11 @@ async function handleMatchingStoreCoupon(){
       }
     }
   }catch(e){console.log('store check',e.message);}
-  if(!storeFound&&amt<5000){
+  if(!storeFound){
     if(confirm('No FLM Store within 25km.\nNormal Bank withdrawal will be enabled.\nContinue?')){ await submitMatchingWithdrawNormal(); }
     return;
   }
-  if(!storeFound&&amt>=5000){alert('No FLM Store within 25km, but Rs.5000+ must be a Store Coupon.\nCoupon will be generated.');}
+  var amt=getActionAmount();
   if(!amt||amt<500){alert('Minimum store coupon is Rs.500. Enter amount above.');return;}
   if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient matching balance.');return;}
   var code='FLM-M'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
@@ -1809,7 +1612,7 @@ async function handleMatchingStoreCoupon(){
   }catch(e){alert('Coupon failed: '+(e.message||e));}
 }
 
-async function submitMatchingWithdraw(method){var amt=getActionAmount();if(!amt||amt<500){alert('Minimum matching withdrawal is ₹500.');return;}if(amt>Number(FLM_WALLET.matching||0)){alert('Insufficient available matching balance.');return;}if(amt>=5000){await handleMatchingStoreCoupon();return;}if(!(await ensurePayout(method)))return;try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();showSec('wallets',true);alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
+async function submitMatchingWithdraw(method){var forceStore=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25);if(forceStore){await handleMatchingStoreCoupon();return;}var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient available matching balance.');return;}if(!(await ensurePayout(method)))return;try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:method,p_force_store:false});if(r.error)throw r.error;FLM_WALLET.matching=Math.max(0,Number(FLM_WALLET.matching||0)-amt);FLM_WALLET.pendingMatching=Number(FLM_WALLET.pendingMatching||0)+amt;var mw=document.getElementById('matchingWallet');if(mw)mw.innerText=money(FLM_WALLET.matching);var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();showSec('wallets',true);alert('Withdrawal request submitted. Status: Processing.');}catch(e){alert('Withdrawal failed: '+e.message);}}
 async function submitLoanWithdraw(method){
   var flId=getFlId();
   var st=await flmLoadLoanV2();
@@ -1846,8 +1649,17 @@ async function submitLoanWithdraw(method){
       }catch(e){}
       alert('Fund withdrawal submitted!\nRequested: Rs.'+loanNum(amt).toLocaleString('en-IN')+'\n10% deduction: Rs.'+loanNum(amt-Math.floor(amt*0.9)).toLocaleString('en-IN')+'\nYou receive: Rs.'+loanNum(Math.floor(amt*0.9)).toLocaleString('en-IN'));var box=document.getElementById('walletActionBox');if(box)box.style.display='none';await loadWalletData();await loadWalletHistory();await loadLoanPanel();showSec('wallets',true);}catch(e){alert('Loan withdrawal failed: '+e.message);}}
 async function checkMatchingStore(){
- var el=document.getElementById('matchingStoreBox');if(!el)return;var bankBtn=document.getElementById('matchingBankBtn'),usdtBtn=document.getElementById('matchingUsdtBtn'),sb=document.getElementById('matchingStoreWithdrawBtn');
- el.innerHTML='<div style="font-size:11px;color:#64748b">₹500 \u2013 ₹4,999: Bank/USDT withdrawal. ₹5,000 and above: Store Coupon will be generated (no cash withdrawal).</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';if(sb)sb.style.display='none';return;
+ var el=document.getElementById('matchingStoreBox');if(!el)return;var force=(Number(FLM_WALLET.dailyIncome||0)>=5000||Number(FLM_WALLET.dailyPairs||0)>=25),bankBtn=document.getElementById('matchingBankBtn'),usdtBtn=document.getElementById('matchingUsdtBtn'),sb=document.getElementById('matchingStoreWithdrawBtn');
+ if(!force){el.innerHTML='<div style="font-size:11px;color:#64748b">Store withdrawal activates after today reaches 25 paid pairs / ₹5,000. Until then the normal withdrawal options remain available.</div>';if(bankBtn)bankBtn.style.display='block';if(usdtBtn)usdtBtn.style.display='block';if(sb)sb.style.display='none';return;}
+ if(bankBtn)bankBtn.style.display='none';if(usdtBtn)usdtBtn.style.display='none';if(sb)sb.style.display='none';el.innerHTML='<div style="font-size:11px;color:#64748b">Checking your nearest FLM Store Point within 25 KM…</div>';
+ try{
+  var store=null;
+  if(navigator.geolocation){var pos=await new Promise(function(resolve,reject){navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:300000});});var r=await supabaseClient.rpc('flm_nearest_store',{p_lat:pos.coords.latitude,p_lng:pos.coords.longitude,p_radius_km:25});if(r.error)throw r.error;store=(r.data&&r.data.length)?r.data[0]:null;}
+  if(!store){try{var ur=await supabaseClient.from('users').select('pincode').eq('fl_id',getFlId()).maybeSingle(),pin=ur.data&&String(ur.data.pincode||'').trim();if(pin){var sr=await supabaseClient.from('stores').select('name,store_code,address,town,pincode,latitude,longitude,status').eq('status','active').eq('pincode',pin).limit(1);if(!sr.error&&sr.data&&sr.data.length){var x=sr.data[0];store={store_name:x.name||'FLM Store',store_code:x.store_code||'',address:x.address||'',city:x.town||'',pincode:x.pincode||pin,distance_km:null};}}}catch(e){}}
+  FLM_WALLET.store=store;
+  if(store){el.innerHTML='<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;font-size:11px"><b>🏪 Store withdrawal required</b><br>'+flmTreeEsc(store.store_name||'FLM Store')+(store.distance_km!=null?' • '+Number(store.distance_km||0).toFixed(1)+' KM':'')+'<br><span style="color:#047857">Store Code: '+flmTreeEsc(store.store_code||'--')+'</span><br><span>Daily store withdrawal limit: ₹5,000</span><br><span>20% deduction: 10% store + 10% admin</span></div>';if(sb)sb.style.display='block';}
+  else el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>🏪 No FLM Store found within 25 KM.</b><br>Store withdrawal is mandatory after ₹5,000/day. Please ask Admin to add/activate a nearby Store Point. Bank/USDT is not enabled after the daily cap.</div>';
+ }catch(e){FLM_WALLET.store=null;el.innerHTML='<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;font-size:11px"><b>📍 Location permission is needed.</b><br>Allow location access and tap again. After the daily ₹5,000 cap, Store withdrawal is mandatory.</div>';}
 }
 async function submitMatchingStoreWithdraw(){var amt=getActionAmount();if(amt<200){alert('Minimum matching withdrawal is ₹200.');return;}if(amt>5000){alert('Store withdrawal maximum is ₹5,000 per day.');return;}if(amt>FLM_WALLET.matching){alert('Insufficient matching balance.');return;}if(!FLM_WALLET.store){alert('Please check nearest store first.');return;}try{var r=await supabaseClient.rpc('flm_create_withdrawal',{p_fl_id:getFlId(),p_wallet_type:'matching',p_amount:amt,p_method:'store',p_force_store:true,p_store_code:FLM_WALLET.store.store_code||null});if(r.error)throw r.error;alert('Store withdrawal request submitted. Maximum ₹5,000/day is enforced.');await loadWalletData();await loadWalletHistory();await checkMatchingStore();}catch(e){alert('Store withdrawal failed: '+e.message);}}
 async function loadWalletHistory(){
