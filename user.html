@@ -1240,11 +1240,11 @@ async function loadWalletData(){
   var r=await supabaseClient.from('wallets').select('*').eq('fl_id',flId).single();if(r.error)throw r.error;var w=r.data||{};
   var roi=Number(w.roi_wallet||0),matching=Number(w.matching_wallet||0),loan=Number(w.loan_wallet||0),pm=0,pl=0,pr=0;
   try{var q=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).eq('status','processing');(q.data||[]).forEach(function(x){var t=String(x.wallet_type||'').toLowerCase(),y=String(x.transaction_type||'').toLowerCase(),a=Number(x.amount||0);if(t==='matching'&&y==='withdrawal')pm+=a;if(t==='loan'&&y==='withdrawal')pl+=a;if((t==='roi'||y==='roi_coupon')&&y==='roi_coupon')pr+=a;});}catch(e){}
-  // The SQL withdrawal function reserves/deducts the requested amount immediately.
-  // Therefore the wallet balance returned by Supabase is already the AVAILABLE balance.
-  // Do not subtract processing withdrawals a second time in the browser.
-  var ma=Math.max(0,matching),la=Math.max(0,loan),ra=Math.max(0,roi); // FIXED: use actual wallet balances only
-      FLM_WALLET={roi:ra,matching:ma,loan:la,total:roi+matching+loan,pairs:0,dailyPairs:0,dailyIncome:0,totalWithdrawn:0,pendingMatching:pm,pendingLoan:pl,pendingRoi:pr,rawMatching:matching,rawLoan:loan,rawRoi:roi};
+  // FIX: Subtract pending (processing) withdrawals from wallet display.
+  // The SQL function does NOT deduct immediately for PROCESSING status,
+  // so pending amounts are subtracted here to avoid stale balance after withdrawal.
+  var ma=Math.max(0,matching-pm),la=Math.max(0,loan-pl),ra=Math.max(0,roi-pr);
+      FLM_WALLET={roi:ra,matching:ma,loan:la,total:ra+ma+la,pairs:0,dailyPairs:0,dailyIncome:0,totalWithdrawn:0,pendingMatching:pm,pendingLoan:pl,pendingRoi:pr,rawMatching:matching,rawLoan:loan,rawRoi:roi};
   try{
     var lv2=await flmLoadLoanV2();
     // IMPORTANT: wallet.loan_wallet may contain the gross/current loan amount.
