@@ -386,7 +386,7 @@ async function register(){
   const pinToken=''; // NEW: no token at registration
   const utr=''; const hash=''; const file=null;
   const msg=document.getElementById('msg');
-  const registerBtn=document.querySelector('button[onclick="register()"]');
+  const registerBtn=document.getElementById('regBtn');
   if(registrationInProgress){return;}
   if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
   registrationInProgress=true;
@@ -570,6 +570,7 @@ async function checkRegistrationStatus(){
   setTimeout(applyRef, 2500);
   var st2 = document.getElementById('jsStatus');
   if(st2) st2.textContent = 'JS OK • v3.1 loaded';
+  try{ registrationInProgress = false; }catch(e){}
 })();
 
 /* Safe register wrapper - shows errors visibly */
@@ -577,6 +578,10 @@ function safeRegister(){
   var msg = document.getElementById('msg');
   var st = document.getElementById('jsStatus');
   if(st) st.textContent = 'JS OK • safeRegister called';
+  /* Reset stuck flag from previous failed attempts */
+  try{ registrationInProgress = false; }catch(e){}
+  /* Fix button selector - register() looks for old onclick */
+  
   try{
     if(typeof register === 'function'){
       register();
