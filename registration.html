@@ -57,11 +57,11 @@ function validateRegistrationIdentity(mobile,email){
   return '';
 }
 
-async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash, screenshotData) {
+async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash, screenshotData, directSponsorId) {
   if (!supabaseClient) {
     
     const flId='FL'+Math.floor(100000+Math.random()*900000);
-    const user={fl_id:flId,sponsor_id:sponsorId,side,full_name:fullName,mobile,email,password,pin_token:pinToken,payment_method:paymentMethod,utr_hash:utrHash};
+    const user={fl_id:flId,sponsor_id:sponsorId,direct_sponsor_id:(typeof directSponsorId!=='undefined'?directSponsorId:sponsorId),side,full_name:fullName,mobile,email,password,pin_token:pinToken,payment_method:paymentMethod,utr_hash:utrHash};
     localStorage.setItem('flm_user_'+flId,JSON.stringify(user));
     localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName}));
     return {success:true,flId,message:'Registration Success - FL ID: '+flId};
@@ -91,7 +91,7 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
 
       const flId='FL'+Math.floor(100000+Math.random()*900000);
       const {data:userData,error:userError}=await supabaseClient.from('users').insert({
-        fl_id:flId,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        fl_id:flId,sponsor_id:sponsorId,direct_sponsor_id:(directSponsorId||sponsorId),side:side,full_name:fullName,mobile:mobile,email:email,password:password,
         is_active:true,activated_at:new Date().toISOString(),
         left_own:0,right_own:0,left_spillover:0,right_spillover:0
       }).select().single();
@@ -129,7 +129,7 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
     if(!utrHash && !screenshotData){
       const flIdF='FL'+Math.floor(100000+Math.random()*900000);
       const {error:uErr}=await supabaseClient.from('users').insert({
-        fl_id:flIdF,sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        fl_id:flIdF,sponsor_id:sponsorId,direct_sponsor_id:(directSponsorId||sponsorId),side:side,full_name:fullName,mobile:mobile,email:email,password:password,
         is_active:false,left_own:0,right_own:0,left_spillover:0,right_spillover:0
       });
       if(uErr) throw uErr;
@@ -160,38 +160,12 @@ async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, 
 }
 
 async function updateSponsorBinary(sponsorId,side){
-  if(!supabaseClient||!sponsorId)return;
-  try{
-    const sid=sponsorId.toUpperCase();
-    const {data:sponsorBin,error:binErr}=await supabaseClient.from('binary_summary').select('*').eq('fl_id',sid).single();
-    if(binErr||!sponsorBin)return;
-    const oldPairs=Number(sponsorBin.total_pairs||0);
-    const left=String(side).toLowerCase()==='left'?(Number(sponsorBin.left_tokens||0)+1):Number(sponsorBin.left_tokens||0);
-    const right=String(side).toLowerCase()==='right'?(Number(sponsorBin.right_tokens||0)+1):Number(sponsorBin.right_tokens||0);
-    const newPairs=Math.min(left,right);
-    const u={team_size:Number(sponsorBin.team_size||0)+1,left_tokens:left,right_tokens:right,total_pairs:newPairs};
-    const newPairCount=Math.max(0,newPairs-oldPairs);
-    const currentDaily=Number(sponsorBin.daily_pairs_today||0);
-    const allowed=Math.max(0,Math.min(newPairCount,25-currentDaily));
-    if(allowed>0){
-      u.daily_pairs_today=currentDaily+allowed;
-      u.daily_income_today=Number(sponsorBin.daily_income_today||0)+(allowed*200);
-      const {data:w,error:we}=await supabaseClient.from('wallets').select('matching_wallet,main_wallet').eq('fl_id',sid).single();
-      if(we)throw we;
-      if(w){
-        const {error:wu}=await supabaseClient.from('wallets').update({matching_wallet:Number(w.matching_wallet||0)+(allowed*200),main_wallet:Number(w.main_wallet||0)+(allowed*200)}).eq('fl_id',sid);
-        if(wu)throw wu;
-      }
-    }
-    if(String(side).toLowerCase()==='left')u.left_own=Number(sponsorBin.left_own||0)+1;
-    else u.right_own=Number(sponsorBin.right_own||0)+1;
-    const {error:bu}=await supabaseClient.from('binary_summary').update(u).eq('fl_id',sid);
-    if(bu)throw bu;
-    const userUpdate={};
-    if(String(side).toLowerCase()==='left')userUpdate.left_own=Number(sponsorBin.left_own||0)+1;
-    else userUpdate.right_own=Number(sponsorBin.right_own||0)+1;
-    await supabaseClient.from('users').update(userUpdate).eq('fl_id',sid);
-  }catch(e){console.log('Sponsor binary update error:',e.message);}
+  // NO-OP by design (2026-10-01): matching bonus + placement counters + direct
+  // commission are now handled by the DB trigger trg_flm_matching_bonus on
+  // public.users (SECURITY DEFINER, single source of truth). Keeping this
+  // function (empty) so existing call sites don't break. DO NOT re-add
+  // wallet/binary_summary writes here - that would DOUBLE-credit users.
+  return;
 }
 
 async function loginReal(flIdOrMobile, password) {
@@ -267,7 +241,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">Free Registration | Activate later with PIN/Token (Rs.2000) within 72 hours</div>
 <label style="font-size:11px;color:#64748b">SPONSOR ID</label>
 <input id="sponsor" value="FL100001">
-<div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div>
+<div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div><div id="placementInfo" style="display:none;font-size:11px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:6px 8px;margin-top:4px"></div>
 <div><label style="font-size:11px">SIDE</label><select id="side"><option value="left">Left</option><option value="right">Right</option></select></div>
 <label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Enter Full Name" autocomplete="name">
 <label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="Enter 10-digit Mobile Number" inputmode="numeric" autocomplete="tel" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);showMobileValidation()" onblur="showMobileValidation();checkIdentityAvailability()">
@@ -387,6 +361,7 @@ if(v){sec.style.display='none';}else{sec.style.display='block';}
 function applyReferralFromUrl(){
   const params = new URLSearchParams(window.location.search);
   const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
+  const urlPlacement = (params.get('placement') || '').trim().toUpperCase();
   const urlSide = (params.get('side') || '').trim().toLowerCase();
   const sponsorInput = document.getElementById('sponsor');
   const sideInput = document.getElementById('side');
@@ -404,6 +379,11 @@ function applyReferralFromUrl(){
   if(urlSponsor && sponsorName){
     sponsorName.textContent = 'Referred by: ' + urlSponsor;
   }
+  const placementInfo = document.getElementById('placementInfo');
+  if(urlPlacement && placementInfo){
+    placementInfo.style.display = 'block';
+    placementInfo.innerHTML = '📍 Placement: Under <b>' + urlPlacement + '</b> (' + (urlSide || 'left').toUpperCase() + ' side) \u2014 exact position, no spillover';
+  }
 }
 window.addEventListener('DOMContentLoaded', applyReferralFromUrl);
 
@@ -418,6 +398,9 @@ async function register(){
   if(urlSponsor&&sponsorInput)sponsorInput.value=urlSponsor;
   if((urlSide==='left'||urlSide==='right')&&sideInput)sideInput.value=urlSide;
   const sponsor=(urlSponsor||sponsorInput.value.trim()||'FL100001').toUpperCase();
+  const urlPlacement=(params.get('placement')||'').trim().toUpperCase();
+  const placementParent=urlPlacement||sponsor;
+  const directSponsor=sponsor;
   let side=((urlSide==='left'||urlSide==='right')?urlSide:((sideInput?sideInput.value:'left')||'left')).trim().toLowerCase();
   if(side!=='left' && side!=='right') side='left';
   const name=document.getElementById('fullName').value.trim();
@@ -447,7 +430,7 @@ async function register(){
     }
     const screenshotData=file?await readPaymentScreenshot(file):'';
     const utrHash=payMethod==='UPI'?utr:hash;
-    const result=await registerReal(sponsor,side,pinToken,name,mobile,email,password,payMethod,utrHash,screenshotData);
+    const result=await registerReal(placementParent,side,pinToken,name,mobile,email,password,payMethod,utrHash,screenshotData,directSponsor);
     if(result.success){
       if(result.pending){
         msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>Admin Panel → Registration Payment Approvals lo verify chesi approve chestaru.</span>';
