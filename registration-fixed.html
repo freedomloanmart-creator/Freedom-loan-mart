@@ -1,0 +1,565 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// === SUPABASE LIVE CONFIG - Self-contained - 2000 Plan - Daily ROI 40x50 - Real Key ===
+const SUPABASE_URL = 'https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6bWtqYXJya3NlbWVuanpib2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NDE4MDgsImV4cCI6MjEwNDIxNzgwOH0.72LWv7KM3lyOa6wbbyaa_lvrkA33iJAhyZiH2a6u8qo';
+let supabaseClient = null;
+try {
+  if (typeof supabase !== 'undefined') {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase Live Connected - 2000 Plan - ROI 40x50 - Real Key Embedded - Self-contained');
+  }
+} catch(e) { console.log('Supabase fallback demo'); }
+
+// ================= REAL FUNCTIONS - LIVE - 2000 Plan - Daily ROI 40x50 =================
+
+function readPaymentScreenshot(file){
+  return new Promise((resolve,reject)=>{
+    if(!file){resolve('');return;}
+    if(!file.type || !file.type.startsWith('image/')){reject(new Error('Please select an image screenshot.'));return;}
+    if(file.size > 3*1024*1024){reject(new Error('Screenshot must be 3 MB or smaller.'));return;}
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error('Could not read screenshot. Please try again.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function checkIdentityLimit(mobile,email){
+  const result={mobileCount:0,emailCount:0,mobilePending:0,emailPending:0};
+  if(!supabaseClient) return result;
+  const m=String(mobile||'').trim();
+  const e=String(email||'').trim().toLowerCase();
+  const [mu,eu,mp,ep]=await Promise.all([
+    supabaseClient.from('users').select('id',{count:'exact',head:true}).eq('mobile',m),
+    supabaseClient.from('users').select('id',{count:'exact',head:true}).ilike('email',e),
+    supabaseClient.from('registration_requests').select('id',{count:'exact',head:true}).eq('mobile',m).eq('status','pending'),
+    supabaseClient.from('registration_requests').select('id',{count:'exact',head:true}).ilike('email',e).eq('status','pending')
+  ]);
+  if(mu.error) throw mu.error;
+  if(eu.error) throw eu.error;
+  if(mp.error) throw mp.error;
+  if(ep.error) throw ep.error;
+  result.mobileCount=Number(mu.count||0);
+  result.emailCount=Number(eu.count||0);
+  result.mobilePending=Number(mp.count||0);
+  result.emailPending=Number(ep.count||0);
+  return result;
+}
+
+function validateRegistrationIdentity(mobile,email){
+  const m=String(mobile||'').replace(/\D/g,'');
+  const e=String(email||'').trim();
+  if(!/^\d{10}$/.test(m)) return 'Please enter your full 10-digit mobile number.';
+  if(!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return 'Please enter a valid email address.';
+  return '';
+}
+
+async function registerReal(sponsorId, side, pinToken, fullName, mobile, email, password, paymentMethod, utrHash, screenshotData, directSponsorId) {
+  if (!supabaseClient) {
+    
+    const flId='FL'+Math.floor(100000+Math.random()*900000);
+    const user={fl_id:flId,sponsor_id:sponsorId,direct_sponsor_id:(typeof directSponsorId!=='undefined'?directSponsorId:sponsorId),side,full_name:fullName,mobile,email,password,pin_token:pinToken,payment_method:paymentMethod,utr_hash:utrHash};
+    localStorage.setItem('flm_user_'+flId,JSON.stringify(user));
+    localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName}));
+    return {success:true,flId,message:'Registration Success - FL ID: '+flId};
+  }
+  try {
+    if (pinToken) {
+      const {data:pinData,error:pinError}=await supabaseClient.from('pins').select('*').eq('pin_code',pinToken.toUpperCase()).single();
+      if(pinError||!pinData) return {success:false,message:'❌ Pin Wrong - Pin/Token not found: '+pinToken};
+      if(pinData.status==='used') return {success:false,message:'⚠️ This Pin Already Used - Used by: '+pinData.used_by_mobile};
+      if(pinData.status!=='unused') return {success:false,message:'❌ Pin Wrong - Status: '+pinData.status};
+
+      // ATOMIC PIN/TOKEN CLAIM: only one registration can consume an unused pin.
+      // This prevents two fast clicks/tabs from using the same token twice.
+      const claimTime=new Date().toISOString();
+      const {data:claimedPin,error:claimError}=await supabaseClient.from('pins')
+        .update({status:'used',used_by_mobile:mobile,used_at:claimTime})
+        .eq('id',pinData.id).eq('status','unused')
+        .select('id,pin_code,status,used_by_mobile,used_at').maybeSingle();
+      if(claimError) throw claimError;
+      if(!claimedPin){
+        const {data:latestPin}=await supabaseClient.from('pins').select('status,used_by_mobile,used_at').eq('id',pinData.id).maybeSingle();
+        if(latestPin && latestPin.status==='used'){
+          return {success:false,message:'⚠️ This Pin Already Used - Used by: '+(latestPin.used_by_mobile||'another user')+' at '+(latestPin.used_at?new Date(latestPin.used_at).toLocaleString():'')+' - Use another unused pin'};
+        }
+        return {success:false,message:'⚠️ This Pin is no longer available. Please use another unused pin.'};
+      }
+
+      const flId='FL'+Math.floor(100000+Math.random()*900000);
+      const {data:userData,error:userError}=await supabaseClient.from('users').insert({
+        fl_id:flId,sponsor_id:sponsorId,direct_sponsor_id:(directSponsorId||sponsorId),side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        is_active:true,activated_at:new Date().toISOString(),
+        left_own:0,right_own:0,left_spillover:0,right_spillover:0
+      }).select().single();
+      if(userError){
+        await supabaseClient.from('pins').update({status:'unused',used_by_mobile:null,used_at:null}).eq('id',pinData.id).eq('status','used').eq('used_by_mobile',mobile);
+        throw userError;
+      }
+      const w=await supabaseClient.from('wallets').insert({fl_id:flId,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
+      if(w.error){
+        await supabaseClient.from('pins').update({status:'unused',used_by_mobile:null,used_at:null}).eq('id',pinData.id).eq('status','used').eq('used_by_mobile',mobile);
+        await supabaseClient.from('users').delete().eq('fl_id',flId);
+        throw w.error;
+      }
+      const b=await supabaseClient.from('binary_summary').insert({fl_id:flId,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
+      if(b.error){
+        await supabaseClient.from('pins').update({status:'unused',used_by_mobile:null,used_at:null}).eq('id',pinData.id).eq('status','used').eq('used_by_mobile',mobile);
+        await supabaseClient.from('wallets').delete().eq('fl_id',flId);
+        await supabaseClient.from('users').delete().eq('fl_id',flId);
+        throw b.error;
+      }
+      if(sponsorId) await updateSponsorBinary(sponsorId,side);
+      try{
+        if(window.localStorage){
+          window.localStorage.setItem('flm_session',JSON.stringify({flId,name:fullName,email,mobile,sponsorId,side}));
+        }else if(window.sessionStorage){
+          window.sessionStorage.setItem('flm_session',JSON.stringify({flId,name:fullName,email,mobile,sponsorId,side}));
+        }
+      }catch(storageErr){
+        console.log('Session storage unavailable:',storageErr.message);
+      }
+      return {success:true,flId,message:'Registration Success - FL ID: '+flId+' - Token/Pin accepted'};
+    }
+
+    // NEW: Free registration (no PIN, no payment) -> INACTIVE user, activate within 72h with PIN
+    if(!utrHash && !screenshotData){
+      const flIdF='FL'+Math.floor(100000+Math.random()*900000);
+      const {error:uErr}=await supabaseClient.from('users').insert({
+        fl_id:flIdF,sponsor_id:sponsorId,direct_sponsor_id:(directSponsorId||sponsorId),side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+        is_active:false,left_own:0,right_own:0,left_spillover:0,right_spillover:0
+      });
+      if(uErr) throw uErr;
+      await supabaseClient.from('wallets').insert({fl_id:flIdF,roi_wallet:0,matching_wallet:0,loan_wallet:0,main_wallet:0});
+      await supabaseClient.from('binary_summary').insert({fl_id:flIdF,left_tokens:0,right_tokens:0,left_own:0,right_own:0,left_spillover:0,right_spillover:0,left_carry:0,right_carry:0,total_pairs:0,team_size:0,daily_pairs_today:0,daily_income_today:0});
+      if(sponsorId){ try{ await updateSponsorBinary(sponsorId,side); }catch(e){ console.log('sponsor binary:',e.message); } }
+      try{ if(window.localStorage){ window.localStorage.setItem('flm_session',JSON.stringify({flId:flIdF,name:fullName,email,mobile,sponsorId,side})); } }catch(e){}
+      return {success:true,flId:flIdF,message:'Registration Success - FL ID: '+flIdF+' (Inactive - PIN tho 72 hrs lopu activate chesukondi)'};
+    }
+    if(!utrHash) return {success:false,message:'UPI UTR or USDT Hash mandatory - 2000 Rs (leda PIN lekunda free ga register avvandi)'};
+    if(!screenshotData) return {success:false,message:'Payment screenshot upload cheyyali.'};
+
+    const req={
+      sponsor_id:sponsorId,side:side,full_name:fullName,mobile:mobile,email:email,password:password,
+      payment_method:paymentMethod,utr_hash:utrHash,amount:2000,status:'pending',screenshot_data:screenshotData
+    };
+    const existing=await supabaseClient.from('registration_requests').select('id,status').eq('utr_hash',utrHash).limit(1);
+    if(existing.error) throw existing.error;
+    if(existing.data&&existing.data.length){
+      return {success:false,message:'⚠️ This UTR/Hash is already submitted. Please wait for admin approval.'};
+    }
+    const {error:reqError}=await supabaseClient.from('registration_requests').insert(req);
+    if(reqError) throw reqError;
+    return {success:true,pending:true,message:'Payment submitted successfully. Admin approval tarvata FL ID generate avuthundi.'};
+  } catch(err){
+    return {success:false,message:'Registration failed: '+err.message};
+  }
+}
+
+async function updateSponsorBinary(sponsorId,side){
+  // NO-OP by design (2026-10-01): matching bonus + placement counters + direct
+  // commission are now handled by the DB trigger trg_flm_matching_bonus on
+  // public.users (SECURITY DEFINER, single source of truth). Keeping this
+  // function (empty) so existing call sites don't break. DO NOT re-add
+  // wallet/binary_summary writes here - that would DOUBLE-credit users.
+  return;
+}
+
+async function loginReal(flIdOrMobile, password) {
+  if (!supabaseClient) {
+    if(flIdOrMobile.toUpperCase().includes('973530') || flIdOrMobile.toUpperCase().includes('THEJA')){
+      return {success: true, user: {fl_id: 'FL973530', full_name: 'Theja', sponsor_id: 'FL100001'}};
+    }
+    return {success: false, message: 'Demo: Use FL973530 / theja123 - Live connect Supabase'};
+  }
+  try {
+    let query = supabaseClient.from('users').select('*');
+    const {data: byFlId} = await query.eq('fl_id', flIdOrMobile.toUpperCase()).limit(1);
+    let user = byFlId && byFlId.length>0 ? byFlId[0] : null;
+    if (!user) {
+      const {data: byMobile} = await supabaseClient.from('users').select('*').eq('mobile', flIdOrMobile).limit(1);
+      user = byMobile && byMobile.length>0 ? byMobile[0] : null;
+    }
+    if (!user) return {success: false, message: 'No account found: '+flIdOrMobile};
+    if (user.password !== password) return {success: false, message: 'Wrong password'};
+    const {data: wallet} = await supabaseClient.from('wallets').select('*').eq('fl_id', user.fl_id).single();
+    const {data: binary} = await supabaseClient.from('binary_summary').select('*').eq('fl_id', user.fl_id).single();
+    const sessionUser = {flId: user.fl_id, name: user.full_name, sponsorId: user.sponsor_id, side: user.side, mobile: user.mobile, email: user.email, wallet: wallet, binary: binary};
+    localStorage.setItem('flm_session', JSON.stringify(sessionUser));
+    return {success: true, user: sessionUser, wallet: wallet, binary: binary};
+  } catch(err) {
+    return {success: false, message: 'Login failed: '+err.message};
+  }
+}
+
+async function adminLoadUsers() {
+  if (!supabaseClient) return [{fl_id: 'FL973530', full_name: 'Theja'}];
+  const {data} = await supabaseClient.from('users').select('*').order('created_at', {ascending: false}).limit(50);
+  return data;
+}
+async function adminLoadPins() {
+  if (!supabaseClient) return [{pin_code: 'FLMPIN100001', status: 'unused', amount: 2000}];
+  const {data} = await supabaseClient.from('pins').select('*').order('created_at', {ascending: false}).limit(100);
+  return data;
+}
+async function adminGeneratePinsWithBonus(qty) {
+  const bonus = Math.floor(qty/100)*20; const total = qty + bonus;
+  if (!supabaseClient) { alert('Demo: Generated '+total+' Pins/Tokens - 2000 plan - '+qty+' + '+bonus+' Bonus'); return; }
+  const pins = [];
+  for(let i=0;i<total;i++){
+    const code = 'FLM' + (i < qty ? 'PIN' : 'BONUS') + Math.floor(100000 + Math.random()*900000);
+    pins.push({pin_code: code, status: 'unused', amount: 2000, is_bonus: i>=qty, bonus_parent_qty: qty});
+  }
+  const {error} = await supabaseClient.from('pins').insert(pins);
+  if(error) alert('Error: '+error.message);
+  else alert('Generated '+qty+' + '+bonus+' Bonus = '+total+' Pins/Tokens - 2000 plan - Live DB');
+}
+
+</script>
+<title>FLM Registration</title>
+<!-- FLM REGISTER FULL BUILD: 36 PAIRS / RS.4000 / BUY-TOKENS SECTION REMOVED / ATOMIC PIN CLAIM -->
+<style>
+*{box-sizing:border-box;font-family:Inter,system-ui}html,body{width:100%;overflow-x:hidden} body{margin:0;background:#eef2f7;padding:12px}
+.card{max-width:480px;margin:12px auto;background:#fff;border-radius:20px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb}
+.tabs{display:flex;gap:8px;margin:12px 0}.tab{flex:1;padding:12px;border-radius:12px;border:2px solid #e2e8f0;background:#fff;text-align:center;font-weight:700;cursor:pointer;font-size:12px}.tab.active{background:#0f172a;color:#fff;border-color:#0f172a}.tab.usdt.active{background:#059669;border-color:#059669}
+input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px;margin:6px 0;font-size:14px;background:#f9fafb}
+.btn{width:100%;padding:13px;border:0;border-radius:12px;background:#0f172a;color:#fff;font-weight:700;cursor:pointer;margin-top:10px}
+.qrbox{border:2px dashed #cbd5e1;border-radius:12px;padding:14px;text-align:center;margin:10px 0;background:#f8fafc}
+.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af;padding:10px;border-radius:10px;font-size:11px;margin:8px 0}
+</style></head><body>
+<div style="max-width:480px;margin:0 auto">
+<div style="background:#fff;border-radius:20px;padding:16px;text-align:center;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);border:1px solid #e5e7eb">
+<div style="width:180px;height:60px;background:linear-gradient(135deg,#dc2626 0%,#dc2626 35%,#1e40af 35%,#1e40af 100%);border-radius:10px;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px">FREEDOM<br>LOANS MART</div>
+<div style="color:#dc2626;font-size:11px;font-weight:700;letter-spacing:1px;margin-top:8px">FREEDOM LOANS MART</div>
+<div style="font-size:11px;color:#64748b">Way to Financial Freedom - ID Kit Rs.2000 - Daily ROI Rs.40 x 50 Days = Rs.2000 - Secure Registration</div>
+</div>
+<div class="card">
+<h2 style="text-align:center;color:#0f172a;font-size:20px">Registration</h2>
+<div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">Free Registration | Activate later with PIN/Token (Rs.2000) within 72 hours</div>
+<label style="font-size:11px;color:#64748b">SPONSOR ID</label>
+<input id="sponsor" value="FL100001">
+<div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div><div id="placementInfo" style="display:none;font-size:11px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:6px 8px;margin-top:4px"></div>
+<div><label style="font-size:11px">SIDE</label><select id="side"><option value="left">Left</option><option value="right">Right</option></select></div>
+<label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Enter Full Name" autocomplete="name">
+<label style="font-size:11px">MOBILE</label><input id="mobile" placeholder="Enter 10-digit Mobile Number" inputmode="numeric" autocomplete="tel" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10);showMobileValidation()" onblur="showMobileValidation();checkIdentityAvailability()">
+<label style="font-size:11px">EMAIL</label><input id="email" type="email" placeholder="Enter Email Address" autocomplete="email" onblur="checkIdentityAvailability()">
+<label style="font-size:11px">PASSWORD</label><div style="position:relative"><input id="password" type="password" placeholder="Create Password" autocomplete="new-password" style="width:100%;padding-right:44px;box-sizing:border-box"><span onclick="togglePw()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;user-select:none" id="pwEye">👁️</span></div><script>function togglePw(){var p=document.getElementById('password'),e=document.getElementById('pwEye');if(p.type==='password'){p.type='text';e.textContent='🙈';}else{p.type='password';e.textContent='👁️';}}</script>
+<div id="paymentSection" style="display:none">
+<div style="margin:12px 0"><b style="font-size:13px">Payment (Only if No Token/Pin):</b> <span style="font-size:11px;color:#64748b">Token lekunte direct payment</span></div>
+<div class="tabs"><div class="tab active" id="tabUPI" onclick="setPay('UPI')">UPI Payment</div><div class="tab usdt" id="tabUSDT" onclick="setPay('USDT')">USDT BEP20</div></div>
+<div id="upiBox"><div class="qrbox"><b>UPI - Rs.2000</b><br><span style="font-family:monospace;background:#fff;padding:4px 8px;border-radius:6px">freedomloans@upi</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:10px">UPI QR<br>Client QR</div><input id="upiUtr" placeholder="Enter UTR"><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#475569">Payment Screenshot</label><input id="upiScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
+<div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - Live INR equivalent</b><br><span style="font-size:9px;font-family:monospace">Admin configured BEP20 address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
+</div>
+<div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Note:</b> Registration is FREE. After joining, activate your ID with a PIN/Token (Rs.2000) within 72 hours from the user panel. 36 pairs=Rs.4000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover</div>
+<button class="btn" onclick="register()">✅ Register Now (Free)</button>
+<div id="msg" style="margin-top:10px;font-size:12px"></div>
+<div style="display:none" style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
+  <b style="font-size:12px">Registration Status</b>
+  <div style="font-size:10px;color:#64748b;margin:5px 0 8px">To check your payment registration status, enter your registered Mobile Number and UTR/Hash.</div>
+  <input id="statusMobile" placeholder="Registered Mobile Number" inputmode="numeric">
+  <input id="statusUtr" placeholder="UPI UTR / USDT Hash">
+  <button class="btn" style="background:#2563eb;margin-top:4px" onclick="checkRegistrationStatus()">Check Approval Status</button>
+  <div id="statusResult" style="margin-top:8px;font-size:11px"></div>
+  <div id="registrationResubmitBox" style="display:none;margin-top:10px;background:#f8fafc;border:1px solid #bfdbfe;border-radius:12px;padding:12px">
+    <b style="font-size:12px;color:#1e3a8a">↩️ Re-submit Payment Proof</b>
+    <div style="font-size:10px;color:#64748b;margin:5px 0 8px">For a rejected registration, you do not need to enter your Name, Email, Password, or OLD UTR/Hash again. Upload only the NEW UTR/Hash and NEW payment screenshot.</div>
+    <input id="resubmitUtr" placeholder="Enter NEW UTR / USDT Hash">
+    <label style="display:block;font-size:11px;font-weight:700;margin-top:6px;color:#475569">New Payment Screenshot</label>
+    <input id="resubmitScreenshot" type="file" accept="image/*" style="background:#fff">
+    <button class="btn" style="background:#2563eb;margin-top:8px" onclick="submitRegistrationResubmit()">↩️ Submit New Payment Proof</button>
+    <div id="resubmitMsg" style="font-size:11px;margin-top:7px"></div>
+  </div>
+</div>
+<div style="text-align:center;margin-top:12px;font-size:12px">Already? <a href="./login.html" style="color:#2563eb">Login</a></div>
+</div></div>
+<script>
+async function checkIdentityAvailability(){
+  const mobile=(document.getElementById('mobile')?.value||'').replace(/\D/g,'');
+  const email=(document.getElementById('email')?.value||'').trim();
+  let box=document.getElementById('identityAvailabilityMsg');
+  if(!box){
+    box=document.createElement('div');
+    box.id='identityAvailabilityMsg';
+    box.style.cssText='font-size:11px;margin:5px 0;font-weight:700';
+    const emailEl=document.getElementById('email');
+    if(emailEl) emailEl.insertAdjacentElement('afterend',box);
+  }
+  if(!/^\d{10}$/.test(mobile)) return;
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  if(!supabaseClient)return;
+  box.style.color='#2563eb';
+  box.textContent='⏳ Checking mobile/email ID usage...';
+  try{
+    const lim=await checkIdentityLimit(mobile,email);
+    const mc=lim.mobileCount+lim.mobilePending;
+    const ec=lim.emailCount+lim.emailPending;
+    if(mc>=7){box.style.color='#dc2626';box.textContent='❌ Mobile limit reached: 7/7 IDs. Please use a different mobile number.';return;}
+    if(ec>=7){box.style.color='#dc2626';box.textContent='❌ Email limit reached: 7/7 IDs. Please use a different email address.';return;}
+    box.style.color='#059669';
+    box.textContent='✓ Available — Mobile IDs: '+mc+'/7 • Email IDs: '+ec+'/7';
+  }catch(e){
+    box.style.color='#b45309';
+    box.textContent='Could not check ID usage now. Final validation will happen before registration.';
+  }
+}
+
+function showMobileValidation(){
+  const el=document.getElementById('mobile');
+  const old=document.getElementById('mobileValidationMsg');
+  if(!el)return;
+  const m=el.value.replace(/\D/g,'');
+  if(!old){
+    const d=document.createElement('div'); d.id='mobileValidationMsg'; d.style.cssText='font-size:11px;margin-top:4px;font-weight:700'; el.insertAdjacentElement('afterend',d);
+  }
+  const box=document.getElementById('mobileValidationMsg');
+  if(!m){box.textContent='';return;}
+  if(m.length<10){box.style.color='#dc2626';box.textContent='❌ Please fill the full 10-digit mobile number.';}
+  else if(m.length===10){box.style.color='#059669';box.textContent='✓ 10-digit mobile number';}
+  else {box.style.color='#dc2626';box.textContent='❌ Mobile number must contain exactly 10 digits.';}
+}
+let payMethod='UPI';function setPay(m){payMethod=m;document.getElementById('tabUPI').classList.toggle('active',m==='UPI');document.getElementById('tabUSDT').classList.toggle('active',m==='USDT');document.getElementById('upiBox').style.display=m==='UPI'?'block':'none';document.getElementById('usdtBox').style.display=m==='USDT'?'block':'none';}
+async function checkToken(){
+const token=document.getElementById('pinToken').value.trim();
+const sec=document.getElementById('paymentSection');
+const msgBox=document.getElementById('msg');
+if(!token){alert('Enter Token/Pin - FLMPIN... or FLTKN...');return;}
+if(!supabaseClient){alert('❌ Supabase not connected - Demo: Any FLM/FLT valid');return;}
+msgBox.innerHTML='<span style=color:#2563eb>⏳ Checking Pin/Token - Real DB...</span>';
+try{
+  const {data: allPins, error: err1} = await supabaseClient.from('pins').select('*').eq('pin_code', token.toUpperCase()).limit(1);
+  if(err1) throw err1;
+  if(!allPins || allPins.length===0){
+    msgBox.innerHTML='<span style=color:#dc2626>❌ Pin Wrong - Pin/Token not found in DB - Use valid FLMPIN... or FLTKN... from pins table</span>';
+    alert('❌ Pin Wrong - Not found: '+token);
+    if(sec) sec.style.display='block';
+    return;
+  }
+  const pin = allPins[0];
+  if(pin.status==='used'){
+    msgBox.innerHTML='<span style=color:#f59e0b>⚠️ This Pin Already Used - Used by: '+pin.used_by_mobile+' at '+new Date(pin.used_at).toLocaleString()+' - Use another unused pin</span>';
+    alert('⚠️ This Pin Already Used - Used by: '+pin.used_by_mobile);
+    if(sec) sec.style.display='none';
+    return;
+  }
+  if(pin.status==='unused'){
+    msgBox.innerHTML='<span style=color:#059669>✅ Correct - Pin/Token Valid & Unused - Amount Rs.'+pin.amount+' - No payment needed - Direct entry - Pin=Token same</span>';
+    alert('✅ Correct - Pin Valid & Unused: '+token+' - Amount Rs.'+pin.amount);
+    if(sec) sec.style.display='none';
+    return;
+  }
+} catch(e){
+  msgBox.innerHTML='<span style=color:#dc2626>❌ Error checking pin: '+e.message+'</span>';
+}
+}
+document.getElementById('pinToken').addEventListener('input',function(){
+const v=this.value.trim();const sec=document.getElementById('paymentSection');
+if(v){sec.style.display='none';}else{sec.style.display='block';}
+});
+function applyReferralFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
+  const urlPlacement = (params.get('placement') || '').trim().toUpperCase();
+  const urlSide = (params.get('side') || '').trim().toLowerCase();
+  const sponsorInput = document.getElementById('sponsor');
+  const sideInput = document.getElementById('side');
+  const sponsorName = document.getElementById('sponsorName');
+
+  if(urlSponsor && sponsorInput){
+    sponsorInput.value = urlSponsor;
+    sponsorInput.readOnly = true;
+  }
+  if((urlSide === 'left' || urlSide === 'right') && sideInput){
+    sideInput.value = urlSide;
+    sideInput.disabled = true;
+  }
+
+  if(urlSponsor && sponsorName){
+    sponsorName.textContent = 'Referred by: ' + urlSponsor;
+  }
+  const placementInfo = document.getElementById('placementInfo');
+  if(urlPlacement && placementInfo){
+    placementInfo.style.display = 'block';
+    placementInfo.innerHTML = '📍 Placement: Under <b>' + urlPlacement + '</b> (' + (urlSide || 'left').toUpperCase() + ' side) \u2014 exact position, no spillover';
+  }
+}
+window.addEventListener('DOMContentLoaded', applyReferralFromUrl);
+
+let registrationInProgress=false;
+
+async function register(){
+  const params=new URLSearchParams(window.location.search);
+  const urlSponsor=(params.get('sponsor')||'').trim().toUpperCase();
+  const urlSide=(params.get('side')||'').trim().toLowerCase();
+  const sponsorInput=document.getElementById('sponsor');
+  const sideInput=document.getElementById('side');
+  if(urlSponsor&&sponsorInput)sponsorInput.value=urlSponsor;
+  if((urlSide==='left'||urlSide==='right')&&sideInput)sideInput.value=urlSide;
+  const sponsor=(urlSponsor||sponsorInput.value.trim()||'FL100001').toUpperCase();
+  const urlPlacement=(params.get('placement')||'').trim().toUpperCase();
+  const placementParent=urlPlacement||sponsor;
+  const directSponsor=sponsor;
+  let side=((urlSide==='left'||urlSide==='right')?urlSide:((sideInput?sideInput.value:'left')||'left')).trim().toLowerCase();
+  if(side!=='left' && side!=='right') side='left';
+  const name=document.getElementById('fullName').value.trim();
+  const mobile=document.getElementById('mobile').value.trim();
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value.trim()||'123456';
+  const pinToken=''; // NEW: no token at registration
+  const utr=''; const hash=''; const file=null;
+  const msg=document.getElementById('msg');
+  const registerBtn=document.querySelector('button[onclick="register()"]');
+  if(registrationInProgress){return;}
+  if(!name||!mobile||!email){msg.innerHTML='<span style=color:#dc2626>Fill Name, Mobile, Email</span>';return;}
+  registrationInProgress=true;
+  if(registerBtn){registerBtn.disabled=true;registerBtn.style.opacity='0.65';registerBtn.style.cursor='not-allowed';registerBtn.textContent='⏳ Registering... Please wait';}
+  const identityError=validateRegistrationIdentity(mobile,email);
+  if(identityError){msg.innerHTML='<span style=color:#dc2626>❌ '+identityError+'</span>';registrationInProgress=false;if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}return;}
+  
+  msg.innerHTML='<span style=color:#2563eb>⏳ Checking registration details...</span>';
+  try{
+    const lim=await checkIdentityLimit(mobile,email);
+    const mobileUsed=lim.mobileCount+lim.mobilePending;
+    const emailUsed=lim.emailCount+lim.emailPending;
+    if(mobileUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This mobile number has already completed 7 IDs. Please use a different mobile number.</span>';registrationInProgress=false;if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}return;}
+    if(emailUsed>=7){msg.innerHTML='<span style=color:#dc2626>❌ This email address has already completed 7 IDs. Please use a different email address.</span>';registrationInProgress=false;if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}return;}
+    if(mobileUsed>0 || emailUsed>0){
+      msg.innerHTML='<span style=color:#2563eb>ℹ️ Mobile IDs used: '+mobileUsed+'/7 • Email IDs used: '+emailUsed+'/7</span>';
+    }
+    const screenshotData=file?await readPaymentScreenshot(file):'';
+    const utrHash=payMethod==='UPI'?utr:hash;
+    const result=await registerReal(placementParent,side,pinToken,name,mobile,email,password,payMethod,utrHash,screenshotData,directSponsor);
+    if(result.success){
+      if(result.pending){
+        msg.innerHTML='<span style=color:#059669>✅ '+result.message+'<br>Admin Panel → Registration Payment Approvals lo verify chesi approve chestaru.</span>';
+        document.getElementById('paymentSection').style.display='none';
+        document.getElementById('statusMobile').value=mobile;
+        document.getElementById('statusUtr').value=utrHash;
+        document.querySelectorAll('#fullName,#mobile,#email,#password').forEach(e=>e.value='');
+        return;
+      }
+      // Registration success: show FL ID with a copy button before opening dashboard.
+      const safeFlId=String(result.flId||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+      msg.innerHTML='<div id=flmRegistrationSuccess style=\"margin-top:10px;padding:14px;border:1px solid #86efac;border-radius:14px;background:#f0fdf4;color:#166534;text-align:center\">'+
+        '<div style=\"font-size:15px;font-weight:900\">✅ Registration Successful</div>'+
+        '<div style=\"font-size:11px;margin-top:6px;color:#475569\">Your FL ID is:</div>'+
+        '<div style=\"display:flex;align-items:center;gap:8px;margin-top:8px\">'+
+          '<div id=flmGeneratedFlId style=\"flex:1;padding:12px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;font-size:18px;font-weight:900;letter-spacing:.6px;color:#1e3a8a\">'+safeFlId+'</div>'+
+          '<button type=\"button\" onclick=\"copyGeneratedFlId()\" style=\"padding:12px 13px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer\">📋 Copy</button>'+
+        '</div>'+
+        '<div id=flmCopyStatus style=\"font-size:11px;margin-top:7px;min-height:16px;color:#047857\"></div>'+
+        '<button type=\"button\" onclick=\"location.href=\'./user.html\'\" class=\"btn\" style=\"background:#0f172a;margin-top:8px\">Continue to Dashboard →</button>'+
+      '</div>';
+      // Keep the generated ID in the existing session/local storage and do not auto-redirect,
+      // so the member has time to copy the FL ID.
+      try{
+        if(window.localStorage) window.localStorage.setItem('flm_last_registered_fl_id',String(result.flId||''));
+      }catch(e){}
+    }else msg.innerHTML='<span style=color:#dc2626>❌ '+result.message+'</span>';
+  }catch(e){msg.innerHTML='<span style=color:#dc2626>❌ Error: '+e.message+'</span>';} finally {
+    registrationInProgress=false;
+    if(registerBtn){registerBtn.disabled=false;registerBtn.style.opacity='1';registerBtn.style.cursor='pointer';registerBtn.textContent='✅ Register Now (Free)';}
+  }
+}
+
+function copyGeneratedFlId(){
+  const el=document.getElementById('flmGeneratedFlId');
+  const status=document.getElementById('flmCopyStatus');
+  const flId=(el?.textContent||'').trim();
+  if(!flId){if(status)status.textContent='❌ FL ID not available.';return;}
+  const done=()=>{if(status)status.textContent='✅ FL ID copied. Save it safely for login/support.';};
+  const fail=()=>{if(status)status.textContent='⚠️ Copy failed. Long-press the FL ID and copy it manually.';};
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(flId).then(done).catch(()=>{
+      try{ const ta=document.createElement('textarea'); ta.value=flId; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(e){fail();}
+    });
+  }else{
+    try{ const ta=document.createElement('textarea'); ta.value=flId; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(e){fail();}
+  }
+}
+
+function prepareRegistrationResubmit(){
+  const box=document.getElementById('registrationResubmitBox');
+  if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth',block:'center'});}
+  const m=document.getElementById('resubmitMsg');
+  if(m)m.innerHTML='<span style="color:#2563eb">Only NEW UTR/Hash + NEW payment screenshot upload cheyyandi.</span>';
+}
+async function submitRegistrationResubmit(){
+  // Re-submit requires ONLY a new UTR/Hash + new payment screenshot.
+  // Mobile OR old UTR/Hash from the status check is used only to identify the rejected request.
+  const mobile=(document.getElementById('statusMobile')?.value||'').trim();
+  const oldUtr=(document.getElementById('statusUtr')?.value||'').trim();
+  const newUtr=(document.getElementById('resubmitUtr')?.value||'').trim();
+  const file=document.getElementById('resubmitScreenshot')?.files?.[0];
+  const msg=document.getElementById('resubmitMsg');
+  if(!mobile && !oldUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Please check the rejected registration using your registered mobile number.</span>';return;}
+  if(!newUtr){if(msg)msg.innerHTML='<span style="color:#dc2626">Please enter the NEW UTR/Hash.</span>';return;}
+  if(!file){if(msg)msg.innerHTML='<span style="color:#dc2626">Please upload the NEW payment screenshot.</span>';return;}
+  if(msg)msg.innerHTML='<span style="color:#2563eb">⏳ Submitting the new payment proof...</span>';
+  try{
+    const screenshotData=await readPaymentScreenshot(file);
+    const r=await supabaseClient.rpc('flm_registration_resubmit',{
+      p_mobile:mobile||null,
+      p_old_utr_hash:oldUtr||null,
+      p_new_utr_hash:newUtr,
+      p_screenshot_data:screenshotData
+    });
+    if(r.error)throw r.error;
+    if(msg)msg.innerHTML='<span style="color:#047857">✅ New payment proof submitted successfully. Admin approval is pending.</span>';
+    const box=document.getElementById('registrationResubmitBox');if(box)box.style.display='none';
+    document.getElementById('resubmitUtr').value='';
+    document.getElementById('resubmitScreenshot').value='';
+    document.getElementById('statusUtr').value=newUtr;
+    await checkRegistrationStatus();
+  }catch(e){
+    if(msg)msg.innerHTML='<span style="color:#dc2626">❌ Re-submit failed: '+String(e.message||e)+'</span>';
+  }
+}
+
+async function checkRegistrationStatus(){
+  const mobile=(document.getElementById('statusMobile').value||'').trim();
+  const utr=(document.getElementById('statusUtr').value||'').trim();
+  const out=document.getElementById('statusResult');
+  const box=document.getElementById('registrationResubmitBox');
+  if(!mobile&&!utr){out.innerHTML='<span style="color:#dc2626">Please enter your Mobile Number or UTR/Hash.</span>';return;}
+  if(!supabaseClient){out.innerHTML='<span style="color:#64748b">Live Supabase connection required to check status.</span>';return;}
+  out.innerHTML='<span style="color:#2563eb">⏳ Checking status...</span>';
+  if(box)box.style.display='none';
+  try{
+    let row=null;
+    const rpc=await supabaseClient.rpc('flm_registration_status',{
+      p_mobile:mobile||null,p_utr_hash:utr||null
+    });
+    if(!rpc.error){ row=Array.isArray(rpc.data)?rpc.data[0]:rpc.data; }
+    else {
+      let q=supabaseClient.from('registration_requests').select('status,approved_fl_id,reviewed_at,created_at,mobile,utr_hash');
+      if(mobile&&utr)q=q.eq('mobile',mobile).eq('utr_hash',utr);
+      else if(mobile)q=q.eq('mobile',mobile);
+      else q=q.eq('utr_hash',utr);
+      const direct=await q.order('created_at',{ascending:false}).limit(1);
+      if(direct.error)throw rpc.error;
+      row=direct.data&&direct.data[0]?direct.data[0]:null;
+    }
+    if(!row){
+      out.innerHTML='<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:9px"><b>❌ No details found</b><br>Please enter correct Mobile Number or UTR/Hash.</div>';
+      return;
+    }
+    const st=String(row.status||'').trim().toLowerCase();
+    if(st==='approved'){
+      out.innerHTML='<div style="color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:10px;border-radius:9px"><b>✅ Approved</b><br>FL ID: <b>'+String(row.approved_fl_id||'')+'</b><br><a href="./login.html" style="color:#2563eb;font-weight:700">Login Now →</a></div>';
+    }else if(st==='rejected'){
+      const payment=document.getElementById('paymentSection');if(payment)payment.style.display='none';
+      if(box)box.style.display='block';
+      out.innerHTML='<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:9px"><b>❌ Registration Rejected</b><br>Below NEW UTR/Hash + payment screenshot only re-submit cheyyandi.</div>';
+    }else{
+      out.innerHTML='<div style="color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:10px;border-radius:9px"><b>⏳ Pending Approval</b><br>Admin verification complete ayyaka ikkade Approved + FL ID kanipistundi.</div>';
+    }
+  }catch(e){out.innerHTML='<span style="color:#dc2626">❌ Status check failed: '+e.message+'</span>';}
+}
+
+</script>
+
+
+</body></html>
