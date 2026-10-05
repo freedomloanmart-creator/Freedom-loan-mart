@@ -385,6 +385,11 @@ function applyReferralFromUrl(){
     placementInfo.style.display = 'block';
     placementInfo.innerHTML = '📍 Placement: Under <b>' + urlPlacement + '</b> (' + (urlSide || 'left').toUpperCase() + ' side) \u2014 exact position, no spillover';
   }
+  // DEBUG: show parsed values in version badge
+  try{
+    const badge = document.getElementById('flmVerBadge');
+    if(badge){ badge.textContent = 'v2.4-dbg | search:' + window.location.search.substring(0,40) + ' | sp:' + urlSponsor + ' | side:' + urlSide; badge.style.fontSize='10px'; badge.style.color='#ef4444'; badge.style.opacity='1'; }
+  }catch(e){}
 }
 try{
   if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',applyReferralFromUrl);}
@@ -568,5 +573,5 @@ async function checkRegistrationStatus(){
 </script>
 
 
-<div id="flmVerBadge" style="position:fixed;bottom:2px;right:6px;font-size:9px;color:#94a3b8;opacity:0.7;z-index:9999;">v2.3-placement</div>
+<div id="flmVerBadge" style="position:fixed;bottom:2px;right:6px;font-size:9px;color:#94a3b8;opacity:0.7;z-index:9999;">v2.4-dbg</div>
 </body></html>
