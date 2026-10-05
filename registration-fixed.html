@@ -241,6 +241,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div style="text-align:center;color:#64748b;font-size:11px;margin-bottom:12px">Free Registration | Activate later with PIN/Token (Rs.2000) within 72 hours</div>
 <label style="font-size:11px;color:#64748b">SPONSOR ID</label>
 <input id="sponsor" value="FL100001">
+<!-- REG-FIXED-V2 -->
 <div id="sponsorName" style="font-size:11px;color:#2563eb;margin-top:4px;min-height:16px"></div><div id="placementInfo" style="display:none;font-size:11px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:6px 8px;margin-top:4px"></div>
 <div><label style="font-size:11px">SIDE</label><select id="side"><option value="left">Left</option><option value="right">Right</option></select></div>
 <label style="font-size:11px">FULL NAME</label><input id="fullName" placeholder="Enter Full Name" autocomplete="name">
@@ -385,7 +386,12 @@ function applyReferralFromUrl(){
     placementInfo.innerHTML = '📍 Placement: Under <b>' + urlPlacement + '</b> (' + (urlSide || 'left').toUpperCase() + ' side) \u2014 exact position, no spillover';
   }
 }
-window.addEventListener('DOMContentLoaded', applyReferralFromUrl);
+try{
+  if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',applyReferralFromUrl);}
+  else{applyReferralFromUrl();}
+  setTimeout(applyReferralFromUrl,500);
+  setTimeout(applyReferralFromUrl,2000);
+}catch(e){console.log('referral init:',e.message);}
 
 let registrationInProgress=false;
 
