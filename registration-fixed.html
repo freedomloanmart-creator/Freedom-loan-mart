@@ -359,44 +359,8 @@ document.getElementById('pinToken').addEventListener('input',function(){
 const v=this.value.trim();const sec=document.getElementById('paymentSection');
 if(v){sec.style.display='none';}else{sec.style.display='block';}
 });
-function applyReferralFromUrl(){
-  const params = new URLSearchParams(window.location.search);
-  const urlSponsor = (params.get('sponsor') || '').trim().toUpperCase();
-  const urlPlacement = (params.get('placement') || '').trim().toUpperCase();
-  const urlSide = (params.get('side') || '').trim().toLowerCase();
-  const sponsorInput = document.getElementById('sponsor');
-  const sideInput = document.getElementById('side');
-  const sponsorName = document.getElementById('sponsorName');
-
-  if(urlSponsor && sponsorInput){
-    sponsorInput.value = urlSponsor;
-    sponsorInput.readOnly = true;
-  }
-  if((urlSide === 'left' || urlSide === 'right') && sideInput){
-    sideInput.value = urlSide;
-    sideInput.disabled = true;
-  }
-
-  if(urlSponsor && sponsorName){
-    sponsorName.textContent = 'Referred by: ' + urlSponsor;
-  }
-  const placementInfo = document.getElementById('placementInfo');
-  if(urlPlacement && placementInfo){
-    placementInfo.style.display = 'block';
-    placementInfo.innerHTML = '📍 Placement: Under <b>' + urlPlacement + '</b> (' + (urlSide || 'left').toUpperCase() + ' side) \u2014 exact position, no spillover';
-  }
-  // DEBUG: show parsed values in version badge
-  try{
-    const badge = document.getElementById('flmVerBadge');
-    if(badge){ badge.textContent = 'v2.4-dbg | search:' + window.location.search.substring(0,40) + ' | sp:' + urlSponsor + ' | side:' + urlSide; badge.style.fontSize='10px'; badge.style.color='#ef4444'; badge.style.opacity='1'; }
-  }catch(e){}
-}
-try{
-  if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',applyReferralFromUrl);}
-  else{applyReferralFromUrl();}
-  setTimeout(applyReferralFromUrl,500);
-  setTimeout(applyReferralFromUrl,2000);
-}catch(e){console.log('referral init:',e.message);}
+/* moved to separate script block */
+/* referral init moved to separate script */
 
 let registrationInProgress=false;
 
@@ -573,5 +537,42 @@ async function checkRegistrationStatus(){
 </script>
 
 
-<div id="flmVerBadge" style="position:fixed;bottom:2px;right:6px;font-size:9px;color:#94a3b8;opacity:0.7;z-index:9999;">v2.4-dbg</div>
+<div id="flmVerBadge" style="position:fixed;bottom:2px;right:6px;font-size:9px;color:#94a3b8;opacity:0.7;z-index:9999;">v2.5</div>
+
+<script>
+/* === REFERRAL URL PARAMS - isolated block v2.5 === */
+(function(){
+  function applyRef(){
+    try{
+      var q = window.location.search || '';
+      var m = {};
+      q.replace(/^\?/, '').split('&').forEach(function(p){
+        var kv = p.split('=');
+        if(kv[0]) m[decodeURIComponent(kv[0]).toLowerCase()] = decodeURIComponent(kv[1]||'');
+      });
+      var sp = (m['sponsor']||'').trim().toUpperCase();
+      var pl = (m['placement']||'').trim().toUpperCase();
+      var sd = (m['side']||'').trim().toLowerCase();
+      var sIn = document.getElementById('sponsor');
+      var dIn = document.getElementById('side');
+      var sNm = document.getElementById('sponsorName');
+      var pIf = document.getElementById('placementInfo');
+      var bdg = document.getElementById('flmVerBadge');
+      if(bdg){ bdg.textContent = 'v2.5 | q:' + q.substring(0,35) + ' sp:' + sp + ' sd:' + sd; bdg.style.color='#16a34a'; bdg.style.fontSize='10px'; bdg.style.opacity='1'; }
+      if(sp && sIn){ sIn.value = sp; sIn.readOnly = true; }
+      if((sd==='left'||sd==='right') && dIn){ dIn.value = sd; dIn.disabled = true; }
+      if(sp && sNm){ sNm.textContent = 'Referred by: ' + sp; }
+      if(pl && pIf){ pIf.style.display='block'; pIf.innerHTML = '&#x1F4CD; Placement: Under <b>'+pl+'</b> ('+sd.toUpperCase()+' side) \u2014 exact position, no spillover'; }
+    }catch(e){
+      var b2 = document.getElementById('flmVerBadge');
+      if(b2){ b2.textContent = 'v2.5-ERR:'+e.message; b2.style.color='red'; }
+    }
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', applyRef); }
+  else { applyRef(); }
+  setTimeout(applyRef, 300);
+  setTimeout(applyRef, 1000);
+  setTimeout(applyRef, 2500);
+})();
+</script>
 </body></html>
