@@ -416,16 +416,16 @@ async function register(){
         return;
       }
       // Registration success: show FL ID with a copy button before opening dashboard.
-      const safeFlId=String(result.flId||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
-      msg.innerHTML='<div id=flmRegistrationSuccess style=\"margin-top:10px;padding:14px;border:1px solid #86efac;border-radius:14px;background:#f0fdf4;color:#166534;text-align:center\">'+
-        '<div style=\"font-size:15px;font-weight:900\">✅ Registration Successful</div>'+
-        '<div style=\"font-size:11px;margin-top:6px;color:#475569\">Your FL ID is:</div>'+
-        '<div style=\"display:flex;align-items:center;gap:8px;margin-top:8px\">'+
-          '<div id=flmGeneratedFlId style=\"flex:1;padding:12px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;font-size:18px;font-weight:900;letter-spacing:.6px;color:#1e3a8a\">'+safeFlId+'</div>'+
-          '<button type=\"button\" onclick=\"copyGeneratedFlId()\" style=\"padding:12px 13px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer\">📋 Copy</button>'+
+      const safeFlId=String(result.flId||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      msg.innerHTML='<div id=flmRegistrationSuccess style="margin-top:10px;padding:14px;border:1px solid #86efac;border-radius:14px;background:#f0fdf4;color:#166534;text-align:center">'+
+        '<div style="font-size:15px;font-weight:900">✅ Registration Successful</div>'+
+        '<div style="font-size:11px;margin-top:6px;color:#475569">Your FL ID is:</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'+
+          '<div id=flmGeneratedFlId style="flex:1;padding:12px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;font-size:18px;font-weight:900;letter-spacing:.6px;color:#1e3a8a">'+safeFlId+'</div>'+
+          '<button type="button" onclick="copyGeneratedFlId()" style="padding:12px 13px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer">📋 Copy</button>'+
         '</div>'+
-        '<div id=flmCopyStatus style=\"font-size:11px;margin-top:7px;min-height:16px;color:#047857\"></div>'+
-        '<button type=\"button\" onclick=\"location.href=\'./user.html\'\" class=\"btn\" style=\"background:#0f172a;margin-top:8px\">Continue to Dashboard →</button>'+
+        '<div id=flmCopyStatus style="font-size:11px;margin-top:7px;min-height:16px;color:#047857"></div>'+
+        '<button type="button" onclick="location.href=\'./user.html\'" class="btn" style="background:#0f172a;margin-top:8px">Continue to Dashboard →</button>'+
       '</div>';
       // Keep the generated ID in the existing session/local storage and do not auto-redirect,
       // so the member has time to copy the FL ID.
@@ -537,10 +537,8 @@ async function checkRegistrationStatus(){
 </script>
 
 
-<div id="flmVerBadge" style="position:fixed;bottom:2px;right:6px;font-size:9px;color:#94a3b8;opacity:0.7;z-index:9999;">v2.5</div>
-
 <script>
-/* === REFERRAL URL PARAMS - isolated block v2.5 === */
+/* === REFERRAL URL PARAMS - production v3.0 === */
 (function(){
   function applyRef(){
     try{
@@ -557,16 +555,12 @@ async function checkRegistrationStatus(){
       var dIn = document.getElementById('side');
       var sNm = document.getElementById('sponsorName');
       var pIf = document.getElementById('placementInfo');
-      var bdg = document.getElementById('flmVerBadge');
-      if(bdg){ bdg.textContent = 'v2.5 | q:' + q.substring(0,35) + ' sp:' + sp + ' sd:' + sd; bdg.style.color='#16a34a'; bdg.style.fontSize='10px'; bdg.style.opacity='1'; }
       if(sp && sIn){ sIn.value = sp; sIn.readOnly = true; }
       if((sd==='left'||sd==='right') && dIn){ dIn.value = sd; dIn.disabled = true; }
       if(sp && sNm){ sNm.textContent = 'Referred by: ' + sp; }
       if(pl && pIf){ pIf.style.display='block'; pIf.innerHTML = '&#x1F4CD; Placement: Under <b>'+pl+'</b> ('+sd.toUpperCase()+' side) \u2014 exact position, no spillover'; }
     }catch(e){
-      var b2 = document.getElementById('flmVerBadge');
-      if(b2){ b2.textContent = 'v2.5-ERR:'+e.message; b2.style.color='red'; }
-    }
+      console.log('referral error:', e.message);    }
   }
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', applyRef); }
   else { applyRef(); }
