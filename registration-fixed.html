@@ -255,7 +255,7 @@ input,select{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:12px
 <div id="usdtBox" style="display:none"><div class="qrbox" style="border-color:#10b981;background:#f0fdf4"><b style="color:#059669">USDT BEP20 - Live INR equivalent</b><br><span style="font-size:9px;font-family:monospace">Admin configured BEP20 address</span><br><div style="margin:10px auto;width:120px;height:120px;background:#fff;border:2px solid #10b981;display:flex;align-items:center;justify-content:center;font-size:10px">USDT QR<br>Client QR</div><input id="usdtHash" placeholder="Enter Hash 0x..."><label style="display:block;font-size:11px;font-weight:700;text-align:left;margin-top:8px;color:#047857">Payment Screenshot</label><input id="usdtScreenshot" type="file" accept="image/*" style="background:#fff"></div></div>
 </div>
 <div class="info" style="background:#fef3c7;border-color:#f59e0b;color:#92400e"><b>Note:</b> Registration is FREE. After joining, activate your ID with a PIN/Token (Rs.2000) within 72 hours from the user panel. 36 pairs=Rs.4000 nundi MUST 2 referrals OR 2 renewals | 1:1 Loan only via own link not spillover</div>
-<div style="text-align:center;font-size:10px;color:#94a3b8;margin-bottom:4px;">v3.1-safe • <span id="jsStatus">JS loading...</span></div>
+<div style="text-align:center;font-size:10px;color:#94a3b8;margin-bottom:4px;">v3.2-async-fix • <span id="jsStatus">JS loading...</span></div>
 <button class="btn" id="regBtn" onclick="safeRegister()">✅ Register Now (Free)</button>
 <div id="msg" style="margin-top:10px;font-size:12px"></div>
 <div style="display:none" style="margin-top:14px;border:1px solid #dbeafe;border-radius:12px;padding:12px;background:#f8fbff">
@@ -580,18 +580,27 @@ function safeRegister(){
   if(st) st.textContent = 'JS OK • safeRegister called';
   /* Reset stuck flag from previous failed attempts */
   try{ registrationInProgress = false; }catch(e){}
-  /* Fix button selector - register() looks for old onclick */
+  
+  function showErr(t){
+    if(msg) msg.innerHTML = '<span style="color:#dc2626">❌ ' + t + '</span>';
+    if(st) st.textContent = 'JS OK • ERROR: ' + t.substring(0,50);
+  }
   
   try{
     if(typeof register === 'function'){
-      register();
+      /* register() is async - catch Promise rejection! */
+      var result;
+      try{ result = register(); }catch(syncErr){ showErr('Sync error: ' + syncErr.message); return; }
+      if(result && typeof result.catch === 'function'){
+        result.catch(function(asyncErr){
+          showErr('Async error: ' + (asyncErr && asyncErr.message ? asyncErr.message : asyncErr));
+        });
+      }
     } else {
-      if(msg) msg.innerHTML = '<span style="color:#dc2626">❌ Error: register() not defined. Page script has an error. Please refresh.</span>';
-      alert('register() function not found! The page has a JavaScript error.');
+      showErr('register() not defined. Page script has an error. Please refresh.');
     }
   }catch(e){
-    if(msg) msg.innerHTML = '<span style="color:#dc2626">❌ Error: ' + e.message + '</span>';
-    alert('Registration error: ' + e.message);
+    showErr('Error: ' + e.message);
   }
 }
 </script>
