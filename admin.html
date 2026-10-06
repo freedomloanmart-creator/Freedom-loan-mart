@@ -29,8 +29,8 @@ async function ensureSupabaseClient(){
 function generateRandomPin(){const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let p='';for(let i=0;i<16;i++){p+=chars.charAt(Math.floor(Math.random()*chars.length));if((i+1)%4===0&&i!==15)p+='-';}return p;}
 async function loadDashboardReal(){if(!supabaseClient) return null;try{
 const {count:usersCount}=await supabaseClient.from('users').select('*',{count:'exact',head:true});
-const {count:activeCount}=await supabaseClient.from('users').select('*',{count:'exact',head:true}).eq('status','active');
-const {count:inactiveCount}=await supabaseClient.from('users').select('*',{count:'exact',head:true}).or('status.eq.inactive,status.is.null');
+const {count:activeCount}=await supabaseClient.from('users').select('*',{count:'exact',head:true}).eq('is_active',true);
+const {count:inactiveCount}=await supabaseClient.from('users').select('*',{count:'exact',head:true}).or('is_active.eq.false,is_active.is.null');
 const {count:pinsCount}=await supabaseClient.from('pins').select('*',{count:'exact',head:true});
 const {count:pinsUsedCount}=await supabaseClient.from('pins').select('*',{count:'exact',head:true}).eq('status','used');
 const {count:pinsUnusedCount}=await supabaseClient.from('pins').select('*',{count:'exact',head:true}).eq('status','unused');
