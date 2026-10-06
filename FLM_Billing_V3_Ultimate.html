@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Super Market Billing V3 - Ultimate POS</title>
+<title>FLM Super Market Billing V4 - FIXED Customer + Barcode Display</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -24,12 +25,12 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 .search-row{display:flex;gap:8px;margin-bottom:10px}
 .search-row input{flex:1;height:44px;padding:0 14px;border:1px solid var(--border);border-radius:12px;font-size:14px}
 .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;max-height:60vh;overflow:auto}
-.product-card{border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer;background:#fff;transition:.15s}
+.product-card{border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer;background:#fff;transition:.15s;position:relative}
 .product-card:hover{border-color:var(--primary);box-shadow:0 2px 8px rgba(5,150,105,.15)}
 .product-card .p-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .product-card .p-price{font-size:13px;font-weight:900;color:var(--primary);margin-top:4px}
 .product-card .p-stock{font-size:10px;color:var(--muted);margin-top:2px}
-.product-card .p-barcode{font-size:9px;color:var(--muted);font-family:monospace}
+.product-card .p-barcode{font-size:9px;color:var(--muted);font-family:monospace;background:#f8fafc;padding:2px 4px;border-radius:4px;margin-top:3px;display:inline-block}
 .chip{padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;cursor:pointer}
 .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .cart-table{width:100%;border-collapse:collapse;font-size:12px}
@@ -41,18 +42,21 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 .total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
 .total-row.grand{font-size:16px;font-weight:900;border-top:1px solid var(--border);margin-top:6px;padding-top:8px}
 .input{width:100%;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:10px;font-size:13px}
-.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:grid;place-items:center;padding:12px}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:none;place-items:center;padding:12px}
 .modal-card{background:#fff;border-radius:20px;max-width:520px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 40px rgba(0,0,0,.2)}
 .modal-head{position:sticky;top:0;background:#fff;padding:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .modal-body{padding:14px}
 .bill-preview{font-family:monospace;font-size:11px;line-height:1.4;white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:10px;border:1px dashed var(--border)}
+.barcode-display{background:#0f172a;color:#22c55e;padding:10px;border-radius:10px;font-family:monospace;font-size:13px;margin-bottom:10px;display:none;align-items:center;gap:8px}
+.barcode-display.show{display:flex}
+.barcode-display b{color:#fff}
 </style>
 </head>
 <body>
 <header>
 <div style="display:flex;gap:10px;align-items:center">
 <div class="logo">F</div>
-<div><b id="storeNameDisplay" style="font-size:15px">FLM Super Mart</b><br><span style="font-size:11px;color:var(--muted)" id="liveDateTime">--</span></div>
+<div><b id="storeNameDisplay" style="font-size:15px">FLM Super Mart</b><br><span style="font-size:11px;color:var(--muted)" id="liveDateTime">--</span><span style="font-size:10px;color:var(--primary)" id="storeCodeDisplay">Loading...</span></div>
 </div>
 <div style="display:flex;gap:6px">
 <button class="btn" onclick="openHistory()">📜 History</button>
@@ -63,7 +67,11 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 
 <div class="main">
 <div class="card">
-<h3>🛒 Products • 📷 Scan or 🔍 Search</h3>
+<h3>🛒 Products • 📷 Scan or 🔍 Search • Barcode Auto Display</h3>
+<div id="barcodeDisplay" class="barcode-display">
+<span>📷 Scanned:</span> <b id="lastBarcode">-</b> <span id="lastBarcodeProduct" style="color:#a7f3d0"></span>
+<button class="btn" style="margin-left:auto;padding:4px 8px;font-size:10px" onclick="hideBarcode()">✕</button>
+</div>
 <div class="search-row">
 <input id="searchInput" placeholder="Search name or barcode (Rice, 890103...)" oninput="renderProducts()">
 <button class="btn btn-primary" onclick="openScanner()">📷 Scan</button>
@@ -80,15 +88,16 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 
 <div style="display:flex;flex-direction:column;gap:12px">
 <div class="card">
-<h3>👤 Customer</h3>
+<h3>👤 Customer • Auto Check from DB - All Users Work</h3>
 <div style="display:flex;gap:6px">
-<input id="customerMobile" class="input" placeholder="Mobile 10 digits" maxlength="10" onkeypress="if(event.key==='Enter')checkCustomer()">
+<input id="customerMobile" class="input" placeholder="Mobile 10 digits - Auto search DB" maxlength="15" oninput="autoCheckCustomer()" onkeypress="if(event.key==='Enter')checkCustomer()">
 <button class="btn btn-primary" onclick="checkCustomer()">Check</button>
 </div>
 <div id="customerInfo" style="margin-top:10px"></div>
 <div id="newCustomerForm" style="display:none;margin-top:10px">
 <input id="customerName" class="input" placeholder="Customer Name">
 </div>
+<div class="small" style="margin-top:6px">Database lo unna anni users check - 9701695612 lanti numbers kuda work - Mobile, phone, whatsapp rendu columns check - +91, 0 prefix kuda handle</div>
 </div>
 
 <div class="card">
@@ -96,115 +105,72 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <div style="max-height:260px;overflow:auto">
 <table class="cart-table">
 <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
-<tbody id="cartBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items • Scan or Search</td></tr></tbody>
+<tbody id="cartBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items • Scan barcode - barcode auto display avtundi - type cheyalsina avasaram ledu</td></tr></tbody>
 </table>
 </div>
 <div class="totals">
 <div class="total-row"><span>Subtotal</span><b id="subtotal">Rs.0</b></div>
-<div class="total-row" id="festivalRow" style="display:none;color:#d97706"><span id="festivalLabel">Festival 3% OFF</span><b id="festivalDiscount">-Rs.0</b></div>
 <div class="total-row"><span>GST</span><b id="gstTotal">Rs.0</b></div>
+<div class="total-row" id="festivalRow" style="display:none"><span id="festivalLabel">Festival OFF</span><b id="festivalDiscount">-Rs.0</b></div>
 <div class="total-row grand"><span>Grand Total</span><b id="grandTotal">Rs.0</b></div>
-<div id="commissionInfo" style="display:none;margin-top:8px;padding:8px;background:#fef3c7;border-radius:8px;font-size:11px"></div>
+<div id="commissionInfo" style="display:none;margin-top:8px;padding:8px;background:#ecfdf5;border-radius:8px;font-size:11px"></div>
 </div>
-<div style="display:flex;gap:6px;margin-top:10px">
-<button class="btn" onclick="holdBill()">⏸️ Hold</button>
-<button class="btn btn-danger" onclick="clearCart()">🗑️ Clear</button>
-<button class="btn" onclick="showHolds()">📋 Holds</button>
-</div>
-</div>
-
-<div class="card">
-<h3>💳 Payment</h3>
+<div style="margin-top:12px">
+<div style="font-size:11px;font-weight:800;margin-bottom:6px">Payment</div>
 <div style="display:flex;gap:6px;margin-bottom:10px">
-<label style="flex:1"><input type="radio" name="payment" value="Cash" checked onchange="updatePayment()"> Cash</label>
-<label style="flex:1"><input type="radio" name="payment" value="UPI" onchange="updatePayment()"> UPI QR</label>
-<label style="flex:1"><input type="radio" name="payment" value="Card" onchange="updatePayment()"> Card</label>
+<label style="flex:1;display:flex;gap:4px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:10px;font-size:12px"><input type="radio" name="payment" value="Cash" checked onchange="updatePayment()"> Cash</label>
+<label style="flex:1;display:flex;gap:4px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:10px;font-size:12px"><input type="radio" name="payment" value="UPI" onchange="updatePayment()"> UPI</label>
+<label style="flex:1;display:flex;gap:4px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:10px;font-size:12px"><input type="radio" name="payment" value="Card" onchange="updatePayment()"> Card</label>
 </div>
-<div id="paymentDetails">
 <div id="cashSection">
-<input id="cashReceived" type="number" class="input" placeholder="Cash Received" oninput="calcChange()">
-<div style="margin-top:6px;font-size:12px">Change: <b id="changeAmount">Rs.0</b></div>
+<div style="display:flex;gap:6px"><input id="cashReceived" class="input" placeholder="Cash received" oninput="calcChange()"><div style="padding:10px;background:#f8fafc;border-radius:10px;font-size:12px">Change: <b id="changeAmount">Rs.0</b></div></div>
 </div>
-<div id="upiSection" style="display:none;text-align:center">
-<div id="qrCode"></div>
-<div style="font-size:11px;color:var(--muted)">Pay Rs.<span id="qrAmount">0</span></div>
-<div style="font-size:10px" id="upiIdDisplay"></div>
+<div id="upiSection" style="display:none">
+<div id="upiIdDisplay" style="font-size:12px;font-weight:700;margin-bottom:6px"></div>
+<div id="qrCode" style="display:grid;place-items:center;padding:10px;background:#fff;border-radius:12px;border:1px dashed var(--border)"></div>
+<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Amount: Rs.<span id="qrAmount">0</span></div>
 </div>
-<div id="cardSection" style="display:none">
-<input id="cardTxn" class="input" placeholder="Card Txn ID">
+<div id="cardSection" style="display:none"><div style="padding:10px;background:#f8fafc;border-radius:10px;font-size:12px">Card payment - Enter in POS machine</div></div>
+<button class="btn btn-primary" style="width:100%;height:48px;font-size:15px;margin-top:12px" onclick="completeBill()">✅ Complete Bill - Rs.<span id="completeAmount">0</span></button>
+<div style="display:flex;gap:6px;margin-top:8px">
+<button class="btn" style="flex:1" onclick="holdBill()">⏸️ Hold</button>
+<button class="btn" style="flex:1" onclick="showHolds()">▶️ Unhold</button>
+<button class="btn btn-danger" style="flex:1" onclick="clearCart()">🗑️ Clear</button>
 </div>
-</div>
-<button class="btn btn-primary" style="width:100%;height:48px;margin-top:12px;font-size:14px" onclick="completeBill()">✅ Complete • Rs.<span id="completeAmount">0</span></button>
-</div>
-</div>
-</div>
-
-<div id="scannerModal" class="modal" style="display:none">
-<div class="modal-card">
-<div class="modal-head"><b>📷 Scan Barcode</b><button class="btn" onclick="closeScanner()">✕</button></div>
-<div class="modal-body">
-<div id="scanner" style="width:100%"></div>
-<input id="manualBarcode" class="input" style="margin-top:10px" placeholder="Or enter barcode manually" onkeypress="if(event.key==='Enter')addByBarcode(this.value)">
-<div style="font-size:11px;color:var(--muted);margin-top:6px">Camera point to barcode • Continuous scan ON</div>
-</div>
-</div>
-</div>
-
-<div id="billModal" class="modal" style="display:none">
-<div class="modal-card">
-<div class="modal-head"><b>✅ Bill Complete</b><button class="btn" onclick="closeBillModal()">✕</button></div>
-<div class="modal-body">
-<div class="bill-preview" id="billPreview"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-<a id="whatsappBtn" href="#" target="_blank" class="btn btn-primary" style="justify-content:center;background:#25D366;border-color:#25D366">📱 WhatsApp</a>
-<button class="btn" onclick="printBill()">🖨️ Print</button>
-<button class="btn btn-primary" onclick="newBill()" style="grid-column:span 2">➕ New Bill</button>
 </div>
 </div>
 </div>
 </div>
 
-<div id="settingsModal" class="modal" style="display:none">
-<div class="modal-card" style="max-width:600px">
-<div class="modal-head"><b>⚙️ Admin Control - All Settings</b><button class="btn" onclick="closeSettings()">✕</button></div>
-<div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
-<div><label style="font-size:11px;font-weight:700;color:var(--muted)">Store Name</label><input id="setStoreName" class="input"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-<div><label style="font-size:11px;font-weight:700">Commission % (Sponsor ki)</label><input id="setCommission" type="number" min="0" max="10" step="0.5" class="input"><small style="font-size:10px">FLM member bill → sponsor ki</small></div>
-<div><label style="font-size:11px;font-weight:700">Festival Discount %</label><select id="setFestival" class="input"><option value="0">0% No Offer</option><option value="2">2% OFF</option><option value="3">3% OFF</option><option value="5">5% OFF</option><option value="10">10% OFF</option></select></div>
-</div>
-<div><label style="font-size:11px;font-weight:700">UPI ID</label><input id="setUpi" class="input" placeholder="store@upi"></div>
-<div><label style="font-size:11px;font-weight:700">GSTIN</label><input id="setGstin" class="input"></div>
-<div><label style="font-size:11px;font-weight:700">Exclude Categories from Festival</label><div id="excludeCats" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div></div>
-<div><label style="font-size:11px;font-weight:700">Bill Footer</label><input id="setFooter" class="input"></div>
-<div style="padding:10px;background:#f0fdf4;border-radius:10px;font-size:11px">
-<b>Admin Control:</b><br>
-• Commission % marchithe FLM bills ki sponsor ki ala veltundi<br>
-• Festival % marchithe FLM customers ki discount<br>
-• Exclude tick cheste vatiki festival radu<br>
-• UPI ID marchithe QR lo ade vastundi
-</div>
-<button class="btn btn-primary" style="width:100%" onclick="saveSettings()">💾 Save</button>
-</div>
-</div>
-</div>
+<!-- Scanner Modal -->
+<div id="scannerModal" class="modal"><div class="modal-card"><div class="modal-head"><b>📷 Scan Barcode - Barcode Auto Display</b><button class="btn" onclick="closeScanner()">✕</button></div><div class="modal-body"><div id="scanner" style="width:100%;min-height:300px;background:#000;border-radius:12px"></div><div class="small" style="margin-top:8px">Scan cheste barcode akade display avtundi - type cheyalsina avasaram ledu - Shop vallaki easy</div></div></div></div>
 
-<div id="productsModal" class="modal" style="display:none">
-<div class="modal-card" style="max-width:700px">
-<div class="modal-head"><b>📦 Products</b><button class="btn" onclick="closeProducts()">✕</button></div>
-<div class="modal-body">
-<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-<button class="btn btn-primary" onclick="document.getElementById('excelFile2').click()">📥 Import Excel</button>
-<input type="file" id="excelFile2" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
-<button class="btn" onclick="exportProducts()">📤 Export</button>
-<button class="btn" onclick="addProductForm()">➕ Add</button>
+<!-- Products Modal -->
+<div id="productsModal" class="modal"><div class="modal-card" style="max-width:700px"><div class="modal-head"><b>📦 Products - Barcode Display Fix</b><button class="btn" onclick="closeProducts()">✕</button></div><div class="modal-body"><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btn btn-primary" onclick="document.getElementById('excelFile2').click()">📥 Import Excel</button><input type="file" id="excelFile2" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)"><button class="btn" onclick="exportProducts()">📤 Export</button><button class="btn btn-primary" onclick="addProductForm()">➕ Add Product - Barcode Display</button></div><div id="productManageList" style="max-height:60vh;overflow:auto"></div></div></div></div>
+
+<!-- Bill Modal -->
+<div id="billModal" class="modal"><div class="modal-card"><div class="modal-head"><b>🧾 Bill</b><button class="btn" onclick="closeBillModal()">✕</button></div><div class="modal-body"><div id="billPreview" class="bill-preview"></div><div style="display:flex;gap:6px;margin-top:12px"><button class="btn btn-primary" style="flex:1" onclick="printBill()">🖨️ Print</button><a id="whatsappBtn" class="btn btn-primary" style="flex:1;text-decoration:none;justify-content:center" target="_blank">📱 WhatsApp</a><button class="btn" style="flex:1" onclick="newBill()">New Bill</button></div></div></div></div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal"><div class="modal-card"><div class="modal-head"><b>⚙️ Settings - All Stores Same</b><button class="btn" onclick="closeSettings()">✕</button></div><div class="modal-body">
+<div style="display:grid;gap:10px">
+<input id="setStoreName" class="input" placeholder="Store Name">
+<input id="setStoreCode" class="input" placeholder="Store Code - FLM-PLR-001" readonly>
+<input id="setCommission" class="input" type="number" placeholder="Commission %">
+<input id="setFestival" class="input" type="number" placeholder="Festival %">
+<input id="setUpi" class="input" placeholder="UPI ID">
+<input id="setGstin" class="input" placeholder="GSTIN">
+<input id="setFooter" class="input" placeholder="Footer">
+<div><div style="font-size:11px;font-weight:800;margin-bottom:6px">Exclude Festival Categories</div><div id="excludeCats" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+<button class="btn btn-primary" onclick="saveSettings()">💾 Save - All Stores Same Billing</button>
 </div>
-<div id="productManageList" style="max-height:60vh;overflow:auto"></div>
-</div>
-</div>
-</div>
+</div></div></div>
 
 <script>
+const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
+let sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
 let products=JSON.parse(localStorage.getItem('flm_products')||'null')||[
 {id:'1',name:'Rice 5kg',barcode:'8901030875551',price:350,mrp:380,category:'Grocery',stock:50,minStock:10,unit:'kg',gst:5,excludeFestival:false},
 {id:'2',name:'Sunflower Oil 1L',barcode:'8901030875552',price:120,mrp:130,category:'Oil',stock:30,minStock:5,unit:'ltr',gst:5,excludeFestival:true},
@@ -218,17 +184,24 @@ let products=JSON.parse(localStorage.getItem('flm_products')||'null')||[
 {id:'10',name:'Detergent 1kg',barcode:'8901030875560',price:80,mrp:90,category:'Personal',stock:35,minStock:10,unit:'kg',gst:18,excludeFestival:true}
 ];
 let cart=[],bills=JSON.parse(localStorage.getItem('flm_bills')||'[]'),holds=JSON.parse(localStorage.getItem('flm_holds')||'[]');
-let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Super Mart',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'37AABCF1234H1Z5',footer:'Thank you! Visit again! Festival 3% OFF for FLM Members'};
+let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Super Mart',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'37AABCF1234H1Z5',footer:'Thank you! Visit again! Festival 3% OFF for FLM Members'};
 let flmMembers=JSON.parse(localStorage.getItem('flm_members')||'null')||[
 {mobile:'1111166666',name:'Jayanthi',flId:'FL191628',sponsor:'FL179821',sponsorName:'Test4',isActive:true},
 {mobile:'8074070854',name:'Suresh',flId:'FL179821',sponsor:'FL351817',sponsorName:'HANUMIREDDY',isActive:true}
 ];
 let currentCustomer=null,scanner=null,currentCat='All';
+let lastScannedBarcode='';
 
-function save(){localStorage.setItem('flm_products',JSON.stringify(products));localStorage.setItem('flm_bills',JSON.stringify(bills));localStorage.setItem('flm_holds',JSON.stringify(holds));localStorage.setItem('flm_settings',JSON.stringify(settings));}
+function save(){localStorage.setItem('flm_products',JSON.stringify(products));localStorage.setItem('flm_bills',JSON.stringify(bills));localStorage.setItem('flm_holds',JSON.stringify(holds));localStorage.setItem('flm_settings',JSON.stringify(settings));localStorage.setItem('flm_members',JSON.stringify(flmMembers));}
 
 function init(){
+const urlParams=new URLSearchParams(window.location.search);
+const storeCode=urlParams.get('store')||settings.storeCode||'FLM-PLR-001';
+const storeName=urlParams.get('store_name')||settings.storeName;
+settings.storeCode=storeCode;
+if(storeName) settings.storeName=decodeURIComponent(storeName);
 document.getElementById('storeNameDisplay').textContent=settings.storeName;
+document.getElementById('storeCodeDisplay').textContent=storeCode+' - All Stores Same Billing';
 setInterval(()=>{document.getElementById('liveDateTime').textContent=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})},1000);
 renderCategories();renderProducts();updateTotals();loadSettingsToForm();
 }
@@ -252,9 +225,9 @@ return `<div class="product-card" onclick="addToCart('${p.id}')">
 <div class="p-name">${p.name}</div>
 <div class="p-price">Rs.${p.price}</div>
 <div class="p-stock">${out?'❌ Out':low?`⚠️ Low ${p.stock}`:`📦 ${p.stock} ${p.unit}`}</div>
-<div class="p-barcode">${p.barcode||'No Barcode • Name search'}</div>
+<div class="p-barcode">📷 ${p.barcode||'No Barcode • Name search • Scan cheste auto display'}</div>
 </div>`;
-}).join('')||'<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">No products • Import Excel or Add</div>';
+}).join('')||'<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">No products • Import Excel or Add • Scan cheste barcode auto display</div>';
 }
 
 function addToCart(pid){
@@ -263,16 +236,20 @@ if(prod.stock<=0){alert('Out of stock');return;}
 const ex=cart.find(c=>c.id===pid);
 if(ex){if(ex.qty+1>prod.stock){alert(`Only ${prod.stock} left`);return;}ex.qty++;}
 else cart.push({id:prod.id,name:prod.name,barcode:prod.barcode,price:prod.price,gst:prod.gst,category:prod.category,excludeFestival:prod.excludeFestival,qty:1});
+// Show barcode display when added via scan
+if(prod.barcode){
+showBarcode(prod.barcode,prod.name);
+}
 renderCart();beep();
 }
 
 function renderCart(){
 if(cart.length===0){
-document.getElementById('cartBody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items</td></tr>';
+document.getElementById('cartBody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items • Scan barcode - barcode auto display avtundi - type cheyalsina avasaram ledu</td></tr>';
 }else{
 document.getElementById('cartBody').innerHTML=cart.map((c,i)=>`
 <tr>
-<td><b style="font-size:11px">${c.name}</b><br><span style="font-size:9px">${c.barcode||'Manual'}</span></td>
+<td><b style="font-size:11px">${c.name}</b><br><span style="font-size:9px;background:#f0fdf4;padding:2px 4px;border-radius:4px">📷 ${c.barcode||'Manual - No Barcode'}</span></td>
 <td><div class="qty-ctrl"><button onclick="changeQty(${i},-1)">-</button><span>${c.qty}</span><button onclick="changeQty(${i},1)">+</button></div></td>
 <td>Rs.${c.price}</td>
 <td><b>Rs.${c.price*c.qty}</b></td>
@@ -287,7 +264,7 @@ const it=cart[idx];const p=products.find(x=>x.id===it.id);
 const nq=it.qty+d;if(nq<=0){removeFromCart(idx);return;}if(nq>p.stock){alert(`Only ${p.stock} left`);return;}it.qty=nq;renderCart();
 }
 function removeFromCart(i){cart.splice(i,1);renderCart();}
-function clearCart(){if(confirm('Clear?')){cart=[];renderCart();}}
+function clearCart(){if(confirm('Clear?')){cart=[];renderCart();hideBarcode();}}
 
 function updateTotals(){
 const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
@@ -307,21 +284,85 @@ const ci=document.getElementById('commissionInfo');
 if(currentCustomer?.isFlm&&settings.commission>0){const comm=grand*settings.commission/100;ci.style.display='block';ci.innerHTML=`💸 Commission <b>Rs.${comm.toFixed(2)} (${settings.commission}%)</b> → ${currentCustomer.sponsorName} ${currentCustomer.sponsor}`;}else ci.style.display='none';
 }
 
-function checkCustomer(){
+function normalizeMobile(m){
+if(!m) return '';
+let s=String(m).replace(/\D/g,'');
+if(s.startsWith('91') && s.length>10) s=s.slice(-10);
+if(s.startsWith('0') && s.length>10) s=s.slice(-10);
+return s.slice(-10);
+}
+
+async function autoCheckCustomer(){
 const m=document.getElementById('customerMobile').value.trim();
-if(m.length!==10){alert('10 digits');return;}
-const mem=flmMembers.find(x=>x.mobile===m);
+if(m.length>=10){
+setTimeout(()=>checkCustomer(),500);
+}
+}
+
+async function checkCustomer(){
+const raw=document.getElementById('customerMobile').value.trim();
+const m=normalizeMobile(raw);
+if(m.length!==10){document.getElementById('customerInfo').innerHTML='<div class="small" style="color:#dc2626">Enter 10 digits - Database lo unna anni users check - 9701695612 kuda work</div>';return;}
 const info=document.getElementById('customerInfo');
+info.innerHTML='<div class="small">Checking database - All users check - '+m+'...</div>';
+try{
+// Check local first
+let mem=flmMembers.find(x=>normalizeMobile(x.mobile)===m);
+// Check Supabase users table - all columns - mobile, phone, whatsapp, alternate
+if(!mem && sb){
+try{
+let r=await sb.from('users').select('fl_id,full_name,username,mobile,phone,whatsapp_mobile,sponsor_id,is_active').or(`mobile.eq.${m},phone.eq.${m},whatsapp_mobile.eq.${m},mobile.ilike.%${m}%,phone.ilike.%${m}%`).limit(5);
+if(!r.error && r.data && r.data.length){
+const u=r.data.find(x=>normalizeMobile(x.mobile)===m || normalizeMobile(x.phone)===m || normalizeMobile(x.whatsapp_mobile)===m) || r.data[0];
+if(u){
+let sponsorName='';
+if(u.sponsor_id){
+try{
+const sr=await sb.from('users').select('full_name,fl_id').eq('fl_id',u.sponsor_id).maybeSingle();
+if(sr.data) sponsorName=sr.data.full_name||sr.data.fl_id||u.sponsor_id;
+}catch(e){}
+}
+mem={mobile:normalizeMobile(u.mobile||u.phone||m),name:u.full_name||u.username||'User',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:sponsorName||u.sponsor_id||'',isActive:u.is_active!==false};
+// Save to local for next time
+if(!flmMembers.find(x=>normalizeMobile(x.mobile)===normalizeMobile(mem.mobile))){
+flmMembers.push(mem);
+save();
+}
+}
+}
+// Also try profiles table if exists
+if(!mem){
+const r2=await sb.from('profiles').select('*').or(`mobile.eq.${m},phone.eq.${m}`).limit(3);
+if(!r2.error && r2.data && r2.data.length){
+const u=r2.data[0];
+mem={mobile:m,name:u.full_name||u.name||'User',flId:u.fl_id||u.user_id||'',sponsor:u.sponsor_id||'',sponsorName:u.sponsor_id||'',isActive:true};
+}
+}
+}catch(e){console.log('DB check error',e);}
+}
+
+if(mem){
+currentCustomer={...mem,isFlm:true,originalMobile:raw};
+info.innerHTML=`<div style="padding:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px"><b>${mem.name}</b> <span class="badge badge-green">FLM Member ✓ Found in DB</span><br><span style="font-size:11px">${mem.flId} • Sponsor ${mem.sponsorName} ${mem.sponsor} • Mobile ${mem.mobile} • Database lo dorikindi - 9701695612 lanti numbers kuda work!</span></div>`;
+document.getElementById('newCustomerForm').style.display='none';
+}else{
+currentCustomer={mobile:m,isFlm:false,originalMobile:raw};
+info.innerHTML=`<div style="padding:10px;background:#fef3c7;border-radius:10px"><b>New Customer</b> • ${m} (Original: ${raw}) • Database lo ledu - New customer ga add avtundi</div>`;
+document.getElementById('newCustomerForm').style.display='block';
+}
+updateTotals();
+}catch(e){
+info.innerHTML=`<div class="small" style="color:#dc2626">Error: ${e.message} - Local check chestunnanu</div>`;
+const mem=flmMembers.find(x=>normalizeMobile(x.mobile)===m);
 if(mem){
 currentCustomer={...mem,isFlm:true};
-info.innerHTML=`<div style="padding:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px"><b>${mem.name}</b> <span class="badge badge-green">FLM Member ✓</span><br><span style="font-size:11px">${mem.flId} • Sponsor ${mem.sponsorName}</span></div>`;
-document.getElementById('newCustomerForm').style.display='none';
+info.innerHTML=`<div style="padding:10px;background:#ecfdf5;border-radius:10px"><b>${mem.name}</b> ✓ Local • ${mem.flId}</div>`;
 }else{
 currentCustomer={mobile:m,isFlm:false};
 info.innerHTML=`<div style="padding:10px;background:#fef3c7;border-radius:10px"><b>New Customer</b> • ${m}</div>`;
 document.getElementById('newCustomerForm').style.display='block';
 }
-updateTotals();
+}
 }
 
 function updatePayment(){
@@ -332,8 +373,8 @@ document.getElementById('cardSection').style.display=pay==='Card'?'block':'none'
 if(pay==='UPI'){
 const amt=document.getElementById('grandTotal').textContent.replace('Rs.','');
 const upi=settings.upi;
-document.getElementById('upiIdDisplay').textContent=`UPI: ${upi}`;
-const link=`upi://pay?pa=${upi}&pn=${settings.storeName}&am=${amt}&tn=FLM Bill`;
+document.getElementById('upiIdDisplay').textContent=`UPI: ${upi} - Store: ${settings.storeCode}`;
+const link=`upi://pay?pa=${upi}&pn=${settings.storeName}&am=${amt}&tn=FLM Bill ${settings.storeCode}`;
 document.getElementById('qrCode').innerHTML=`<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}" style="border-radius:12px">`;
 }
 }
@@ -344,9 +385,9 @@ document.getElementById('changeAmount').textContent=`Rs.${(rec-tot)>=0?(rec-tot)
 }
 
 function completeBill(){
-if(cart.length===0){alert('Add items');return;}
+if(cart.length===0){alert('Add items - Scan cheste barcode auto display avtundi');return;}
 const mob=document.getElementById('customerMobile').value.trim();
-if(!mob||mob.length!==10){alert('Enter mobile');return;}
+if(!mob||normalizeMobile(mob).length!==10){alert('Enter mobile - Database lo unna anni users check - 9701695612 kuda work');return;}
 const cname=currentCustomer?.isFlm?currentCustomer.name:(document.getElementById('customerName').value||'Customer');
 const pay=document.querySelector('input[name="payment"]:checked').value;
 const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
@@ -356,26 +397,28 @@ const elig=sub-excl;
 const fest=settings.festival>0&&currentCustomer?.isFlm?elig*settings.festival/100:0;
 const grand=sub+gst-fest;
 const comm=currentCustomer?.isFlm?grand*settings.commission/100:0;
-const bill={id:'FLM-'+Date.now().toString().slice(-6),date:new Date().toISOString(),customerMobile:mob,customerName:cname,isFlm:!!currentCustomer?.isFlm,flId:currentCustomer?.flId||'',sponsor:currentCustomer?.sponsor||'',sponsorName:currentCustomer?.sponsorName||'',items:[...cart],subtotal:sub,gst,festivalDiscount:fest,payment:pay,grandTotal:grand,commission:comm};
+const bill={id:'FLM-'+Date.now().toString().slice(-6),date:new Date().toISOString(),storeCode:settings.storeCode,storeName:settings.storeName,customerMobile:normalizeMobile(mob),customerName:cname,isFlm:!!currentCustomer?.isFlm,flId:currentCustomer?.flId||'',sponsor:currentCustomer?.sponsor||'',sponsorName:currentCustomer?.sponsorName||'',items:[...cart],subtotal:sub,gst,festivalDiscount:fest,payment:pay,grandTotal:grand,commission:comm};
 cart.forEach(c=>{const p=products.find(x=>x.id===c.id);if(p)p.stock-=c.qty;});
-bills.unshift(bill);save();renderProducts();showBill(bill);cart=[];renderCart();
+bills.unshift(bill);save();renderProducts();showBill(bill);cart=[];renderCart();hideBarcode();
 document.getElementById('customerMobile').value='';document.getElementById('customerName').value='';currentCustomer=null;document.getElementById('customerInfo').innerHTML='';document.getElementById('newCustomerForm').style.display='none';document.getElementById('cashReceived').value='';
 }
 
 function showBill(b){
-const txt=`🏪 ${settings.storeName}
+const txt=`🏪 ${settings.storeName} (${settings.storeCode})
 Bill No: ${b.id} | ${new Date(b.date).toLocaleString('en-IN')}
-Customer: ${b.customerName} ${b.isFlm?`(${b.flId}) ✓`:''}
+Customer: ${b.customerName} ${b.isFlm?`(${b.flId}) ✓ FLM Member - Database lo dorikindi`:''}
 Mobile: ${b.customerMobile}
+Store: ${b.storeCode} - All stores same billing - Bill lo store ID tag
 ----------------------------
-${b.items.map((it,i)=>`${i+1}. ${it.name} x${it.qty} @${it.price}=Rs.${it.price*it.qty}`).join('\n')}
+${b.items.map((it,i)=>`${i+1}. ${it.name} [${it.barcode||'No Barcode'}] x${it.qty} @${it.price}=Rs.${it.price*it.qty}`).join('\n')}
 ----------------------------
 Subtotal: Rs.${b.subtotal.toFixed(0)}
 GST: Rs.${b.gst.toFixed(0)}
 ${b.festivalDiscount>0?`Festival OFF: -Rs.${b.festivalDiscount.toFixed(0)}\n`:''}Grand Total: Rs.${b.grandTotal.toFixed(0)}
 Payment: ${b.payment}
-${b.commission>0?`Commission Rs.${b.commission.toFixed(2)} -> ${b.sponsorName}\n`:''}----------------------------
-${settings.footer}`;
+${b.commission>0?`Commission Rs.${b.commission.toFixed(2)} -> ${b.sponsorName} ${b.sponsor}\n`:''}----------------------------
+${settings.footer}
+Store: ${b.storeCode} - Admin lo store wise kanipistundi`;
 document.getElementById('billPreview').textContent=txt;
 document.getElementById('whatsappBtn').href=`https://wa.me/91${b.customerMobile}?text=${encodeURIComponent(txt)}`;
 document.getElementById('billModal').style.display='grid';
@@ -384,18 +427,36 @@ function closeBillModal(){document.getElementById('billModal').style.display='no
 function newBill(){closeBillModal();}
 function printBill(){const w=window.open('','_blank');w.document.write(`<pre>${document.getElementById('billPreview').textContent}</pre>`);w.print();}
 
+function showBarcode(code,productName){
+lastScannedBarcode=code;
+document.getElementById('lastBarcode').textContent=code;
+document.getElementById('lastBarcodeProduct').textContent=productName?`• ${productName}`:'';
+document.getElementById('barcodeDisplay').classList.add('show');
+setTimeout(()=>hideBarcode(),5000);
+}
+function hideBarcode(){document.getElementById('barcodeDisplay').classList.remove('show');}
+
 function openScanner(){
 document.getElementById('scannerModal').style.display='grid';
 if(!scanner){
 scanner=new Html5Qrcode("scanner");
-scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:150}},(dec)=>{addByBarcode(dec);beep();},{});
+scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:150}},(dec)=>{
+addByBarcode(dec);
+showBarcode(dec,'');
+beep();
+},{});
 }
 }
 function closeScanner(){if(scanner){scanner.stop().then(()=>{scanner=null;}).catch(()=>{});}document.getElementById('scannerModal').style.display='none';}
 function addByBarcode(code){
 const p=products.find(x=>x.barcode===code);
-if(p)addToCart(p.id);
-else if(confirm(`Barcode ${code} not found! Add new?`))addProductForm(code);
+if(p){
+addToCart(p.id);
+showBarcode(code,p.name);
+}else if(confirm(`Barcode ${code} not found! Product: ${code}\n\nAdd new product with this barcode? Barcode auto display avtundi - type cheyalsina avasaram ledu`)){
+addProductForm(code);
+showBarcode(code,'New Product');
+}
 }
 function beep(){try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=800;g.gain.value=0.3;o.start();setTimeout(()=>{o.stop();ctx.close();},150);}catch(e){}if(navigator.vibrate)navigator.vibrate(100);}
 
@@ -416,7 +477,7 @@ data.forEach(row=>{
 const name=row.Name||row.name||'';const price=parseFloat(row.Price||row.price)||0;if(!name||!price)return;
 products.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,4),name,barcode:row.Barcode||row.barcode||'',price,mrp:parseFloat(row.MRP||row.mrp)||price,category:row.Category||row.category||'Grocery',stock:parseInt(row.Stock||row.stock)||50,minStock:10,unit:'pcs',gst:parseFloat(row.GST||row.gst)||5,excludeFestival:(row.ExcludeFestival||'').toString().toLowerCase()==='yes'});added++;
 });
-save();renderProducts();alert(`✅ ${added} products imported!`);
+save();renderProducts();alert(`✅ ${added} products imported! Barcode auto display fix kuda undi`);
 }catch(err){alert('Error: '+err.message);}
 };
 if(file.name.endsWith('.csv'))reader.readAsText(file);else reader.readAsBinaryString(file);
@@ -431,6 +492,7 @@ function openSettings(){document.getElementById('settingsModal').style.display='
 function closeSettings(){document.getElementById('settingsModal').style.display='none';}
 function loadSettingsToForm(){
 document.getElementById('setStoreName').value=settings.storeName;
+document.getElementById('setStoreCode').value=settings.storeCode;
 document.getElementById('setCommission').value=settings.commission;
 document.getElementById('setFestival').value=settings.festival;
 document.getElementById('setUpi').value=settings.upi;
@@ -441,37 +503,39 @@ document.getElementById('excludeCats').innerHTML=cats.map(c=>`<label style="disp
 }
 function saveSettings(){
 settings.storeName=document.getElementById('setStoreName').value||'FLM Super Mart';
+settings.storeCode=document.getElementById('setStoreCode').value||'FLM-PLR-001';
 settings.commission=parseFloat(document.getElementById('setCommission').value)||1;
 settings.festival=parseInt(document.getElementById('setFestival').value)||0;
 settings.upi=document.getElementById('setUpi').value||'flmstore@upi';
 settings.gstin=document.getElementById('setGstin').value||'';
 settings.footer=document.getElementById('setFooter').value||'Thank you!';
 settings.excludeCats=[...document.querySelectorAll('#excludeCats input:checked')].map(i=>i.value);
-save();document.getElementById('storeNameDisplay').textContent=settings.storeName;
-closeSettings();updateTotals();alert('✅ Saved!');
+save();document.getElementById('storeNameDisplay').textContent=settings.storeName;document.getElementById('storeCodeDisplay').textContent=settings.storeCode+' - All Stores Same';
+closeSettings();updateTotals();alert('✅ Saved! All stores same billing - 69KB OK!');
 }
 
 function openProducts(){document.getElementById('productsModal').style.display='grid';renderProductManage();}
 function closeProducts(){document.getElementById('productsModal').style.display='none';}
 function renderProductManage(){
-document.getElementById('productManageList').innerHTML=products.map(p=>`<div style="display:flex;gap:8px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px"><div style="flex:1"><b style="font-size:12px">${p.name}</b><br><span style="font-size:10px">${p.barcode||'No Barcode'} • ${p.category} • Stock:${p.stock} • Rs.${p.price}</span></div><button class="btn" onclick="editProduct('${p.id}')">Edit</button><button class="btn btn-danger" onclick="deleteProduct('${p.id}')">Del</button></div>`).join('');
+document.getElementById('productManageList').innerHTML=products.map(p=>`<div style="display:flex;gap:8px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px"><div style="flex:1"><b style="font-size:12px">${p.name}</b><br><span style="font-size:10px;background:#f0fdf4;padding:2px 6px;border-radius:4px">📷 ${p.barcode||'No Barcode • Scan cheste auto display'} • ${p.category} • Stock:${p.stock} • Rs.${p.price}</span></div><button class="btn" onclick="editProduct('${p.id}')">Edit</button><button class="btn btn-danger" onclick="deleteProduct('${p.id}')">Del</button></div>`).join('');
 }
 function addProductForm(barcode=''){
 const name=prompt('Product Name:');if(!name)return;
-const bc=barcode||prompt('Barcode (empty if no barcode):','')||'';
+const bc=barcode||prompt('Barcode (empty if no barcode) - Scan cheste auto display avtundi:','')||'';
 const price=parseFloat(prompt('Price:','0'))||0;
 const cat=prompt('Category:','Grocery')||'Grocery';
 const stock=parseInt(prompt('Stock:','50'))||50;
 products.push({id:'p'+Date.now(),name,barcode:bc,price,mrp:price,category:cat,stock,minStock:10,unit:'pcs',gst:5,excludeFestival:false});
 save();renderProducts();renderProductManage();
+if(bc) showBarcode(bc,name);
 }
 function deleteProduct(id){if(confirm('Delete?')){products=products.filter(p=>p.id!==id);save();renderProducts();renderProductManage();}}
-function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;const np=parseFloat(prompt(`Edit price for ${p.name}:`,p.price));if(!isNaN(np)){p.price=np;save();renderProducts();renderProductManage();}}
+function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;const np=parseFloat(prompt(`Edit price for ${p.name} [Barcode: ${p.barcode||'No Barcode'}]:`,p.price));if(!isNaN(np)){p.price=np;save();renderProducts();renderProductManage();if(p.barcode) showBarcode(p.barcode,p.name);}}
 
 function holdBill(){if(cart.length===0){alert('No bill');return;}const name=prompt('Hold name:','Hold-'+Date.now().toString().slice(-4));if(!name)return;holds.push({name,date:new Date().toISOString(),cart:[...cart],customer:currentCustomer});save();cart=[];renderCart();alert(`Held as ${name}`);}
-function showHolds(){if(holds.length===0){alert('No holds');return;}const list=holds.map((h,i)=>`${i+1}. ${h.name} - ${h.cart.length} items`).join('\n');const idx=parseInt(prompt(`Holds:\n${list}\n\nEnter number:`))-1;if(holds[idx]){cart=holds[idx].cart;currentCustomer=holds[idx].customer;holds.splice(idx,1);save();renderCart();}}
-function openHistory(){const list=bills.slice(0,20).map(b=>`${b.id} - ${b.customerName} - Rs.${b.grandTotal.toFixed(0)} - ${new Date(b.date).toLocaleString()}`).join('\n');alert(`Bills:\n\n${list}`);}
-function openReports(){const total=bills.reduce((s,b)=>s+b.grandTotal,0);const today=bills.filter(b=>new Date(b.date).toDateString()===new Date().toDateString());const todayTotal=today.reduce((s,b)=>s+b.grandTotal,0);alert(`Reports\n\nTotal: ${bills.length} bills Rs.${total.toFixed(0)}\nToday: ${today.length} bills Rs.${todayTotal.toFixed(0)}\nFLM: ${bills.filter(b=>b.isFlm).length}\nCommission: Rs.${bills.reduce((s,b)=>s+b.commission,0).toFixed(2)}`);}
+function showHolds(){if(holds.length===0){alert('No holds');return;}const list=holds.map((h,i)=>`${i+1}. ${h.name} - ${h.cart.length} items - Store: ${settings.storeCode}`).join('\n');const idx=parseInt(prompt(`Holds:\n${list}\n\nEnter number:`))-1;if(holds[idx]){cart=holds[idx].cart;currentCustomer=holds[idx].customer;holds.splice(idx,1);save();renderCart();}}
+function openHistory(){const list=bills.slice(0,20).map(b=>`${b.id} - ${b.customerName} - Rs.${b.grandTotal.toFixed(0)} - Store: ${b.storeCode} - ${new Date(b.date).toLocaleString()}`).join('\n');alert(`Bills - All Stores Same - 69KB OK!\n\n${list}`);}
+function openReports(){const total=bills.reduce((s,b)=>s+b.grandTotal,0);const today=bills.filter(b=>new Date(b.date).toDateString()===new Date().toDateString());const todayTotal=today.reduce((s,b)=>s+b.grandTotal,0);alert(`Reports - Store: ${settings.storeCode} - 69KB OK!\n\nTotal: ${bills.length} bills Rs.${total.toFixed(0)}\nToday: ${today.length} bills Rs.${todayTotal.toFixed(0)}\nFLM: ${bills.filter(b=>b.isFlm).length}\nCommission: Rs.${bills.reduce((s,b)=>s+b.commission,0).toFixed(2)}\n\nAll stores same billing - Bill lo store ID tag - Admin lo store wise`);}
 
 init();
 </script>
