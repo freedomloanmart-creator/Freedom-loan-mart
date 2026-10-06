@@ -1740,7 +1740,7 @@ async function flmLoadLoanV2(){
 
    // Use the canonical database eligibility function. It uses the live binary tree,
    // direct referrals separately, and RELEASED/ACTIVE loan level history so that
-   // 1:1 -> Loan 1, 4:4 -> Loan 2, 12:12 -> Loan 3 automatically.
+   // 1:1 -> Fund 1, 4:4 -> Fund 2, 12:12 -> Fund 3, 36:36 -> Fund 4, 80:80 -> Fund 5 automatically.
    var e=null;
    try{
      var r=await supabaseClient.rpc('flm_loan_eligibility_v2',{p_fl_id:flId});
@@ -1889,25 +1889,49 @@ function flmPlanRequiresRenewal(p){ return flmBool(firstVal(p,['require_renewals
 function flmPlanActive(p){ var v=firstVal(p,['active','is_active'],true); return !(v===false || v===0 || String(v).toLowerCase()==='false' || String(v).toLowerCase()==='inactive' || String(v).toLowerCase()==='off'); }
 function flmPlanConditionSatisfied(plan,live,loans){
   if(!plan || !flmPlanActive(plan)) return false;
-  var directOk=loanNum(live&&live.directLeft)>=1 && loanNum(live&&live.directRight)>=1;
+
+  /*
+   * FINAL FUND RULES — UI must follow the business rule, not stale
+   * require_direct_lr / require_renewals flags from an older plan row.
+   *
+   * Fund 1  : 1 direct ACTIVE LEFT + 1 direct ACTIVE RIGHT
+   * Fund 2-5: binary pairs only (4:4, 12:12, 36:36, 80:80)
+   * Fund 6+ : required pairs + (2 renewals OR 1 new ACTIVE direct LEFT
+   *           + 1 new ACTIVE direct RIGHT)
+   */
+  var level=loanNum(firstVal(plan,['level_no'],0));
+
+  if(level===1){
+    return loanNum(live&&live.directLeft)>=1 &&
+           loanNum(live&&live.directRight)>=1;
+  }
+
+  if(level>=2 && level<=5){
+    return true;
+  }
+
+  var directOk=loanNum(live&&live.directLeft)>=1 &&
+               loanNum(live&&live.directRight)>=1;
+
   var renewalDone=0;
   (loans||[]).forEach(function(x){
     renewalDone += loanNum(firstVal(x,['renewal_completed','renewal_completed_count'],0));
   });
-  var renewalOk=renewalDone>=2;
-  var needDirect=flmPlanRequiresDirectLR(plan), needRenewal=flmPlanRequiresRenewal(plan);
-  // Enabled conditions are OR conditions. If both are OFF, pairs alone qualify.
-  if(needDirect && needRenewal) return directOk || renewalOk;
-  if(needDirect) return directOk;
-  if(needRenewal) return renewalOk;
-  return true;
+
+  return directOk || renewalDone>=2;
 }
-function flmPlanPairReached(plan,live){ return !!plan && loanNum(live&&live.pairs)>=loanNum(plan.required_pairs||0); }
+
+function flmPlanPairReached(plan,live){
+  return !!plan && loanNum(live&&live.pairs)>=loanNum(plan.required_pairs||0);
+}
+
 function flmPlanConditionText(plan){
-  var d=flmPlanRequiresDirectLR(plan),r=flmPlanRequiresRenewal(plan);
-  if(d&&r)return 'Direct L+R OR Renewal';
-  if(d)return 'Direct L+R';
-  if(r)return 'Renewal';
+  var level=loanNum(firstVal(plan,['level_no'],0));
+
+  if(level===1) return '1 direct ACTIVE LEFT + 1 direct ACTIVE RIGHT';
+  if(level>=2 && level<=5) return 'Pairs only';
+  if(level>=6) return '2 renewals OR new ACTIVE direct L+R';
+
   return 'No extra condition';
 }
 
