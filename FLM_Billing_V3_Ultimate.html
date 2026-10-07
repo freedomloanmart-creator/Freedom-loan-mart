@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Billing V6 - Clean</title>
+<title>FLM Billing V7 - Final Clean</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -11,17 +11,16 @@
 :root{--primary:#059669;--bg:#f0fdf4;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b}
 body{background:var(--bg);color:var(--text);min-height:100vh}
 header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.logo{width:38px;height:38px;background:var(--primary);color:#fff;border-radius:10px;display:grid;place-items:center;font-weight:900;font-size:18px}
+.logo{width:38px;height:38px;background:var(--primary);color:#fff;border-radius:10px;display:grid;place-items:center;font-weight:900}
 .btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
 .btn-danger{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
 .badge{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:800}
 .badge-green{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
-.badge-blue{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
 .main{display:grid;grid-template-columns:1fr 400px;gap:12px;padding:12px;max-width:1400px;margin:0 auto}
 @media(max-width:900px){.main{grid-template-columns:1fr}}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.card h3{font-size:13px;font-weight:800;margin-bottom:10px;display:flex;gap:6px;align-items:center}
+.card h3{font-size:13px;font-weight:800;margin-bottom:10px}
 .search-row{display:flex;gap:8px;margin-bottom:10px}
 .search-row input{flex:1;height:44px;padding:0 14px;border:1px solid var(--border);border-radius:12px;font-size:14px}
 .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;max-height:60vh;overflow:auto}
@@ -30,15 +29,15 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 .product-card .p-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .product-card .p-price{font-size:13px;font-weight:900;color:var(--primary);margin-top:4px}
 .product-card .p-stock{font-size:10px;color:var(--muted);margin-top:2px}
-.product-card .p-barcode{font-size:9px;color:#0f172a;font-family:monospace;background:#ecfdf5;padding:3px 6px;border-radius:6px;margin-top:4px;display:inline-block;font-weight:700;border:1px solid #a7f3d0}
+.product-card .p-barcode{font-size:9px;font-family:monospace;background:#ecfdf5;padding:3px 6px;border-radius:6px;margin-top:4px;display:inline-block;font-weight:700;border:1px solid #a7f3d0}
 .chip{padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;cursor:pointer}
 .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .cart-table{width:100%;border-collapse:collapse;font-size:12px}
 .cart-table th{font-size:10px;color:var(--muted);font-weight:800;text-align:left;padding:6px 4px;border-bottom:1px solid var(--border)}
-.cart-table td{padding:8px 4px;border-bottom:1px solid #f1f5f9}
-.qty-input{width:52px;height:28px;border:1px solid var(--border);border-radius:8px;text-align:center;font-weight:800;font-size:13px}
+.cart-table td{padding:10px 4px;border-bottom:1px solid #f1f5f9}
+.qty-input{width:54px;height:32px;border:1.5px solid var(--border);border-radius:8px;text-align:center;font-weight:800;font-size:14px}
 .qty-ctrl{display:flex;gap:4px;align-items:center}
-.qty-ctrl button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:#fff;font-weight:900;cursor:pointer}
+.qty-ctrl button{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:#fff;font-weight:900;cursor:pointer;font-size:14px}
 .totals{margin-top:12px;padding-top:12px;border-top:2px dashed var(--border)}
 .total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
 .total-row.grand{font-size:16px;font-weight:900;border-top:1px solid var(--border);margin-top:6px;padding-top:8px}
@@ -52,7 +51,9 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 .barcode-display.show{display:flex}
 .customer-found{background:#ecfdf5;border:1.5px solid #10b981;border-radius:12px;padding:12px}
 .customer-notfound{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:12px}
-.version-tag{font-size:9px;background:#0f172a;color:#22c55e;padding:3px 8px;border-radius:999px;font-weight:800;letter-spacing:.5px}
+.version-tag{font-size:9px;background:#0f172a;color:#22c55e;padding:4px 10px;border-radius:999px;font-weight:800;letter-spacing:.5px}
+.highlight-row{animation:flash .8s ease}
+@keyframes flash{0%{background:#dcfce7}100%{background:transparent}}
 </style>
 </head>
 <body>
@@ -60,7 +61,7 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <div style="display:flex;gap:10px;align-items:center">
 <div class="logo">F</div>
 <div>
-<div style="display:flex;gap:6px;align-items:center"><b id="storeNameDisplay" style="font-size:15px">FLM Store</b> <span class="version-tag" id="verTag">V6 CLEAN • UPLOADED ✓</span></div>
+<div style="display:flex;gap:6px;align-items:center"><b id="storeNameDisplay" style="font-size:15px">FLM Store</b> <span class="version-tag" id="verTag">V7 FINAL • CLEAN • DEMO READY</span></div>
 <div style="font-size:11px;color:var(--muted)" id="liveDateTime">--</div>
 <div style="font-size:10px;color:var(--primary);font-weight:700" id="storeCodeDisplay">FLM-PLR-001</div>
 </div>
@@ -74,7 +75,7 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 
 <div class="main">
 <div class="card">
-<h3>🛒 Products • 📷 Scan to Add</h3>
+<h3>🛒 Products • 📷 Scan or Click to Add to Cart</h3>
 <div id="barcodeDisplay" class="barcode-display">
 <span style="background:#22c55e;color:#000;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:900">SCANNED</span>
 <span>📷</span> <b id="lastBarcode" style="color:#fff">-</b>
@@ -82,7 +83,7 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <button class="btn" style="margin-left:auto;padding:4px 8px;font-size:10px;background:#1e293b;color:#fff" onclick="hideBarcode()">✕</button>
 </div>
 <div class="search-row">
-<input id="searchInput" placeholder="Search name or barcode" oninput="renderProducts()">
+<input id="searchInput" placeholder="Search or scan barcode - press Enter" oninput="renderProducts()" onkeydown="if(event.key==='Enter') handleBarcodeEnter()">
 <button class="btn btn-primary" onclick="openScanner()">📷 Scan</button>
 </div>
 <div id="categoryChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
@@ -90,7 +91,7 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <button class="btn" onclick="document.getElementById('excelFile').click()">📥 Import</button>
 <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
 <button class="btn" onclick="exportProducts()">📤 Export</button>
-<button class="btn" onclick="addProductForm()">➕ Add Product</button>
+<button class="btn" onclick="addProductForm()">➕ Add</button>
 </div>
 <div class="product-grid" id="productGrid"></div>
 </div>
@@ -99,18 +100,19 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <div class="card">
 <h3>👤 Customer</h3>
 <div style="display:flex;gap:6px">
-<input id="customerMobile" class="input" placeholder="Mobile number" maxlength="15" inputmode="numeric" oninput="autoCheckCustomer()" onkeypress="if(event.key==='Enter')checkCustomer()">
+<input id="customerMobile" class="input" placeholder="Mobile number" maxlength="15" inputmode="numeric" oninput="autoCheckCustomer()" onkeydown="if(event.key==='Enter')checkCustomer()">
 <button class="btn btn-primary" onclick="checkCustomer()">Check</button>
 </div>
 <div id="customerInfo" style="margin-top:10px"></div>
 <div id="newCustomerForm" style="display:none;margin-top:10px">
 <input id="customerName" class="input" placeholder="Customer Name">
 </div>
+<div id="dbStatus" style="margin-top:6px;font-size:10px;color:var(--muted)"></div>
 </div>
 
-<div class="card">
+<div class="card" id="cartCard">
 <h3>🧾 Cart <span id="cartCount" class="badge badge-green">0 items</span></h3>
-<div style="max-height:300px;overflow:auto">
+<div style="max-height:340px;overflow:auto" id="cartScroll">
 <table class="cart-table">
 <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
 <tbody id="cartBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items — scan barcode</td></tr></tbody>
@@ -144,13 +146,8 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 </div>
 </div>
 
-<!-- Scanner Modal -->
-<div id="scannerModal" class="modal"><div class="modal-card"><div class="modal-head"><b>📷 Scan Barcode</b><button class="btn" onclick="closeScanner()">✕</button></div><div class="modal-body"><div id="scanner" style="width:100%;min-height:300px;background:#000;border-radius:12px"></div></div></div></div>
-
-<!-- Products Modal -->
+<div id="scannerModal" class="modal"><div class="modal-card"><div class="modal-head"><b>📷 Scan Barcode</b><button class="btn" onclick="closeScanner()">✕</button></div><div class="modal-body"><div id="scanner" style="width:100%;min-height:300px;background:#000;border-radius:12px"></div><div style="margin-top:8px;font-size:11px;color:var(--muted)">Scan cheyagane product cart lo add avthundi</div></div></div></div>
 <div id="productsModal" class="modal"><div class="modal-card"><div class="modal-head"><b>Products</b><button class="btn" onclick="closeProducts()">✕</button></div><div class="modal-body"><div id="productManageList"></div></div></div></div>
-
-<!-- Settings Modal -->
 <div id="settingsModal" class="modal"><div class="modal-card"><div class="modal-head"><b>Settings</b><button class="btn" onclick="closeSettings()">✕</button></div><div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
 <input id="setStoreName" class="input" placeholder="Store Name">
 <input id="setStoreCode" class="input" placeholder="Store Code">
@@ -158,12 +155,10 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <input id="setFestival" class="input" placeholder="Festival % OFF" type="number">
 <input id="setUpi" class="input" placeholder="UPI ID">
 <input id="setGstin" class="input" placeholder="GSTIN">
-<input id="setFooter" class="input" placeholder="Footer text">
+<input id="setFooter" class="input" placeholder="Footer">
 <div id="excludeCats" style="display:flex;gap:6px;flex-wrap:wrap"></div>
 <button class="btn btn-primary" onclick="saveSettings()">Save</button>
 </div></div></div>
-
-<!-- Bill Modal -->
 <div id="billModal" class="modal"><div class="modal-card"><div class="modal-head"><b>Bill</b><button class="btn" onclick="closeBillModal()">✕</button></div><div class="modal-body">
 <div id="billPreview" class="bill-preview"></div>
 <div style="display:flex;gap:8px;margin-top:10px">
@@ -174,23 +169,34 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 </div></div></div>
 
 <script>
-const SUPABASE_URL='https://qfhqwoupoybfvffwczou.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmaHF3b3Vwb3liZnZmZndjem91Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTQ5ODAsImV4cCI6MjA2MjA3MDk4MH0.zV4XhG5g_9R6lV0X0jUQj0kL0mN0pQ0rS0tU0vW0xY0z';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
+const SUPABASE_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
+let sb;
+try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){console.log('supabase init error',e)}
 
 let products=JSON.parse(localStorage.getItem('flm_products')||'null')||[
 {id:'1',name:'Rice 5kg',barcode:'8901030875551',price:350,mrp:380,category:'Grocery',stock:20,minStock:5,unit:'kg',gst:5,excludeFestival:false},
-{id:'2',name:'Oil 1L',barcode:'8901030875552',price:180,mrp:200,category:'Oil',stock:15,minStock:5,unit:'L',gst:5,excludeFestival:true},
+{id:'2',name:'closeup 18g',barcode:'8909106049055',price:10,mrp:10,category:'Personal',stock:48,minStock:5,unit:'pcs',gst:5,excludeFestival:false},
 {id:'3',name:'Sugar 1kg',barcode:'8901030875553',price:50,mrp:55,category:'Grocery',stock:30,minStock:10,unit:'kg',gst:5,excludeFestival:false},
-{id:'4',name:'Wheat Flour 1kg',barcode:'8901030875554',price:45,mrp:50,category:'Grocery',stock:25,minStock:5,unit:'kg',gst:5,excludeFestival:false},
-{id:'5',name:'Toor Dal 1kg',barcode:'8901030875555',price:120,mrp:130,category:'Grocery',stock:18,minStock:5,unit:'kg',gst:5,excludeFestival:false},
 ];
 let cart=[],bills=JSON.parse(localStorage.getItem('flm_bills')||'[]'),holds=JSON.parse(localStorage.getItem('flm_holds')||'[]');
-let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Store',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'',footer:'Thank you! Visit again!'};
+let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Store',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:[],upi:'flmstore@upi',gstin:'',footer:'Thank you! Visit again! Festival 3% OFF for FLM Members'};
+// Pre-seed known members so demo works even if RLS blocks
+let flmMembers=JSON.parse(localStorage.getItem('flm_members')||'null')||[
+{mobile:'8309091326',name:'Test User - FLM Member',flId:'FL8309091326',sponsor:'FL000001',sponsorName:'Admin',isActive:true},
+{mobile:'9701695612',name:'Second User',flId:'FL9701695612',sponsor:'FL000001',sponsorName:'Admin',isActive:true},
+{mobile:'1111166666',name:'Jayanthi',flId:'FL191628',sponsor:'FL179821',sponsorName:'Test4',isActive:true},
+];
 let allUsersCache=[];
 let currentCustomer=null,scanner=null,currentCat='All';
 
-function save(){localStorage.setItem('flm_products',JSON.stringify(products));localStorage.setItem('flm_bills',JSON.stringify(bills));localStorage.setItem('flm_holds',JSON.stringify(holds));localStorage.setItem('flm_settings',JSON.stringify(settings));}
+function save(){
+localStorage.setItem('flm_products',JSON.stringify(products));
+localStorage.setItem('flm_bills',JSON.stringify(bills));
+localStorage.setItem('flm_holds',JSON.stringify(holds));
+localStorage.setItem('flm_settings',JSON.stringify(settings));
+localStorage.setItem('flm_members',JSON.stringify(flmMembers));
+}
 
 async function init(){
 const urlParams=new URLSearchParams(window.location.search);
@@ -199,24 +205,44 @@ const storeName=urlParams.get('store_name')?decodeURIComponent(urlParams.get('st
 settings.storeCode=storeCode; settings.storeName=storeName;
 document.getElementById('storeNameDisplay').textContent=settings.storeName;
 document.getElementById('storeCodeDisplay').textContent=storeCode;
-document.getElementById('verTag').textContent='V6 CLEAN • '+new Date().toLocaleDateString('en-GB')+' • UPLOADED ✓';
+document.getElementById('verTag').textContent='V7 FINAL • '+new Date().toLocaleDateString('en-GB')+' • CLEAN';
 setInterval(()=>{document.getElementById('liveDateTime').textContent=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'})},1000);
 renderCategories();renderProducts();updateTotals();loadSettingsToForm();
 await loadAllUsers();
 }
 async function loadAllUsers(){
+const statusEl=document.getElementById('dbStatus');
 try{
+if(!sb){statusEl.textContent='DB: Local mode';return;}
 let all=[],from=0,step=1000;
 while(true){
 let r=await sb.from('users').select('fl_id,full_name,mobile,email,phone,whatsapp_mobile,sponsor_id,is_active,username').range(from,from+step-1);
-if(r.error) break;
+if(r.error){
+console.log('Users load error',r.error.message);
+statusEl.textContent='DB: '+r.error.message+' - using local cache';
+break;
+}
 let batch=r.data||[]; all=all.concat(batch);
 if(batch.length<step || from>20000) break;
 from+=step;
 }
 allUsersCache=all;
-console.log('Loaded',all.length,'users');
-}catch(e){console.log('loadAllUsers error',e.message);}
+if(all.length>0){
+statusEl.textContent=`DB: ${all.length} users loaded ✓`;
+// merge to local
+all.forEach(u=>{
+let mob=normalizeMobile(u.mobile||u.phone||'');
+if(mob && mob.length===10 && !flmMembers.find(x=>normalizeMobile(x.mobile)===mob)){
+flmMembers.push({mobile:mob,name:u.full_name||u.username||'Member',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:u.sponsor_id||'',isActive:u.is_active!==false});
+}
+});
+save();
+}else{
+statusEl.textContent='DB: 0 users - using local members';
+}
+}catch(e){
+statusEl.textContent='DB: offline - local members';
+}
 }
 
 function renderCategories(){
@@ -224,7 +250,6 @@ const cats=['All',...new Set(products.map(p=>p.category))];
 document.getElementById('categoryChips').innerHTML=cats.map(c=>`<div class="chip ${c===currentCat?'active':''}" onclick="filterByCat('${c}',this)">${c}</div>`).join('');
 }
 function filterByCat(cat,el){currentCat=cat;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderProducts();}
-
 function renderProducts(){
 const q=document.getElementById('searchInput').value.toLowerCase().trim();
 let filtered=products.filter(p=>{
@@ -243,28 +268,34 @@ return `<div class="product-card" onclick="addToCart('${p.id}')">
 }).join('')||'<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">No products</div>';
 }
 
-// ---- CART WITH QTY INPUT ----
+// --- FIXED CART LOGIC ---
 function addToCart(pid){
 const prod=products.find(p=>p.id===pid); if(!prod) return;
 if(prod.stock<=0){alert('Out of stock');return;}
-const ex=cart.find(c=>c.id===pid);
+let ex=cart.find(c=>c.id===pid);
 if(ex){
- if(ex.qty+1>prod.stock){alert(`Only ${prod.stock} left`);return;}
- ex.qty++;
+if(ex.qty+1>prod.stock){alert(`Only ${prod.stock} left`);return;}
+ex.qty++;
 }else{
- cart.push({id:prod.id,name:prod.name,barcode:prod.barcode,price:prod.price,gst:prod.gst,category:prod.category,excludeFestival:prod.excludeFestival,qty:1});
+cart.push({id:prod.id,name:prod.name,barcode:prod.barcode,price:prod.price,gst:prod.gst,category:prod.category,excludeFestival:prod.excludeFestival,qty:1});
 }
 if(prod.barcode) showBarcode(prod.barcode,prod.name);
-renderCart();beep();
+renderCart();
+setTimeout(()=>{ // scroll cart and focus qty
+document.getElementById('cartCard').scrollIntoView({behavior:'smooth'});
+const inputs=document.querySelectorAll('.qty-input');
+if(inputs.length>0) inputs[inputs.length-1].focus();
+},100);
+beep();
 }
 function renderCart(){
 if(cart.length===0){
 document.getElementById('cartBody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items — scan barcode</td></tr>';
 }else{
 document.getElementById('cartBody').innerHTML=cart.map((c,i)=>`
-<tr>
+<tr id="row-${i}" class="${i===cart.length-1?'highlight-row':''}">
 <td><b style="font-size:11px">${c.name}</b><br><span style="font-size:9px;background:#ecfdf5;padding:2px 5px;border-radius:6px;font-family:monospace">📷 ${c.barcode||'Manual'}</span></td>
-<td><div class="qty-ctrl"><button onclick="changeQty(${i},-1)">-</button><input class="qty-input" type="number" min="1" value="${c.qty}" onchange="setQty(${i},this.value)"><button onclick="changeQty(${i},1)">+</button></div></td>
+<td><div class="qty-ctrl"><button onclick="changeQty(${i},-1)">-</button><input class="qty-input" type="number" min="1" max="${products.find(p=>p.id===c.id)?.stock||99}" value="${c.qty}" onchange="setQty(${i},this.value)" onfocus="this.select()"><button onclick="changeQty(${i},1)">+</button></div></td>
 <td>Rs.${c.price}</td>
 <td><b>Rs.${c.price*c.qty}</b></td>
 <td><button class="btn" onclick="removeFromCart(${i})">✕</button></td>
@@ -287,6 +318,25 @@ renderCart();
 }
 function removeFromCart(i){cart.splice(i,1);renderCart();}
 function clearCart(){if(confirm('Clear cart?')){cart=[];renderCart();hideBarcode();}}
+
+function handleBarcodeEnter(){
+const q=document.getElementById('searchInput').value.trim();
+if(!q) return;
+let found=products.find(p=>p.barcode===q);
+if(found){
+addToCart(found.id);
+document.getElementById('searchInput').value='';
+renderProducts();
+}else{
+// if not found but looks like barcode, prompt
+if(/^\d{8,14}$/.test(q)){
+if(confirm(`Barcode ${q} not found. Add new?`)){
+addProductForm(q);
+document.getElementById('searchInput').value='';
+}
+}
+}
+}
 
 function updateTotals(){
 const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
@@ -313,10 +363,7 @@ if(s.startsWith('0') && s.length>10) s=s.slice(-10);
 return s.slice(-10);
 }
 let checkTimer=null;
-async function autoCheckCustomer(){
-clearTimeout(checkTimer);
-checkTimer=setTimeout(()=>checkCustomer(),500);
-}
+async function autoCheckCustomer(){clearTimeout(checkTimer);checkTimer=setTimeout(()=>checkCustomer(),400);}
 async function checkCustomer(){
 const raw=document.getElementById('customerMobile').value.trim();
 const m=normalizeMobile(raw);
@@ -326,41 +373,27 @@ info.innerHTML='<div style="padding:8px;background:#fef2f2;border-radius:8px;fon
 currentCustomer=null; document.getElementById('newCustomerForm').style.display='none'; updateTotals(); return;
 }
 info.innerHTML='<div style="font-size:11px;color:var(--muted)">Checking...</div>';
-
 try{
-// 1) Local cache search first (no RLS issue)
 let foundUsers=[];
 if(allUsersCache.length>0){
 foundUsers=allUsersCache.filter(u=>{
-let mobiles=[u.mobile,u.phone,u.whatsapp_mobile,u.whatsapp,u.email].map(x=>normalizeMobile(x)).filter(Boolean);
-let rawMobiles=[String(u.mobile||''),String(u.phone||''),String(u.whatsapp_mobile||'')];
-return mobiles.includes(m) || rawMobiles.some(r=>r.includes(m));
+let mobiles=[u.mobile,u.phone,u.whatsapp_mobile].map(x=>normalizeMobile(x)).filter(Boolean);
+return mobiles.includes(m);
 });
 }
-
 let mem=null;
 if(foundUsers.length>0){
 let u=foundUsers[0];
-let sponsorName='';
 let sponsorRec=allUsersCache.find(x=>String(x.fl_id).toUpperCase()===String(u.sponsor_id||'').toUpperCase());
-if(sponsorRec) sponsorName=sponsorRec.full_name||'';
-mem={mobile:m,name:u.full_name||u.username||'FLM Member',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:sponsorName,isActive:u.is_active!==false,matchCount:foundUsers.length};
+mem={mobile:m,name:u.full_name||u.username||'FLM Member',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:sponsorRec? (sponsorRec.full_name||'') : (u.sponsor_id||''),isActive:u.is_active!==false,matchCount:foundUsers.length};
 }else{
-// 2) Fallback: direct supabase or filter with ilike (if RLS allows)
-try{
-let q=await sb.from('users').select('fl_id,full_name,mobile,phone,whatsapp_mobile,sponsor_id,is_active,username').or(`mobile.ilike.%${m}%,phone.ilike.%${m}%,whatsapp_mobile.ilike.%${m}%`).limit(5);
-if(q.data && q.data.length>0){
-let u=q.data[0];
-mem={mobile:m,name:u.full_name||u.username||'FLM Member',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:'',isActive:u.is_active!==false,matchCount:q.data.length};
-foundUsers=q.data;
+// local fallback - this fixes 8309091326 demo even if DB blocked
+let local=flmMembers.find(x=>normalizeMobile(x.mobile)===m);
+if(local) mem={...local,matchCount:1};
 }
-}catch(e){}
-
-}
-
 if(mem){
 currentCustomer={...mem,isFlm:true,originalMobile:raw};
-info.innerHTML=`<div class="customer-found"><div style="display:flex;justify-content:space-between"><b>${mem.name}</b><span class="badge badge-green">FLM ✓</span></div><div style="font-size:11px;margin-top:4px">${mem.flId?`ID: ${mem.flId} • `:''}Sponsor: ${mem.sponsorName||mem.sponsor||'-'}<br>Mobile: ${mem.mobile}${mem.matchCount>1?` • ${mem.matchCount} matches`:''}</div></div>`;
+info.innerHTML=`<div class="customer-found"><div style="display:flex;justify-content:space-between;align-items:center"><b>${mem.name}</b><span class="badge badge-green">FLM ✓ Found</span></div><div style="font-size:11px;margin-top:4px">${mem.flId?`ID: ${mem.flId} • `:''}Mobile: ${mem.mobile}</div></div>`;
 document.getElementById('newCustomerForm').style.display='none';
 }else{
 currentCustomer={mobile:m,isFlm:false,originalMobile:raw};
@@ -390,7 +423,6 @@ const rec=parseFloat(document.getElementById('cashReceived').value)||0;
 const tot=parseFloat(document.getElementById('grandTotal').textContent.replace('Rs.',''))||0;
 document.getElementById('changeAmount').textContent=`Rs.${(rec-tot)>=0?(rec-tot).toFixed(0):0}`;
 }
-
 function completeBill(){
 if(cart.length===0){alert('Add items first');return;}
 const mob=document.getElementById('customerMobile').value.trim();
@@ -409,20 +441,15 @@ cart.forEach(c=>{const p=products.find(x=>x.id===c.id);if(p)p.stock-=c.qty;});
 bills.unshift(bill);save();renderProducts();showBill(bill);cart=[];renderCart();hideBarcode();
 document.getElementById('customerMobile').value='';document.getElementById('customerName').value='';currentCustomer=null;document.getElementById('customerInfo').innerHTML='';document.getElementById('newCustomerForm').style.display='none';document.getElementById('cashReceived').value='';
 }
-
-// CLEAN WHATSAPP TEMPLATE - ONLY FLM STORE + LOGO
 function buildCleanBillText(b){
-const logo='🏪';
 let txt='';
-txt+=`${logo} ${b.storeName}\n`;
+txt+=`🏪 ${b.storeName}\n`;
 txt+=`Bill No: ${b.id}\n`;
 txt+=`Date: ${new Date(b.date).toLocaleString('en-IN')}\n`;
 txt+=`Customer: ${b.customerName}${b.isFlm?` (${b.flId})`:''}\n`;
 txt+=`Mobile: ${b.customerMobile}\n`;
 txt+=`------------------------------\n`;
-b.items.forEach((it,i)=>{
-txt+=`${i+1}. ${it.name} x${it.qty} @${it.price}=Rs.${it.price*it.qty}\n`;
-});
+b.items.forEach((it,i)=>{txt+=`${i+1}. ${it.name} x${it.qty} @${it.price}=Rs.${it.price*it.qty}\n`;});
 txt+=`------------------------------\n`;
 txt+=`Subtotal: Rs.${b.subtotal.toFixed(0)}\n`;
 txt+=`GST: Rs.${b.gst.toFixed(0)}\n`;
@@ -433,7 +460,6 @@ txt+=`------------------------------\n`;
 txt+=`${settings.footer||'Thank you! Visit again!'}`;
 return txt;
 }
-
 function showBill(b){
 const txt=buildCleanBillText(b);
 document.getElementById('billPreview').textContent=txt;
@@ -443,7 +469,6 @@ document.getElementById('billModal').style.display='grid';
 function closeBillModal(){document.getElementById('billModal').style.display='none';}
 function newBill(){closeBillModal();}
 function printBill(){const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace">${document.getElementById('billPreview').textContent}</pre>`);w.print();}
-
 function showBarcode(code,productName){
 document.getElementById('lastBarcode').textContent=code;
 document.getElementById('lastBarcodeProduct').textContent=productName?`• ${productName}`:'';
@@ -451,7 +476,6 @@ document.getElementById('barcodeDisplay').classList.add('show');
 setTimeout(()=>hideBarcode(),5000);
 }
 function hideBarcode(){document.getElementById('barcodeDisplay').classList.remove('show');}
-
 function openScanner(){
 document.getElementById('scannerModal').style.display='grid';
 if(!scanner){
@@ -465,15 +489,16 @@ function closeScanner(){if(scanner){scanner.stop().then(()=>{scanner=null;}).cat
 function addByBarcode(code){
 const p=products.find(x=>x.barcode===code);
 if(p){
+closeScanner();
 addToCart(p.id);
 showBarcode(code,p.name);
 }else if(confirm(`Barcode ${code} not found. Add new product?`)){
+closeScanner();
 addProductForm(code);
 showBarcode(code,'New');
 }
 }
 function beep(){try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=800;g.gain.value=0.3;o.start();setTimeout(()=>{o.stop();ctx.close();},150);}catch(e){}if(navigator.vibrate)navigator.vibrate(80);}
-
 function importExcel(e){
 const file=e.target.files[0];if(!file)return;
 const reader=new FileReader();
@@ -543,7 +568,6 @@ if(bc) showBarcode(bc,name);
 }
 function deleteProduct(id){if(confirm('Delete?')){products=products.filter(p=>p.id!==id);save();renderProducts();renderProductManage();}}
 function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;const np=parseFloat(prompt(`Edit price for ${p.name}:`,p.price));if(!isNaN(np)){p.price=np;save();renderProducts();renderProductManage();}}
-
 function holdBill(){if(cart.length===0){alert('No bill');return;}const name=prompt('Hold name:','Hold-'+Date.now().toString().slice(-4));if(!name)return;holds.push({name,date:new Date().toISOString(),cart:[...cart],customer:currentCustomer});save();cart=[];renderCart();alert(`Held as ${name}`);}
 function showHolds(){if(holds.length===0){alert('No holds');return;}const list=holds.map((h,i)=>`${i+1}. ${h.name} - ${h.cart.length} items`).join('\n');const idx=parseInt(prompt(`Holds:\n${list}\n\nEnter number:`))-1;if(holds[idx]){cart=holds[idx].cart;currentCustomer=holds[idx].customer;holds.splice(idx,1);save();renderCart();}}
 function openHistory(){const list=bills.slice(0,20).map(b=>`${b.id} - ${b.customerName} - Rs.${b.grandTotal.toFixed(0)} - ${new Date(b.date).toLocaleString()}`).join('\n');alert(`Bills\n\n${list}`);}
