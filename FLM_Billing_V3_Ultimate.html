@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Billing - Clean</title>
+<title>FLM Billing V15 - GST Fixed - Total Fixed</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -195,7 +195,10 @@ let products=JSON.parse(localStorage.getItem('flm_products')||'null')||[
 let cart=[],bills=JSON.parse(localStorage.getItem('flm_bills')||'[]'),holds=JSON.parse(localStorage.getItem('flm_holds')||'[]');
 let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Store',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'37AABCF1234H1Z5',footer:'Thank you! Visit again! Festival 3% OFF for FLM Members'};
 let flmMembers=JSON.parse(localStorage.getItem('flm_members')||'null')||[
-{mobile:'1111166666',name:'Jayanthi',flId:'FL191628',sponsor:'FL179821',sponsorName:'Test4',isActive:true},
+{mobile:'8309091326',name:'FLM Member 8309091326',flId:'FL8309091326',isActive:true},
+{mobile:'6301132305',name:'Teja FL834413',flId:'FL834413',isActive:true},
+{mobile:'9000195257',name:'GANESHANJI FL653956',flId:'FL653956',isActive:true},
+{mobile:'9441774767',name:'Test 9441774767',flId:'FL9441774767',isActive:true},
 {mobile:'8074070854',name:'Suresh',flId:'FL179821',sponsor:'FL351817',sponsorName:'HANUMIREDDY',isActive:true}
 ];
 let allUsersCache=[]; // Admin laage all users load chesi local search
@@ -222,7 +225,7 @@ async function loadAllUsers(){
 try{
 let all=[],from=0,step=1000;
 while(true){
-let r=await sb.from('users').select('fl_id,full_name,mobile,email,phone,whatsapp_mobile,sponsor_id,is_active,username').range(from,from+step-1);
+let r=await sb.from('users').select('fl_id,full_name,mobile,email,whatsapp_mobile,sponsor_id,is_active,username').range(from,from+step-1);
 if(r.error){console.log('Users load error',r.error.message);break;}
 let batch=r.data||[];all=all.concat(batch);
 if(batch.length<step || from>=10000)break;
@@ -303,21 +306,26 @@ function removeFromCart(i){cart.splice(i,1);renderCart();}
 function clearCart(){if(confirm('Clear?')){cart=[];renderCart();hideBarcode();}}
 
 function updateTotals(){
-const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
-const gst=cart.reduce((s,c)=>s+(c.price*c.qty*c.gst/100),0);
-const excl=cart.filter(c=>c.excludeFestival||settings.excludeCats.includes(c.category)).reduce((s,c)=>s+c.price*c.qty,0);
-const elig=sub-excl;
-const fest=settings.festival>0&&currentCustomer?.isFlm?elig*settings.festival/100:0;
-const grand=sub+gst-fest;
-document.getElementById('subtotal').textContent=`Rs.${sub.toFixed(0)}`;
-document.getElementById('gstTotal').textContent=`Rs.${gst.toFixed(0)}`;
-document.getElementById('grandTotal').textContent=`Rs.${grand.toFixed(0)}`;
-document.getElementById('completeAmount').textContent=grand.toFixed(0);
-document.getElementById('qrAmount').textContent=grand.toFixed(0);
-const fr=document.getElementById('festivalRow');
-if(fest>0){fr.style.display='flex';document.getElementById('festivalLabel').textContent=`Festival ${settings.festival}% OFF`;document.getElementById('festivalDiscount').textContent=`-Rs.${fest.toFixed(0)}`;}else fr.style.display='none';
-const ci=document.getElementById('commissionInfo');
-if(currentCustomer?.isFlm&&settings.commission>0){const comm=grand*settings.commission/100;ci.style.display='block';ci.innerHTML=`💸 Commission <b>Rs.${comm.toFixed(2)} (${settings.commission}%)</b> → ${currentCustomer.sponsorName} ${currentCustomer.sponsor} • Store: ${settings.storeCode}`;}else ci.style.display='none';
+ // FIXED: Price already includes GST - customer ki separate GST vayamu - Grand = Subtotal - discount
+ const sub=cart.reduce((s,c)=>{ let p=parseFloat(c.price)||0; let q=parseInt(c.qty)||0; return s+(p*q); },0);
+ const excl=cart.filter(c=>c.excludeFestival||settings.excludeCats.includes(c.category)).reduce((s,c)=>{ let p=parseFloat(c.price)||0; let q=parseInt(c.qty)||0; return s+(p*q); },0);
+ const elig=sub-excl;
+ const fest=settings.festival>0&&currentCustomer?.isFlm?elig*settings.festival/100:0;
+ const grand=sub-fest;
+ // GST is inclusive, show 0 or inclusive note
+ document.getElementById('subtotal').textContent=`Rs.${sub.toFixed(0)}`;
+ document.getElementById('gstTotal').textContent=`Rs.0 (incl.)`;
+ document.getElementById('grandTotal').textContent=`Rs.${grand.toFixed(0)}`;
+ document.getElementById('completeAmount').textContent=grand.toFixed(0);
+ let qrEl=document.getElementById('qrAmount'); if(qrEl) qrEl.textContent=grand.toFixed(0);
+ const fr=document.getElementById('festivalRow');
+ if(fr){
+   if(fest>0){fr.style.display='flex';document.getElementById('festivalLabel').textContent=`Festival ${settings.festival}% OFF`;document.getElementById('festivalDiscount').textContent=`-Rs.${fest.toFixed(0)}`;}else fr.style.display='none';
+ }
+ const ci=document.getElementById('commissionInfo');
+ if(ci){
+   if(currentCustomer?.isFlm&&settings.commission>0){const comm=grand*settings.commission/100;ci.style.display='block';ci.innerHTML=`💸 Commission <b>Rs.${comm.toFixed(2)} (${settings.commission}%)</b> → ${currentCustomer.sponsorName||''} ${currentCustomer.sponsor||''} • Store: ${settings.storeCode}`;}else ci.style.display='none';
+ }
 }
 
 function normalizeMobile(m){
