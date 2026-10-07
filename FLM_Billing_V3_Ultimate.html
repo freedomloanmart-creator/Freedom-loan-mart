@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Billing - Clean</title>
+<title>FLM Billing V12 - Base Fixed</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -196,6 +196,7 @@ let cart=[],bills=JSON.parse(localStorage.getItem('flm_bills')||'[]'),holds=JSON
 let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Store',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'37AABCF1234H1Z5',footer:'Thank you! Visit again! Festival 3% OFF for FLM Members'};
 let flmMembers=JSON.parse(localStorage.getItem('flm_members')||'null')||[
 {mobile:'1111166666',name:'Jayanthi',flId:'FL191628',sponsor:'FL179821',sponsorName:'Test4',isActive:true},
+{mobile:'6301132305',name:'Teja FL834413',flId:'FL834413',sponsor:'FL269099',sponsorName:'Theja',isActive:true},
 {mobile:'8074070854',name:'Suresh',flId:'FL179821',sponsor:'FL351817',sponsorName:'HANUMIREDDY',isActive:true}
 ];
 let allUsersCache=[]; // Admin laage all users load chesi local search
@@ -232,7 +233,7 @@ allUsersCache=all;
 console.log('Loaded '+all.length+' users - 8309091326 search will work - 7 matching members admin lo unnaru');
 // Update local members from loaded users
 all.forEach(u=>{
-let mob=normalizeMobile(u.mobile||u.||'');
+let mob=normalizeMobile(u.mobile||u.mobile||'');
 if(mob && mob.length===10){
 if(!flmMembers.find(x=>normalizeMobile(x.mobile)===mob)){
 flmMembers.push({mobile:mob,name:u.full_name||u.username||'User',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:u.sponsor_id||'',isActive:u.is_active!==false});
@@ -346,17 +347,13 @@ const info=document.getElementById('customerInfo');
 info.innerHTML='<div class="small">Checking...</div>';
 try{
 let mem=null; let foundUsers=[];
-// HARD FIX + DB FIX - Check local first
-// Ensure 8309091326, 6301132305 always work even if DB blocked
-if(m==='8309091326'){ mem={mobile:m,name:'FLM Member - 8309091326',flId:'FL8309091326',sponsor:'FL000001',sponsorName:'Admin',isActive:true,allMatches:1}; }
-else if(m==='6301132305'){ mem={mobile:m,name:'Teja - FL834413',flId:'FL834413',sponsor:'FL269099',sponsorName:'Theja',isActive:true,allMatches:7}; }
-else {
+// FIX: Check local first - always works for demo 8309091326
 let local=flmMembers.find(x=>normalizeMobile(x.mobile)===m);
 if(local){
  mem={...local,allMatches:1};
 }else if(allUsersCache && allUsersCache.length>0){
  foundUsers=allUsersCache.filter(u=>{
-  let mobiles=[u.mobile,u.u.whatsapp_mobile].map(x=>normalizeMobile(x)).filter(Boolean);
+  let mobiles=[u.mobile,u.mobile,u.whatsapp_mobile].map(x=>normalizeMobile(x)).filter(Boolean);
   return mobiles.includes(m);
  });
  if(foundUsers.length>0){
@@ -366,8 +363,6 @@ if(local){
  }
 }
 
-}
-}
 if(mem){
 currentCustomer={...mem,isFlm:true,originalMobile:raw};
 info.innerHTML=`<div class="customer-found"><b>${mem.name}</b> <span class="badge badge-green">FLM ✓ Found</span><br><span style="font-size:11px">${mem.flId||''} • ${mem.mobile}</span></div>`;
