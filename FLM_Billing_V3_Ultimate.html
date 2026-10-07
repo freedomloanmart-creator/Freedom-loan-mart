@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Billing V5 - FINAL FIX - Customer 8309091326 + Barcode Display Fixed</title>
+<title>FLM Billing V6 - Clean</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -10,15 +10,15 @@
 *{box-sizing:border-box;margin:0;padding:0;font-family:Inter,system-ui,sans-serif}
 :root{--primary:#059669;--bg:#f0fdf4;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b}
 body{background:var(--bg);color:var(--text);min-height:100vh}
-header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.logo{width:36px;height:36px;background:var(--primary);color:#fff;border-radius:10px;display:grid;place-items:center;font-weight:900}
+header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.logo{width:38px;height:38px;background:var(--primary);color:#fff;border-radius:10px;display:grid;place-items:center;font-weight:900;font-size:18px}
 .btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
 .btn-danger{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
 .badge{padding:3px 8px;border-radius:999px;font-size:10px;font-weight:800}
 .badge-green{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
-.badge-red{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
-.main{display:grid;grid-template-columns:1fr 380px;gap:12px;padding:12px;max-width:1400px;margin:0 auto}
+.badge-blue{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.main{display:grid;grid-template-columns:1fr 400px;gap:12px;padding:12px;max-width:1400px;margin:0 auto}
 @media(max-width:900px){.main{grid-template-columns:1fr}}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .card h3{font-size:13px;font-weight:800;margin-bottom:10px;display:flex;gap:6px;align-items:center}
@@ -30,37 +30,40 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 .product-card .p-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .product-card .p-price{font-size:13px;font-weight:900;color:var(--primary);margin-top:4px}
 .product-card .p-stock{font-size:10px;color:var(--muted);margin-top:2px}
-.product-card .p-barcode{font-size:9px;color:#0f172a;font-family:monospace;background:#dcfce7;padding:3px 6px;border-radius:6px;margin-top:4px;display:inline-block;font-weight:800;border:1px solid #a7f3d0}
+.product-card .p-barcode{font-size:9px;color:#0f172a;font-family:monospace;background:#ecfdf5;padding:3px 6px;border-radius:6px;margin-top:4px;display:inline-block;font-weight:700;border:1px solid #a7f3d0}
 .chip{padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;cursor:pointer}
 .chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .cart-table{width:100%;border-collapse:collapse;font-size:12px}
 .cart-table th{font-size:10px;color:var(--muted);font-weight:800;text-align:left;padding:6px 4px;border-bottom:1px solid var(--border)}
 .cart-table td{padding:8px 4px;border-bottom:1px solid #f1f5f9}
+.qty-input{width:52px;height:28px;border:1px solid var(--border);border-radius:8px;text-align:center;font-weight:800;font-size:13px}
 .qty-ctrl{display:flex;gap:4px;align-items:center}
 .qty-ctrl button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:#fff;font-weight:900;cursor:pointer}
 .totals{margin-top:12px;padding-top:12px;border-top:2px dashed var(--border)}
 .total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
 .total-row.grand{font-size:16px;font-weight:900;border-top:1px solid var(--border);margin-top:6px;padding-top:8px}
-.input{width:100%;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:10px;font-size:13px}
+.input{width:100%;height:42px;padding:0 12px;border:1px solid var(--border);border-radius:10px;font-size:13px}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:none;place-items:center;padding:12px}
 .modal-card{background:#fff;border-radius:20px;max-width:520px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 40px rgba(0,0,0,.2)}
 .modal-head{position:sticky;top:0;background:#fff;padding:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .modal-body{padding:14px}
-.bill-preview{font-family:monospace;font-size:11px;line-height:1.4;white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:10px;border:1px dashed var(--border)}
-.barcode-display{background:linear-gradient(135deg,#0f172a,#1e293b);color:#22c55e;padding:12px;border-radius:12px;font-family:monospace;font-size:14px;margin-bottom:10px;display:none;align-items:center;gap:8px;border:2px solid #22c55e;animation:slideDown .3s ease}
-@keyframes slideDown{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.bill-preview{font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.5;white-space:pre-wrap;background:#f8fafc;padding:14px;border-radius:10px;border:1px dashed var(--border)}
+.barcode-display{background:linear-gradient(135deg,#0f172a,#1e293b);color:#22c55e;padding:10px 12px;border-radius:12px;font-family:monospace;font-size:13px;margin-bottom:10px;display:none;align-items:center;gap:8px;border:2px solid #22c55e}
 .barcode-display.show{display:flex}
-.barcode-display b{color:#fff;font-size:16px;letter-spacing:1px}
-.barcode-label{background:#22c55e;color:#000;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:900}
-.customer-found{background:#ecfdf5;border:2px solid #10b981;border-radius:12px;padding:12px}
-.customer-notfound{background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:12px}
+.customer-found{background:#ecfdf5;border:1.5px solid #10b981;border-radius:12px;padding:12px}
+.customer-notfound{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:12px}
+.version-tag{font-size:9px;background:#0f172a;color:#22c55e;padding:3px 8px;border-radius:999px;font-weight:800;letter-spacing:.5px}
 </style>
 </head>
 <body>
 <header>
 <div style="display:flex;gap:10px;align-items:center">
 <div class="logo">F</div>
-<div><b id="storeNameDisplay" style="font-size:15px">FLM Paleru Store</b><br><span style="font-size:11px;color:var(--muted)" id="liveDateTime">--</span><br><span style="font-size:10px;color:var(--primary);font-weight:800" id="storeCodeDisplay">FLM-PLR-001 - All Stores Same Billing</span></div>
+<div>
+<div style="display:flex;gap:6px;align-items:center"><b id="storeNameDisplay" style="font-size:15px">FLM Store</b> <span class="version-tag" id="verTag">V6 CLEAN • UPLOADED ✓</span></div>
+<div style="font-size:11px;color:var(--muted)" id="liveDateTime">--</div>
+<div style="font-size:10px;color:var(--primary);font-weight:700" id="storeCodeDisplay">FLM-PLR-001</div>
+</div>
 </div>
 <div style="display:flex;gap:6px">
 <button class="btn" onclick="openHistory()">📜 History</button>
@@ -71,52 +74,46 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 
 <div class="main">
 <div class="card">
-<h3>🛒 Products • 📷 Scan - Barcode Auto Display - Type Cheyalsina Avasaram Ledu</h3>
+<h3>🛒 Products • 📷 Scan to Add</h3>
 <div id="barcodeDisplay" class="barcode-display">
-<span class="barcode-label">SCANNED</span>
-<span>📷</span> <b id="lastBarcode">-</b>
+<span style="background:#22c55e;color:#000;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:900">SCANNED</span>
+<span>📷</span> <b id="lastBarcode" style="color:#fff">-</b>
 <span id="lastBarcodeProduct" style="color:#a7f3d0;font-family:Inter;font-size:12px"></span>
-<span style="margin-left:auto;font-size:10px;color:#94a3b8">Auto hide 5 sec</span>
-<button class="btn" style="margin-left:8px;padding:4px 8px;font-size:10px;background:#1e293b;color:#fff;border-color:#334155" onclick="hideBarcode()">✕</button>
+<button class="btn" style="margin-left:auto;padding:4px 8px;font-size:10px;background:#1e293b;color:#fff" onclick="hideBarcode()">✕</button>
 </div>
 <div class="search-row">
-<input id="searchInput" placeholder="Search name or barcode - 890103... - Type cheyakunda scan cheyandi - barcode auto display" oninput="renderProducts()">
-<button class="btn btn-primary" onclick="openScanner()">📷 Scan - Barcode Display</button>
+<input id="searchInput" placeholder="Search name or barcode" oninput="renderProducts()">
+<button class="btn btn-primary" onclick="openScanner()">📷 Scan</button>
 </div>
 <div id="categoryChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
 <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-<button class="btn" onclick="document.getElementById('excelFile').click()">📥 Import Excel</button>
+<button class="btn" onclick="document.getElementById('excelFile').click()">📥 Import</button>
 <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
 <button class="btn" onclick="exportProducts()">📤 Export</button>
-<button class="btn" onclick="addProductForm()">➕ Add - Barcode Display</button>
+<button class="btn" onclick="addProductForm()">➕ Add Product</button>
 </div>
 <div class="product-grid" id="productGrid"></div>
 </div>
 
 <div style="display:flex;flex-direction:column;gap:12px">
 <div class="card">
-<h3>👤 Customer • Auto Check from DB - 8309091326 + 9701695612 Fix - All Users Work</h3>
+<h3>👤 Customer</h3>
 <div style="display:flex;gap:6px">
-<input id="customerMobile" class="input" placeholder="Mobile - 8309091326, 9701695612 - Auto search - 7 matching work" maxlength="15" oninput="autoCheckCustomer()" onkeypress="if(event.key==='Enter')checkCustomer()">
-<button class="btn btn-primary" onclick="checkCustomer()">Check - DB All Users</button>
+<input id="customerMobile" class="input" placeholder="Mobile number" maxlength="15" inputmode="numeric" oninput="autoCheckCustomer()" onkeypress="if(event.key==='Enter')checkCustomer()">
+<button class="btn btn-primary" onclick="checkCustomer()">Check</button>
 </div>
 <div id="customerInfo" style="margin-top:10px"></div>
 <div id="newCustomerForm" style="display:none;margin-top:10px">
 <input id="customerName" class="input" placeholder="Customer Name">
 </div>
-<div style="margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;font-size:10px;line-height:1.5">
-✅ <b>FIXED:</b> 8309091326 admin lo 7 members unnaru - ippudu billing lo kuda vastundi!<br>
-• Admin laage antha users load chesi local lo search - RLS problem ledu - 9701695612, 8309091326 anni work<br>
-• Mobile, phone, whatsapp, email anni columns check - +91, 0 prefix handle
-</div>
 </div>
 
 <div class="card">
-<h3>🧾 Cart <span id="cartCount" class="badge badge-green">0 items</span> • Barcode Display Fix</h3>
-<div style="max-height:260px;overflow:auto">
+<h3>🧾 Cart <span id="cartCount" class="badge badge-green">0 items</span></h3>
+<div style="max-height:300px;overflow:auto">
 <table class="cart-table">
-<thead><tr><th>Item + Barcode Display</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
-<tbody id="cartBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items • Scan barcode - barcode akada display avtundi - type cheyalsina avasaram ledu - Shop vallaki easy</td></tr></tbody>
+<thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
+<tbody id="cartBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items — scan barcode</td></tr></tbody>
 </table>
 </div>
 <div class="totals">
@@ -133,16 +130,10 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <label style="flex:1;display:flex;gap:4px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:10px;font-size:12px"><input type="radio" name="payment" value="UPI" onchange="updatePayment()"> UPI</label>
 <label style="flex:1;display:flex;gap:4px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:10px;font-size:12px"><input type="radio" name="payment" value="Card" onchange="updatePayment()"> Card</label>
 </div>
-<div id="cashSection">
-<div style="display:flex;gap:6px"><input id="cashReceived" class="input" placeholder="Cash received" oninput="calcChange()"><div style="padding:10px;background:#f8fafc;border-radius:10px;font-size:12px">Change: <b id="changeAmount">Rs.0</b></div></div>
-</div>
-<div id="upiSection" style="display:none">
-<div id="upiIdDisplay" style="font-size:12px;font-weight:700;margin-bottom:6px"></div>
-<div id="qrCode" style="display:grid;place-items:center;padding:10px;background:#fff;border-radius:12px;border:1px dashed var(--border)"></div>
-<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Amount: Rs.<span id="qrAmount">0</span> • Store: <span id="qrStore">FLM-PLR-001</span></div>
-</div>
-<div id="cardSection" style="display:none"><div style="padding:10px;background:#f8fafc;border-radius:10px;font-size:12px">Card payment - Enter in POS machine</div></div>
-<button class="btn btn-primary" style="width:100%;height:48px;font-size:15px;margin-top:12px" onclick="completeBill()">✅ Complete Bill - Rs.<span id="completeAmount">0</span> - All Stores Same</button>
+<div id="cashSection"><div style="display:flex;gap:6px"><input id="cashReceived" class="input" placeholder="Cash received" oninput="calcChange()"><div style="padding:10px;background:#f8fafc;border-radius:10px;font-size:12px">Change: <b id="changeAmount">Rs.0</b></div></div></div>
+<div id="upiSection" style="display:none"><div id="upiIdDisplay" style="font-size:12px;font-weight:700;margin-bottom:6px"></div><div id="qrCode" style="display:grid;place-items:center;padding:10px;background:#fff;border-radius:12px;border:1px dashed var(--border)"></div></div>
+<div id="cardSection" style="display:none"><div style="padding:10px;background:#f8fafc;border-radius:10px;font-size:12px">Card payment</div></div>
+<button class="btn btn-primary" style="width:100%;height:48px;font-size:15px;margin-top:12px" onclick="completeBill()">✅ Complete Bill - Rs.<span id="completeAmount">0</span></button>
 <div style="display:flex;gap:6px;margin-top:8px">
 <button class="btn" style="flex:1" onclick="holdBill()">⏸️ Hold</button>
 <button class="btn" style="flex:1" onclick="showHolds()">▶️ Unhold</button>
@@ -154,94 +145,77 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 </div>
 
 <!-- Scanner Modal -->
-<div id="scannerModal" class="modal"><div class="modal-card"><div class="modal-head"><b>📷 Scan Barcode - Barcode Akada Display - Type Vaddu</b><button class="btn" onclick="closeScanner()">✕</button></div><div class="modal-body"><div id="scanner" style="width:100%;min-height:300px;background:#000;border-radius:12px"></div><div id="scanResult" style="margin-top:10px;padding:10px;background:#0f172a;color:#22c55e;border-radius:10px;font-family:monospace;display:none">📷 Last: <b id="scanResultCode">-</b> <span id="scanResultName"></span></div><div class="small" style="margin-top:8px">Scan cheste barcode akada display avtundi - type cheyalsina avasaram ledu - Shop vallaki easy - Barcode black bar lo kanipistundi</div></div></div></div>
+<div id="scannerModal" class="modal"><div class="modal-card"><div class="modal-head"><b>📷 Scan Barcode</b><button class="btn" onclick="closeScanner()">✕</button></div><div class="modal-body"><div id="scanner" style="width:100%;min-height:300px;background:#000;border-radius:12px"></div></div></div></div>
 
 <!-- Products Modal -->
-<div id="productsModal" class="modal"><div class="modal-card" style="max-width:700px"><div class="modal-head"><b>📦 Products - Barcode Display - 8309091326 Fix</b><button class="btn" onclick="closeProducts()">✕</button></div><div class="modal-body"><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btn btn-primary" onclick="document.getElementById('excelFile2').click()">📥 Import Excel</button><input type="file" id="excelFile2" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)"><button class="btn" onclick="exportProducts()">📤 Export</button><button class="btn btn-primary" onclick="addProductForm()">➕ Add Product - Barcode Auto Display</button></div><div id="productManageList" style="max-height:60vh;overflow:auto"></div></div></div></div>
-
-<!-- Bill Modal -->
-<div id="billModal" class="modal"><div class="modal-card"><div class="modal-head"><b>🧾 Bill - All Stores Same - 8309091326 Fix</b><button class="btn" onclick="closeBillModal()">✕</button></div><div class="modal-body"><div id="billPreview" class="bill-preview"></div><div style="display:flex;gap:6px;margin-top:12px"><button class="btn btn-primary" style="flex:1" onclick="printBill()">🖨️ Print</button><a id="whatsappBtn" class="btn btn-primary" style="flex:1;text-decoration:none;justify-content:center" target="_blank">📱 WhatsApp</a><button class="btn" style="flex:1" onclick="newBill()">New Bill</button></div></div></div></div>
+<div id="productsModal" class="modal"><div class="modal-card"><div class="modal-head"><b>Products</b><button class="btn" onclick="closeProducts()">✕</button></div><div class="modal-body"><div id="productManageList"></div></div></div></div>
 
 <!-- Settings Modal -->
-<div id="settingsModal" class="modal"><div class="modal-card"><div class="modal-head"><b>⚙️ Settings - All Stores Same Billing - 8309091326 Fix</b><button class="btn" onclick="closeSettings()">✕</button></div><div class="modal-body">
-<div style="display:grid;gap:10px">
+<div id="settingsModal" class="modal"><div class="modal-card"><div class="modal-head"><b>Settings</b><button class="btn" onclick="closeSettings()">✕</button></div><div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
 <input id="setStoreName" class="input" placeholder="Store Name">
-<input id="setStoreCode" class="input" placeholder="Store Code - FLM-PLR-001" readonly>
-<input id="setCommission" class="input" type="number" placeholder="Commission %">
-<input id="setFestival" class="input" type="number" placeholder="Festival %">
+<input id="setStoreCode" class="input" placeholder="Store Code">
+<input id="setCommission" class="input" placeholder="Commission %" type="number">
+<input id="setFestival" class="input" placeholder="Festival % OFF" type="number">
 <input id="setUpi" class="input" placeholder="UPI ID">
 <input id="setGstin" class="input" placeholder="GSTIN">
-<input id="setFooter" class="input" placeholder="Footer">
-<div><div style="font-size:11px;font-weight:800;margin-bottom:6px">Exclude Festival Categories</div><div id="excludeCats" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
-<button class="btn btn-primary" onclick="saveSettings()">💾 Save - All Stores Same - 8309091326 Fix</button>
+<input id="setFooter" class="input" placeholder="Footer text">
+<div id="excludeCats" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+<button class="btn btn-primary" onclick="saveSettings()">Save</button>
+</div></div></div>
+
+<!-- Bill Modal -->
+<div id="billModal" class="modal"><div class="modal-card"><div class="modal-head"><b>Bill</b><button class="btn" onclick="closeBillModal()">✕</button></div><div class="modal-body">
+<div id="billPreview" class="bill-preview"></div>
+<div style="display:flex;gap:8px;margin-top:10px">
+<a id="whatsappBtn" class="btn btn-primary" style="flex:1;justify-content:center;text-decoration:none" target="_blank">📲 Send WhatsApp</a>
+<button class="btn" style="flex:1" onclick="printBill()">🖨️ Print</button>
+<button class="btn" style="flex:1" onclick="newBill()">New Bill</button>
 </div>
 </div></div></div>
 
 <script>
-const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
-const SUPABASE_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
-let sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const SUPABASE_URL='https://qfhqwoupoybfvffwczou.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmaHF3b3Vwb3liZnZmZndjem91Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0OTQ5ODAsImV4cCI6MjA2MjA3MDk4MH0.zV4XhG5g_9R6lV0X0jUQj0kL0mN0pQ0rS0tU0vW0xY0z';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let products=JSON.parse(localStorage.getItem('flm_products')||'null')||[
-{id:'1',name:'Rice 5kg',barcode:'8901030875551',price:350,mrp:380,category:'Grocery',stock:50,minStock:10,unit:'kg',gst:5,excludeFestival:false},
-{id:'2',name:'Sunflower Oil 1L',barcode:'8901030875552',price:120,mrp:130,category:'Oil',stock:30,minStock:5,unit:'ltr',gst:5,excludeFestival:true},
-{id:'3',name:'Sugar 1kg',barcode:'8901030875553',price:45,mrp:50,category:'Grocery',stock:100,minStock:20,unit:'kg',gst:5,excludeFestival:false},
-{id:'4',name:'Milk 1L',barcode:'8901030875554',price:60,mrp:60,category:'Dairy',stock:20,minStock:10,unit:'ltr',gst:5,excludeFestival:false},
-{id:'5',name:'Bread',barcode:'',price:35,mrp:35,category:'Bakery',stock:15,minStock:5,unit:'pcs',gst:5,excludeFestival:false},
-{id:'6',name:'Tea Powder 250g',barcode:'8901030875556',price:120,mrp:140,category:'Grocery',stock:40,minStock:10,unit:'gm',gst:12,excludeFestival:false},
-{id:'7',name:'Salt 1kg',barcode:'',price:25,mrp:28,category:'Grocery',stock:60,minStock:15,unit:'kg',gst:5,excludeFestival:false},
-{id:'8',name:'Biscuit Pack',barcode:'8901030875558',price:30,mrp:35,category:'Snacks',stock:80,minStock:20,unit:'pcs',gst:12,excludeFestival:false},
-{id:'9',name:'Shampoo 200ml',barcode:'8901030875559',price:150,mrp:165,category:'Personal',stock:25,minStock:5,unit:'ml',gst:18,excludeFestival:true},
-{id:'10',name:'Detergent 1kg',barcode:'8901030875560',price:80,mrp:90,category:'Personal',stock:35,minStock:10,unit:'kg',gst:18,excludeFestival:true}
+{id:'1',name:'Rice 5kg',barcode:'8901030875551',price:350,mrp:380,category:'Grocery',stock:20,minStock:5,unit:'kg',gst:5,excludeFestival:false},
+{id:'2',name:'Oil 1L',barcode:'8901030875552',price:180,mrp:200,category:'Oil',stock:15,minStock:5,unit:'L',gst:5,excludeFestival:true},
+{id:'3',name:'Sugar 1kg',barcode:'8901030875553',price:50,mrp:55,category:'Grocery',stock:30,minStock:10,unit:'kg',gst:5,excludeFestival:false},
+{id:'4',name:'Wheat Flour 1kg',barcode:'8901030875554',price:45,mrp:50,category:'Grocery',stock:25,minStock:5,unit:'kg',gst:5,excludeFestival:false},
+{id:'5',name:'Toor Dal 1kg',barcode:'8901030875555',price:120,mrp:130,category:'Grocery',stock:18,minStock:5,unit:'kg',gst:5,excludeFestival:false},
 ];
 let cart=[],bills=JSON.parse(localStorage.getItem('flm_bills')||'[]'),holds=JSON.parse(localStorage.getItem('flm_holds')||'[]');
-let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Paleru Store',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'37AABCF1234H1Z5',footer:'Thank you! Visit again! Festival 3% OFF for FLM Members'};
-let flmMembers=JSON.parse(localStorage.getItem('flm_members')||'null')||[
-{mobile:'1111166666',name:'Jayanthi',flId:'FL191628',sponsor:'FL179821',sponsorName:'Test4',isActive:true},
-{mobile:'8074070854',name:'Suresh',flId:'FL179821',sponsor:'FL351817',sponsorName:'HANUMIREDDY',isActive:true}
-];
-let allUsersCache=[]; // Admin laage all users load chesi local search - 8309091326 fix
+let settings=JSON.parse(localStorage.getItem('flm_settings')||'null')||{storeName:'FLM Store',storeCode:'FLM-PLR-001',commission:1,festival:3,excludeCats:['Oil','Personal'],upi:'flmstore@upi',gstin:'',footer:'Thank you! Visit again!'};
+let allUsersCache=[];
 let currentCustomer=null,scanner=null,currentCat='All';
-let lastScannedBarcode='';
 
-function save(){localStorage.setItem('flm_products',JSON.stringify(products));localStorage.setItem('flm_bills',JSON.stringify(bills));localStorage.setItem('flm_holds',JSON.stringify(holds));localStorage.setItem('flm_settings',JSON.stringify(settings));localStorage.setItem('flm_members',JSON.stringify(flmMembers));}
+function save(){localStorage.setItem('flm_products',JSON.stringify(products));localStorage.setItem('flm_bills',JSON.stringify(bills));localStorage.setItem('flm_holds',JSON.stringify(holds));localStorage.setItem('flm_settings',JSON.stringify(settings));}
 
 async function init(){
 const urlParams=new URLSearchParams(window.location.search);
 const storeCode=urlParams.get('store')||settings.storeCode||'FLM-PLR-001';
-const storeName=urlParams.get('store_name')||settings.storeName;
-settings.storeCode=storeCode;
-if(storeName) settings.storeName=decodeURIComponent(storeName);
+const storeName=urlParams.get('store_name')?decodeURIComponent(urlParams.get('store_name')):settings.storeName;
+settings.storeCode=storeCode; settings.storeName=storeName;
 document.getElementById('storeNameDisplay').textContent=settings.storeName;
-document.getElementById('storeCodeDisplay').textContent=storeCode+' - All Stores Same Billing - 8309091326 Fix';
-setInterval(()=>{document.getElementById('liveDateTime').textContent=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})},1000);
+document.getElementById('storeCodeDisplay').textContent=storeCode;
+document.getElementById('verTag').textContent='V6 CLEAN • '+new Date().toLocaleDateString('en-GB')+' • UPLOADED ✓';
+setInterval(()=>{document.getElementById('liveDateTime').textContent=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'})},1000);
 renderCategories();renderProducts();updateTotals();loadSettingsToForm();
-// Load all users like admin does - 8309091326 fix - 7 matching members
-loadAllUsers();
+await loadAllUsers();
 }
-
 async function loadAllUsers(){
 try{
 let all=[],from=0,step=1000;
 while(true){
 let r=await sb.from('users').select('fl_id,full_name,mobile,email,phone,whatsapp_mobile,sponsor_id,is_active,username').range(from,from+step-1);
-if(r.error){console.log('Users load error',r.error.message);break;}
-let batch=r.data||[];all=all.concat(batch);
-if(batch.length<step || from>=10000)break;
+if(r.error) break;
+let batch=r.data||[]; all=all.concat(batch);
+if(batch.length<step || from>20000) break;
 from+=step;
 }
 allUsersCache=all;
-console.log('Loaded '+all.length+' users - 8309091326 search will work - 7 matching members admin lo unnaru');
-// Update local members from loaded users
-all.forEach(u=>{
-let mob=normalizeMobile(u.mobile||u.phone||'');
-if(mob && mob.length===10){
-if(!flmMembers.find(x=>normalizeMobile(x.mobile)===mob)){
-flmMembers.push({mobile:mob,name:u.full_name||u.username||'User',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:u.sponsor_id||'',isActive:u.is_active!==false});
-}
-}
-});
-save();
+console.log('Loaded',all.length,'users');
 }catch(e){console.log('loadAllUsers error',e.message);}
 }
 
@@ -252,10 +226,10 @@ document.getElementById('categoryChips').innerHTML=cats.map(c=>`<div class="chip
 function filterByCat(cat,el){currentCat=cat;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderProducts();}
 
 function renderProducts(){
-const q=document.getElementById('searchInput').value.toLowerCase();
+const q=document.getElementById('searchInput').value.toLowerCase().trim();
 let filtered=products.filter(p=>{
-if(currentCat!=='All' && p.category!==currentCat)return false;
-if(!q)return true;
+if(currentCat!=='All' && p.category!==currentCat) return false;
+if(!q) return true;
 return p.name.toLowerCase().includes(q) || (p.barcode&&p.barcode.includes(q));
 });
 document.getElementById('productGrid').innerHTML=filtered.map(p=>{
@@ -264,31 +238,33 @@ return `<div class="product-card" onclick="addToCart('${p.id}')">
 <div class="p-name">${p.name}</div>
 <div class="p-price">Rs.${p.price}</div>
 <div class="p-stock">${out?'❌ Out':low?`⚠️ Low ${p.stock}`:`📦 ${p.stock} ${p.unit}`}</div>
-<div class="p-barcode">📷 ${p.barcode||'No Barcode - Scan cheste auto display'} ${p.barcode?'• Type cheyalsina avasaram ledu':''}</div>
+<div class="p-barcode">📷 ${p.barcode||'No Barcode'}</div>
 </div>`;
-}).join('')||'<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">No products • Import Excel or Add • Scan cheste barcode auto display - 8309091326 fix kuda undi</div>';
+}).join('')||'<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">No products</div>';
 }
 
+// ---- CART WITH QTY INPUT ----
 function addToCart(pid){
-const prod=products.find(p=>p.id===pid);if(!prod)return;
+const prod=products.find(p=>p.id===pid); if(!prod) return;
 if(prod.stock<=0){alert('Out of stock');return;}
 const ex=cart.find(c=>c.id===pid);
-if(ex){if(ex.qty+1>prod.stock){alert(`Only ${prod.stock} left`);return;}ex.qty++;}
-else cart.push({id:prod.id,name:prod.name,barcode:prod.barcode,price:prod.price,gst:prod.gst,category:prod.category,excludeFestival:prod.excludeFestival,qty:1});
-if(prod.barcode){
-showBarcode(prod.barcode,prod.name);
+if(ex){
+ if(ex.qty+1>prod.stock){alert(`Only ${prod.stock} left`);return;}
+ ex.qty++;
+}else{
+ cart.push({id:prod.id,name:prod.name,barcode:prod.barcode,price:prod.price,gst:prod.gst,category:prod.category,excludeFestival:prod.excludeFestival,qty:1});
 }
+if(prod.barcode) showBarcode(prod.barcode,prod.name);
 renderCart();beep();
 }
-
 function renderCart(){
 if(cart.length===0){
-document.getElementById('cartBody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items • Scan barcode - barcode akada display avtundi - type cheyalsina avasaram ledu - 8309091326 fix</td></tr>';
+document.getElementById('cartBody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No items — scan barcode</td></tr>';
 }else{
 document.getElementById('cartBody').innerHTML=cart.map((c,i)=>`
 <tr>
-<td><b style="font-size:11px">${c.name}</b><br><span style="font-size:10px;background:#dcfce7;padding:3px 6px;border-radius:6px;font-family:monospace;font-weight:800;border:1px solid #a7f3d0">📷 ${c.barcode||'Manual - No Barcode - Scan cheste auto display'}</span></td>
-<td><div class="qty-ctrl"><button onclick="changeQty(${i},-1)">-</button><span>${c.qty}</span><button onclick="changeQty(${i},1)">+</button></div></td>
+<td><b style="font-size:11px">${c.name}</b><br><span style="font-size:9px;background:#ecfdf5;padding:2px 5px;border-radius:6px;font-family:monospace">📷 ${c.barcode||'Manual'}</span></td>
+<td><div class="qty-ctrl"><button onclick="changeQty(${i},-1)">-</button><input class="qty-input" type="number" min="1" value="${c.qty}" onchange="setQty(${i},this.value)"><button onclick="changeQty(${i},1)">+</button></div></td>
 <td>Rs.${c.price}</td>
 <td><b>Rs.${c.price*c.qty}</b></td>
 <td><button class="btn" onclick="removeFromCart(${i})">✕</button></td>
@@ -298,11 +274,19 @@ document.getElementById('cartCount').textContent=`${cart.length} items`;
 updateTotals();
 }
 function changeQty(idx,d){
-const it=cart[idx];const p=products.find(x=>x.id===it.id);
-const nq=it.qty+d;if(nq<=0){removeFromCart(idx);return;}if(nq>p.stock){alert(`Only ${p.stock} left`);return;}it.qty=nq;renderCart();
+const it=cart[idx]; const p=products.find(x=>x.id===it.id);
+const nq=it.qty+d; if(nq<=0){removeFromCart(idx);return;} if(nq>p.stock){alert(`Only ${p.stock} left`);return;} it.qty=nq; renderCart();
+}
+function setQty(idx,val){
+let nq=parseInt(val)||1;
+const p=products.find(x=>x.id===cart[idx].id);
+if(nq>p.stock) nq=p.stock;
+if(nq<1) nq=1;
+cart[idx].qty=nq;
+renderCart();
 }
 function removeFromCart(i){cart.splice(i,1);renderCart();}
-function clearCart(){if(confirm('Clear?')){cart=[];renderCart();hideBarcode();}}
+function clearCart(){if(confirm('Clear cart?')){cart=[];renderCart();hideBarcode();}}
 
 function updateTotals(){
 const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
@@ -315,11 +299,10 @@ document.getElementById('subtotal').textContent=`Rs.${sub.toFixed(0)}`;
 document.getElementById('gstTotal').textContent=`Rs.${gst.toFixed(0)}`;
 document.getElementById('grandTotal').textContent=`Rs.${grand.toFixed(0)}`;
 document.getElementById('completeAmount').textContent=grand.toFixed(0);
-document.getElementById('qrAmount').textContent=grand.toFixed(0);
 const fr=document.getElementById('festivalRow');
 if(fest>0){fr.style.display='flex';document.getElementById('festivalLabel').textContent=`Festival ${settings.festival}% OFF`;document.getElementById('festivalDiscount').textContent=`-Rs.${fest.toFixed(0)}`;}else fr.style.display='none';
 const ci=document.getElementById('commissionInfo');
-if(currentCustomer?.isFlm&&settings.commission>0){const comm=grand*settings.commission/100;ci.style.display='block';ci.innerHTML=`💸 Commission <b>Rs.${comm.toFixed(2)} (${settings.commission}%)</b> → ${currentCustomer.sponsorName} ${currentCustomer.sponsor} • Store: ${settings.storeCode}`;}else ci.style.display='none';
+if(currentCustomer?.isFlm&&settings.commission>0){const comm=grand*settings.commission/100;ci.style.display='block';ci.innerHTML=`💸 Commission <b>Rs.${comm.toFixed(2)} (${settings.commission}%)</b> → ${currentCustomer.sponsorName||''} ${currentCustomer.sponsor||''}`;}else ci.style.display='none';
 }
 
 function normalizeMobile(m){
@@ -329,64 +312,64 @@ if(s.startsWith('91') && s.length>10) s=s.slice(-10);
 if(s.startsWith('0') && s.length>10) s=s.slice(-10);
 return s.slice(-10);
 }
-
+let checkTimer=null;
 async function autoCheckCustomer(){
-const m=document.getElementById('customerMobile').value.trim();
-if(m.length>=10){
-setTimeout(()=>checkCustomer(),400);
+clearTimeout(checkTimer);
+checkTimer=setTimeout(()=>checkCustomer(),500);
 }
-}
-
 async function checkCustomer(){
 const raw=document.getElementById('customerMobile').value.trim();
 const m=normalizeMobile(raw);
-if(m.length!==10){
-document.getElementById('customerInfo').innerHTML='<div style="padding:8px;background:#fef2f2;border-radius:8px;font-size:11px;color:#dc2626">Enter 10 digits - 8309091326, 9701695612 lanti numbers work - Database lo unna anni users check - Admin lo 7 matching members unnaru</div>';
-return;
-}
 const info=document.getElementById('customerInfo');
-info.innerHTML='<div class="small">Checking database - Admin laage all users load chesi local search - '+m+' - 7 matching members search - 8309091326 fix...</div>';
+if(m.length!==10){
+info.innerHTML='<div style="padding:8px;background:#fef2f2;border-radius:8px;font-size:11px;color:#b91c1c">Enter 10 digit mobile number</div>';
+currentCustomer=null; document.getElementById('newCustomerForm').style.display='none'; updateTotals(); return;
+}
+info.innerHTML='<div style="font-size:11px;color:var(--muted)">Checking...</div>';
 
 try{
-// Admin laage - allUsersCache lo search - RLS problem ledu - 8309091326 fix
+// 1) Local cache search first (no RLS issue)
 let foundUsers=[];
-if(allUsersCache && allUsersCache.length>0){
+if(allUsersCache.length>0){
 foundUsers=allUsersCache.filter(u=>{
-let mobiles=[u.mobile,u.phone,u.whatsapp_mobile].map(x=>normalizeMobile(x)).filter(Boolean);
-return mobiles.includes(m) || String(u.mobile||'').includes(m) || String(u.phone||'').includes(m);
+let mobiles=[u.mobile,u.phone,u.whatsapp_mobile,u.whatsapp,u.email].map(x=>normalizeMobile(x)).filter(Boolean);
+let rawMobiles=[String(u.mobile||''),String(u.phone||''),String(u.whatsapp_mobile||'')];
+return mobiles.includes(m) || rawMobiles.some(r=>r.includes(m));
 });
 }
 
 let mem=null;
 if(foundUsers.length>0){
-// First one
 let u=foundUsers[0];
 let sponsorName='';
 let sponsorRec=allUsersCache.find(x=>String(x.fl_id).toUpperCase()===String(u.sponsor_id||'').toUpperCase());
-if(sponsorRec) sponsorName=sponsorRec.full_name||sponsorRec.fl_id||u.sponsor_id;
-mem={mobile:m,name:u.full_name||u.username||'User',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:sponsorName||u.sponsor_id||'',isActive:u.is_active!==false,allMatches:foundUsers.length};
+if(sponsorRec) sponsorName=sponsorRec.full_name||'';
+mem={mobile:m,name:u.full_name||u.username||'FLM Member',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:sponsorName,isActive:u.is_active!==false,matchCount:foundUsers.length};
 }else{
-// Check local flmMembers
-let local=flmMembers.find(x=>normalizeMobile(x.mobile)===m);
-if(local) mem={...local,allMatches:1};
+// 2) Fallback: direct supabase or filter with ilike (if RLS allows)
+try{
+let q=await sb.from('users').select('fl_id,full_name,mobile,phone,whatsapp_mobile,sponsor_id,is_active,username').or(`mobile.ilike.%${m}%,phone.ilike.%${m}%,whatsapp_mobile.ilike.%${m}%`).limit(5);
+if(q.data && q.data.length>0){
+let u=q.data[0];
+mem={mobile:m,name:u.full_name||u.username||'FLM Member',flId:u.fl_id||'',sponsor:u.sponsor_id||'',sponsorName:'',isActive:u.is_active!==false,matchCount:q.data.length};
+foundUsers=q.data;
+}
+}catch(e){}
+
 }
 
 if(mem){
 currentCustomer={...mem,isFlm:true,originalMobile:raw};
-if(foundUsers.length>1){
-info.innerHTML=`<div class="customer-found"><b>${mem.name}</b> <span class="badge badge-green">FLM Member ✓ Found - ${foundUsers.length} matching in DB - 8309091326 fix</span><br><span style="font-size:11px">${mem.flId} • Sponsor ${mem.sponsorName} ${mem.sponsor} • Mobile ${mem.mobile} • Admin lo 7 matching members - Billing lo kuda work - Barcode display fix kuda undi!</span><br><span style="font-size:10px;color:#64748b">${foundUsers.slice(0,3).map(u=>u.full_name+'('+u.fl_id+')').join(', ')} ${foundUsers.length>3?' + '+(foundUsers.length-3)+' more':''}</span></div>`;
-}else{
-info.innerHTML=`<div class="customer-found"><b>${mem.name}</b> <span class="badge badge-green">FLM Member ✓ Found in DB - 8309091326 fix</span><br><span style="font-size:11px">${mem.flId} • Sponsor ${mem.sponsorName} ${mem.sponsor} • Mobile ${mem.mobile} • Database lo dorikindi - 9701695612, 8309091326 anni work! Barcode display fix!</span></div>`;
-}
+info.innerHTML=`<div class="customer-found"><div style="display:flex;justify-content:space-between"><b>${mem.name}</b><span class="badge badge-green">FLM ✓</span></div><div style="font-size:11px;margin-top:4px">${mem.flId?`ID: ${mem.flId} • `:''}Sponsor: ${mem.sponsorName||mem.sponsor||'-'}<br>Mobile: ${mem.mobile}${mem.matchCount>1?` • ${mem.matchCount} matches`:''}</div></div>`;
 document.getElementById('newCustomerForm').style.display='none';
 }else{
 currentCustomer={mobile:m,isFlm:false,originalMobile:raw};
-info.innerHTML=`<div class="customer-notfound"><b>New Customer</b> • ${m} (Original: ${raw}) • Database lo ledu - Admin lo 7 matching lekapoyina new - New customer ga add avtundi - Barcode display fix kuda undi</div>`;
+info.innerHTML=`<div class="customer-notfound"><b>New Customer</b> • ${m}<br><span style="font-size:11px">Not in database — will be added as new</span></div>`;
 document.getElementById('newCustomerForm').style.display='block';
 }
 updateTotals();
 }catch(e){
-info.innerHTML=`<div style="padding:8px;background:#fef2f2;border-radius:8px;font-size:11px;color:#dc2626">Error: ${e.message} - 8309091326 fix - Local check</div>`;
+info.innerHTML=`<div style="padding:8px;background:#fef2f2;border-radius:8px;font-size:11px">Error: ${e.message}</div>`;
 }
 }
 
@@ -396,12 +379,10 @@ document.getElementById('cashSection').style.display=pay==='Cash'?'block':'none'
 document.getElementById('upiSection').style.display=pay==='UPI'?'block':'none';
 document.getElementById('cardSection').style.display=pay==='Card'?'block':'none';
 if(pay==='UPI'){
+document.getElementById('upiIdDisplay').textContent=`UPI: ${settings.upi}`;
 const amt=document.getElementById('grandTotal').textContent.replace('Rs.','');
-const upi=settings.upi;
-document.getElementById('upiIdDisplay').textContent=`UPI: ${upi} - Store: ${settings.storeCode} - All Stores Same`;
-document.getElementById('qrStore').textContent=settings.storeCode;
-const link=`upi://pay?pa=${upi}&pn=${settings.storeName}&am=${amt}&tn=FLM Bill ${settings.storeCode}`;
-document.getElementById('qrCode').innerHTML=`<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}" style="border-radius:12px">`;
+const link=`upi://pay?pa=${settings.upi}&pn=${encodeURIComponent(settings.storeName)}&am=${amt}&tn=FLM Bill`;
+document.getElementById('qrCode').innerHTML=`<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}" style="border-radius:10px">`;
 }
 }
 function calcChange(){
@@ -411,9 +392,9 @@ document.getElementById('changeAmount').textContent=`Rs.${(rec-tot)>=0?(rec-tot)
 }
 
 function completeBill(){
-if(cart.length===0){alert('Add items - Scan cheste barcode auto display avtundi - 8309091326 fix');return;}
+if(cart.length===0){alert('Add items first');return;}
 const mob=document.getElementById('customerMobile').value.trim();
-if(!mob||normalizeMobile(mob).length!==10){alert('Enter mobile - 8309091326, 9701695612 lanti numbers work - All users check');return;}
+if(!mob||normalizeMobile(mob).length!==10){alert('Enter valid mobile');return;}
 const cname=currentCustomer?.isFlm?currentCustomer.name:(document.getElementById('customerName').value||'Customer');
 const pay=document.querySelector('input[name="payment"]:checked').value;
 const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
@@ -429,39 +410,45 @@ bills.unshift(bill);save();renderProducts();showBill(bill);cart=[];renderCart();
 document.getElementById('customerMobile').value='';document.getElementById('customerName').value='';currentCustomer=null;document.getElementById('customerInfo').innerHTML='';document.getElementById('newCustomerForm').style.display='none';document.getElementById('cashReceived').value='';
 }
 
+// CLEAN WHATSAPP TEMPLATE - ONLY FLM STORE + LOGO
+function buildCleanBillText(b){
+const logo='🏪';
+let txt='';
+txt+=`${logo} ${b.storeName}\n`;
+txt+=`Bill No: ${b.id}\n`;
+txt+=`Date: ${new Date(b.date).toLocaleString('en-IN')}\n`;
+txt+=`Customer: ${b.customerName}${b.isFlm?` (${b.flId})`:''}\n`;
+txt+=`Mobile: ${b.customerMobile}\n`;
+txt+=`------------------------------\n`;
+b.items.forEach((it,i)=>{
+txt+=`${i+1}. ${it.name} x${it.qty} @${it.price}=Rs.${it.price*it.qty}\n`;
+});
+txt+=`------------------------------\n`;
+txt+=`Subtotal: Rs.${b.subtotal.toFixed(0)}\n`;
+txt+=`GST: Rs.${b.gst.toFixed(0)}\n`;
+if(b.festivalDiscount>0) txt+=`Discount: -Rs.${b.festivalDiscount.toFixed(0)}\n`;
+txt+=`Grand Total: Rs.${b.grandTotal.toFixed(0)}\n`;
+txt+=`Payment: ${b.payment}\n`;
+txt+=`------------------------------\n`;
+txt+=`${settings.footer||'Thank you! Visit again!'}`;
+return txt;
+}
+
 function showBill(b){
-const txt=`🏪 ${settings.storeName} (${settings.storeCode}) - All Stores Same - 8309091326 Fix - Barcode Display
-Bill No: ${b.id} | ${new Date(b.date).toLocaleString('en-IN')}
-Customer: ${b.customerName} ${b.isFlm?`(${b.flId}) ✓ FLM Member - 8309091326 fix - 7 matching work`:''}
-Mobile: ${b.customerMobile} - Database lo unna anni users check
-Store: ${b.storeCode} - All stores same billing - Bill lo store ID tag - Barcode display fix
-----------------------------
-${b.items.map((it,i)=>`${i+1}. ${it.name} [📷 ${it.barcode||'No Barcode'}] x${it.qty} @${it.price}=Rs.${it.price*it.qty}`).join('\n')}
-----------------------------
-Subtotal: Rs.${b.subtotal.toFixed(0)}
-GST: Rs.${b.gst.toFixed(0)}
-${b.festivalDiscount>0?`Festival OFF: -Rs.${b.festivalDiscount.toFixed(0)}\n`:''}Grand Total: Rs.${b.grandTotal.toFixed(0)}
-Payment: ${b.payment}
-${b.commission>0?`Commission Rs.${b.commission.toFixed(2)} -> ${b.sponsorName} ${b.sponsor}\n`:''}----------------------------
-${settings.footer}
-Store: ${b.storeCode} - Admin lo store wise kanipistundi - 8309091326 fix - Barcode display fix`;
+const txt=buildCleanBillText(b);
 document.getElementById('billPreview').textContent=txt;
 document.getElementById('whatsappBtn').href=`https://wa.me/91${b.customerMobile}?text=${encodeURIComponent(txt)}`;
 document.getElementById('billModal').style.display='grid';
 }
 function closeBillModal(){document.getElementById('billModal').style.display='none';}
 function newBill(){closeBillModal();}
-function printBill(){const w=window.open('','_blank');w.document.write(`<pre>${document.getElementById('billPreview').textContent}</pre>`);w.print();}
+function printBill(){const w=window.open('','_blank');w.document.write(`<pre style="font-family:monospace">${document.getElementById('billPreview').textContent}</pre>`);w.print();}
 
 function showBarcode(code,productName){
-lastScannedBarcode=code;
 document.getElementById('lastBarcode').textContent=code;
-document.getElementById('lastBarcodeProduct').textContent=productName?`• ${productName} • Scan cheste auto display - type vaddu`:'• Scan cheste auto display';
+document.getElementById('lastBarcodeProduct').textContent=productName?`• ${productName}`:'';
 document.getElementById('barcodeDisplay').classList.add('show');
-document.getElementById('scanResultCode').textContent=code;
-document.getElementById('scanResultName').textContent=productName?`• ${productName}`:'';
-document.getElementById('scanResult').style.display='block';
-setTimeout(()=>hideBarcode(),6000);
+setTimeout(()=>hideBarcode(),5000);
 }
 function hideBarcode(){document.getElementById('barcodeDisplay').classList.remove('show');}
 
@@ -470,9 +457,7 @@ document.getElementById('scannerModal').style.display='grid';
 if(!scanner){
 scanner=new Html5Qrcode("scanner");
 scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:150}},(dec)=>{
-addByBarcode(dec);
-showBarcode(dec,'');
-beep();
+addByBarcode(dec); beep();
 },{});
 }
 }
@@ -482,12 +467,12 @@ const p=products.find(x=>x.barcode===code);
 if(p){
 addToCart(p.id);
 showBarcode(code,p.name);
-}else if(confirm(`Barcode ${code} not found! Product: ${code}\n\nAdd new product with this barcode? Barcode akada display avtundi - type cheyalsina avasaram ledu - Shop vallaki easy\n\nBarcode: ${code}`)){
+}else if(confirm(`Barcode ${code} not found. Add new product?`)){
 addProductForm(code);
-showBarcode(code,'New Product - Barcode Display');
+showBarcode(code,'New');
 }
 }
-function beep(){try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=800;g.gain.value=0.3;o.start();setTimeout(()=>{o.stop();ctx.close();},150);}catch(e){}if(navigator.vibrate)navigator.vibrate(100);}
+function beep(){try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=800;g.gain.value=0.3;o.start();setTimeout(()=>{o.stop();ctx.close();},150);}catch(e){}if(navigator.vibrate)navigator.vibrate(80);}
 
 function importExcel(e){
 const file=e.target.files[0];if(!file)return;
@@ -506,7 +491,7 @@ data.forEach(row=>{
 const name=row.Name||row.name||'';const price=parseFloat(row.Price||row.price)||0;if(!name||!price)return;
 products.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,4),name,barcode:row.Barcode||row.barcode||'',price,mrp:parseFloat(row.MRP||row.mrp)||price,category:row.Category||row.category||'Grocery',stock:parseInt(row.Stock||row.stock)||50,minStock:10,unit:'pcs',gst:parseFloat(row.GST||row.gst)||5,excludeFestival:(row.ExcludeFestival||'').toString().toLowerCase()==='yes'});added++;
 });
-save();renderProducts();alert(`✅ ${added} products imported! Barcode display fix - 8309091326 fix - All stores same`);
+save();renderProducts();alert(`✅ ${added} products imported!`);
 }catch(err){alert('Error: '+err.message);}
 };
 if(file.name.endsWith('.csv'))reader.readAsText(file);else reader.readAsBinaryString(file);
@@ -516,7 +501,6 @@ function exportProducts(){
 const data=products.map(p=>({Name:p.name,Barcode:p.barcode,Price:p.price,MRP:p.mrp,Category:p.category,Stock:p.stock,GST:p.gst,ExcludeFestival:p.excludeFestival?'Yes':'No'}));
 const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Products');XLSX.writeFile(wb,'FLM_Products.xlsx');
 }
-
 function openSettings(){document.getElementById('settingsModal').style.display='grid';loadSettingsToForm();}
 function closeSettings(){document.getElementById('settingsModal').style.display='none';}
 function loadSettingsToForm(){
@@ -531,26 +515,25 @@ const cats=[...new Set(products.map(p=>p.category))];
 document.getElementById('excludeCats').innerHTML=cats.map(c=>`<label style="display:flex;gap:4px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:999px;font-size:11px"><input type="checkbox" value="${c}" ${settings.excludeCats.includes(c)?'checked':''}> ${c}</label>`).join('');
 }
 function saveSettings(){
-settings.storeName=document.getElementById('setStoreName').value||'FLM Paleru Store';
+settings.storeName=document.getElementById('setStoreName').value||'FLM Store';
 settings.storeCode=document.getElementById('setStoreCode').value||'FLM-PLR-001';
 settings.commission=parseFloat(document.getElementById('setCommission').value)||1;
 settings.festival=parseInt(document.getElementById('setFestival').value)||0;
 settings.upi=document.getElementById('setUpi').value||'flmstore@upi';
 settings.gstin=document.getElementById('setGstin').value||'';
-settings.footer=document.getElementById('setFooter').value||'Thank you!';
+settings.footer=document.getElementById('setFooter').value||'Thank you! Visit again!';
 settings.excludeCats=[...document.querySelectorAll('#excludeCats input:checked')].map(i=>i.value);
-save();document.getElementById('storeNameDisplay').textContent=settings.storeName;document.getElementById('storeCodeDisplay').textContent=settings.storeCode+' - All Stores Same - 8309091326 Fix - Barcode Display';
-closeSettings();updateTotals();alert('✅ Saved! All stores same - 8309091326 fix - Barcode display fix!');
+save();document.getElementById('storeNameDisplay').textContent=settings.storeName;document.getElementById('storeCodeDisplay').textContent=settings.storeCode;
+closeSettings();updateTotals();
 }
-
 function openProducts(){document.getElementById('productsModal').style.display='grid';renderProductManage();}
 function closeProducts(){document.getElementById('productsModal').style.display='none';}
 function renderProductManage(){
-document.getElementById('productManageList').innerHTML=products.map(p=>`<div style="display:flex;gap:8px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px"><div style="flex:1"><b style="font-size:12px">${p.name}</b><br><span style="font-size:10px;background:#dcfce7;padding:3px 6px;border-radius:6px;font-family:monospace;font-weight:800;border:1px solid #a7f3d0">📷 ${p.barcode||'No Barcode - Scan cheste auto display - Type vaddu'} • ${p.category} • Stock:${p.stock} • Rs.${p.price}</span></div><button class="btn" onclick="editProduct('${p.id}')">Edit</button><button class="btn btn-danger" onclick="deleteProduct('${p.id}')">Del</button></div>`).join('');
+document.getElementById('productManageList').innerHTML=products.map(p=>`<div style="display:flex;gap:8px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:6px"><div style="flex:1"><b style="font-size:12px">${p.name}</b><br><span style="font-size:10px;background:#ecfdf5;padding:3px 6px;border-radius:6px;font-family:monospace">📷 ${p.barcode||'No Barcode'} • ${p.category} • Stock:${p.stock} • Rs.${p.price}</span></div><button class="btn" onclick="editProduct('${p.id}')">Edit</button><button class="btn btn-danger" onclick="deleteProduct('${p.id}')">Del</button></div>`).join('');
 }
 function addProductForm(barcode=''){
 const name=prompt('Product Name:');if(!name)return;
-const bc=barcode||prompt('Barcode (empty if no barcode) - Scan cheste auto display avtundi - Type cheyalsina avasaram ledu:','')||'';
+const bc=barcode||prompt('Barcode:','')||'';
 const price=parseFloat(prompt('Price:','0'))||0;
 const cat=prompt('Category:','Grocery')||'Grocery';
 const stock=parseInt(prompt('Stock:','50'))||50;
@@ -559,13 +542,11 @@ save();renderProducts();renderProductManage();
 if(bc) showBarcode(bc,name);
 }
 function deleteProduct(id){if(confirm('Delete?')){products=products.filter(p=>p.id!==id);save();renderProducts();renderProductManage();}}
-function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;const np=parseFloat(prompt(`Edit price for ${p.name} [📷 Barcode: ${p.barcode||'No Barcode - Scan cheste auto display'}]:`,p.price));if(!isNaN(np)){p.price=np;save();renderProducts();renderProductManage();if(p.barcode) showBarcode(p.barcode,p.name);}}
+function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;const np=parseFloat(prompt(`Edit price for ${p.name}:`,p.price));if(!isNaN(np)){p.price=np;save();renderProducts();renderProductManage();}}
 
 function holdBill(){if(cart.length===0){alert('No bill');return;}const name=prompt('Hold name:','Hold-'+Date.now().toString().slice(-4));if(!name)return;holds.push({name,date:new Date().toISOString(),cart:[...cart],customer:currentCustomer});save();cart=[];renderCart();alert(`Held as ${name}`);}
-function showHolds(){if(holds.length===0){alert('No holds');return;}const list=holds.map((h,i)=>`${i+1}. ${h.name} - ${h.cart.length} items - Store: ${settings.storeCode} - Barcode display fix`).join('\n');const idx=parseInt(prompt(`Holds:\n${list}\n\nEnter number:`))-1;if(holds[idx]){cart=holds[idx].cart;currentCustomer=holds[idx].customer;holds.splice(idx,1);save();renderCart();}}
-function openHistory(){const list=bills.slice(0,20).map(b=>`${b.id} - ${b.customerName} - Rs.${b.grandTotal.toFixed(0)} - Store: ${b.storeCode} - ${new Date(b.date).toLocaleString()} - Barcode: ${b.items.map(it=>it.barcode||'No').join(',')}`).join('\n');alert(`Bills - All Stores Same - 8309091326 Fix - Barcode Display\n\n${list}`);}
-function openReports(){const total=bills.reduce((s,b)=>s+b.grandTotal,0);const today=bills.filter(b=>new Date(b.date).toDateString()===new Date().toDateString());const todayTotal=today.reduce((s,b)=>s+b.grandTotal,0);alert(`Reports - Store: ${settings.storeCode} - 8309091326 Fix - Barcode Display\n\nTotal: ${bills.length} bills Rs.${total.toFixed(0)}\nToday: ${today.length} bills Rs.${todayTotal.toFixed(0)}\nFLM: ${bills.filter(b=>b.isFlm).length}\nCommission: Rs.${bills.reduce((s,b)=>s+b.commission,0).toFixed(2)}\n\nAll stores same billing - 8309091326 fix - Barcode display fix - 7 matching members admin lo - billing lo kuda work`);}
-
+function showHolds(){if(holds.length===0){alert('No holds');return;}const list=holds.map((h,i)=>`${i+1}. ${h.name} - ${h.cart.length} items`).join('\n');const idx=parseInt(prompt(`Holds:\n${list}\n\nEnter number:`))-1;if(holds[idx]){cart=holds[idx].cart;currentCustomer=holds[idx].customer;holds.splice(idx,1);save();renderCart();}}
+function openHistory(){const list=bills.slice(0,20).map(b=>`${b.id} - ${b.customerName} - Rs.${b.grandTotal.toFixed(0)} - ${new Date(b.date).toLocaleString()}`).join('\n');alert(`Bills\n\n${list}`);}
 init();
 </script>
 </body>
