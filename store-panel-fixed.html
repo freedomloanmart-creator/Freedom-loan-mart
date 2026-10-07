@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Store Panel - FINAL FIXED - All Stores Work + Billing - 25KB to 70KB+ Original Preserved</title>
+<title>FLM Store Panel</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;font-family:Inter,system-ui}body{margin:0;background:#f0fdf4;color:#0f172a;padding:12px}
@@ -32,36 +32,29 @@ button{width:100%;padding:13px;border:0;border-radius:10px;font-weight:800;margi
 </style></head><body>
 
 <div class="card" style="background:linear-gradient(135deg,#059669,#0d9488);color:white">
-<h2>🏪 FLM Store Panel - FINAL FIXED</h2><p>Coupon + Billing - Database lo unna anni stores work - Oka store kaadu! - 70KB+ Original Same + Billing</p></div>
+<h2>🏪 FLM Store Panel</h2><p>Coupon + Billing Management</p></div>
 
 <div class="card" id="loginCard">
-<h3>Store Login - All Stores Work - Database lo unna 100+ stores anni!</h3>
-<input id="storeCode" placeholder="Store Code - FLM-PLR-001, FLM-KHM-001, FLM-HYD-001, Flm-plr-001 anni work">
-<input id="storePhone" placeholder="Store Phone - 8309091326 - phone/mobile rendu check" type="tel">
-<button class="green" onclick="storeLogin()">Login - Database lo unna anni stores work - Oka store kaadu!</button>
+<h3>Store Login</h3>
+<input id="storeCode" placeholder="Store Code">
+<input id="storePhone" placeholder="Store Phone" type="tel">
+<button class="green" onclick="storeLogin()">Login</button>
 <div id="loginResult"></div>
 <div class="small" style="margin-top:8px">
-✅ <b>Database lo unna anni stores login avachu - Oka store kaadu!</b><br>
-• FLM-PLR-001 / 8309091326 work • FLM-KHM-001 work • FLM-HYD-001 work • Flm-plr-001 work<br>
-• Store code case insensitive - FLM-PLR-001, flm-plr-001, Flm-plr-001 anni same<br>
-• Phone/mobile rendu check - phone column lo lekapoyina mobile lo unna work
+Enter your store code and phone number to login. All registered stores are supported.
 </div>
 </div>
 
 <div id="mainPanel" style="display:none">
 <div class="card"><h3 id="storeName">🏪 Store</h3><p id="storeMeta" class="small"></p>
-<div style="background:#fef3c7;padding:10px;border-radius:10px">Today redeemed:
-<b id="todayCount" style="font-size:20px;color:#059669">0</b> • Database lo unna anni stores ki same logic</div></div>
+<div style="background:#fef3c7;padding:10px;border-radius:10px">Today:
+<b id="todayCount" style="font-size:20px;color:#059669">0</b></div></div>
 
 <!-- BILLING CARD - FINAL - All Stores Same Billing - Bill lo Store ID Tag -->
 <div class="billing-card">
-<h3>🛒 Super Market Billing Software V3 - NEW! - All Stores Same File</h3>
+<h3>🛒 Super Market Billing Software</h3>
 <p>
-📷 Barcode scan + 🔍 Name search + 💰 Festival discount 3% + 💸 Commission 1% + 📱 WhatsApp bill<br>
-• Barcode unna products: Mobile camera tho scan chesi add - Barcode lekapoyina name type chesi search + add<br>
-• Excel import: Products bulk add - FLM Member: Festival 2-3% discount auto + Sponsor ki 1% commission<br>
-• Payment: Cash / UPI QR / Card - Bill: WhatsApp ki auto send + Print + Excel export<br>
-📌 <b>Ye store ayina same billing file - FLM_Billing_V3_Ultimate.html - Bill lo store_code automatic tag avtundi - Admin → Billing Reports lo store wise sales kanipistundi - Database lo unna anni stores ki same billing!</b>
+📷 Barcode scan, name search, festival discount, commission, WhatsApp bill, UPI QR, cash/card payments. Excel import/export available.
 </p>
 <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
 <a href="data:text/html;base64,PGh0bWw+PC9odG1sPg==" target="_blank" style="padding:10px;background:rgba(255,255,255,.2);color:#fff;border-radius:8px;text-align:center;font-size:11px;font-weight:700;text-decoration:none">📥 Sample Excel Format</a>
@@ -74,7 +67,7 @@ Current Store: <b id="billingStoreId" style="background:#fff;color:#059669;paddi
 </div>
 
 <div class="card"><h3>🎫 Redeem Coupon - Original Same</h3>
-<p class="small">Any valid unused ROI coupon can be redeemed at this active store - Database lo unna anni stores ki same - Oka store kaadu!</p>
+<p class="small">Any valid unused ROI coupon can be redeemed at this active store - All stores - Oka store kaadu!</p>
 <input id="couponCode" placeholder="Enter coupon code">
 <button id="redeemBtn" class="green" onclick="redeemCoupon()">✅ Redeem Coupon</button>
 <div id="redeemResult"></div>
@@ -140,7 +133,7 @@ async function init(){
 
 function openBilling(){
   if(!currentStore){ alert('Login first - Store login ayyaka billing open avtundi'); return; }
-  const url='./FLM_Billing_V3_Ultimate.html?store='+(currentStore.store_code||'FLM001')+'&store_name='+encodeURIComponent(currentStore.name||'')+'&phone='+(currentStore.phone||currentStore.mobile||'')+'&town='+(currentStore.town||currentStore.city||'')+'&id='+(currentStore.id||'');
+  const url='./FLM_Billing_V8_CustomerFixed.html?store='+(currentStore.store_code||'FLM001')+'&store_name='+encodeURIComponent(currentStore.name||'')+'&phone='+(currentStore.phone||currentStore.mobile||'')+'&town='+(currentStore.town||currentStore.city||'')+'&id='+(currentStore.id||'');
   window.open(url,'_blank');
 }
 function closeRedeemSuccessModal(){ document.getElementById('redeemSuccessModal').style.display='none'; }
@@ -210,7 +203,7 @@ async function storeLogin(){
     document.getElementById('loginCard').style.display='none';
     document.getElementById('mainPanel').style.display='block';
     document.getElementById('storeName').innerText='🏪 '+(currentStore.name || 'Store')+' - All Stores Work';
-    document.getElementById('storeMeta').innerText='Code: '+(currentStore.store_code || '')+' | '+(currentStore.town || currentStore.city || '')+' | Phone: '+(currentStore.phone||currentStore.mobile||'')+' | Database lo unna anni stores ki same - Oka store kaadu!';
+    document.getElementById('storeMeta').innerText='Code: '+(currentStore.store_code || '')+' | '+(currentStore.town || currentStore.city || '')+' | Phone: '+(currentStore.phone||currentStore.mobile||'')+' | All stores - Oka store kaadu!';
     document.getElementById('billingStoreId').innerText=currentStore.store_code||'FLM001';
     document.getElementById('billingStoreName').innerText=currentStore.name||currentStore.store_code||'Store';
     msg('loginResult','',true);
@@ -239,7 +232,7 @@ async function redeemCoupon(){
   const btn=document.getElementById('redeemBtn');
   btn.disabled=true;
   btn.innerText='Checking...';
-  document.getElementById('redeemResult').innerHTML='<div class="small">Checking coupon - Database lo unna anni stores ki same...</div>';
+  document.getElementById('redeemResult').innerHTML='<div class="small">Checking coupon - All stores...</div>';
   try{
     let r=await sb.rpc('flm_redeem_roi_coupon',{p_coupon_code:code,p_store_code:currentStore.store_code,p_redeemed_by:'STORE'});
     if(r.error){
@@ -248,8 +241,8 @@ async function redeemCoupon(){
     }
     if(r.error) throw r.error;
     const d=Array.isArray(r.data)?(r.data[0]||{}):(r.data||{});
-    if(!d.success){ msg('redeemResult','❌ '+(d.message||'Invalid coupon code - Database lo unna anni stores ki same logic')); return; }
-    document.getElementById('redeemResult').innerHTML='<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: ₹'+Number(d.amount||0).toLocaleString('en-IN')+'<br><span class="small">User: '+escapeHtml(resolveUserName(d))+' | FL ID: '+escapeHtml(d.fl_id||'')+' | Store: '+escapeHtml(currentStore.store_code||'')+' - Database lo unna anni stores ki same</span></div>';
+    if(!d.success){ msg('redeemResult','❌ '+(d.message||'Invalid coupon code - All stores logic')); return; }
+    document.getElementById('redeemResult').innerHTML='<div class="ok">✅ Coupon Redeemed Successfully!<br>Amount: ₹'+Number(d.amount||0).toLocaleString('en-IN')+'<br><span class="small">User: '+escapeHtml(resolveUserName(d))+' | FL ID: '+escapeHtml(d.fl_id||'')+' | Store: '+escapeHtml(currentStore.store_code||'')+' - All stores</span></div>';
     showRedeemSuccessModal(d);
     document.getElementById('couponCode').value='';
     await loadToday();
@@ -272,7 +265,7 @@ async function loadToday(){
     }
     const startDay=new Date(); startDay.setHours(0,0,0,0);
     document.getElementById('todayCount').innerText=rows.filter(x=>{ const dt=x.created_at || x.redeemed_at; return dt && new Date(dt)>=startDay; }).length;
-    document.getElementById('todayList').innerHTML=rows.length ? rows.map(x => '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.coupon_code||'')+'</b><b>₹'+Number(x.amount||0).toLocaleString('en-IN')+'</b></div><div style="margin-top:4px"><b>👤 '+escapeHtml(resolveUserName(x))+'</b> <span class="small">('+escapeHtml(x.fl_id||'-')+')</span></div><div class="small">'+escapeHtml(x.created_at || x.redeemed_at || '')+' | Store: '+escapeHtml(currentStore.store_code||'')+'</div></div>').join('') : 'No redemptions yet - Database lo unna anni stores ki same workflow';
+    document.getElementById('todayList').innerHTML=rows.length ? rows.map(x => '<div style="padding:9px;border-bottom:1px solid #f1f5f9;font-size:12px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapeHtml(x.coupon_code||'')+'</b><b>₹'+Number(x.amount||0).toLocaleString('en-IN')+'</b></div><div style="margin-top:4px"><b>👤 '+escapeHtml(resolveUserName(x))+'</b> <span class="small">('+escapeHtml(x.fl_id||'-')+')</span></div><div class="small">'+escapeHtml(x.created_at || x.redeemed_at || '')+' | Store: '+escapeHtml(currentStore.store_code||'')+'</div></div>').join('') : 'No redemptions yet - All stores workflow';
   }catch(e){ console.error('Today load error:',e); document.getElementById('todayList').innerText='Unable to load redemptions: '+(e?.message||String(e)); }
 }
 
@@ -282,7 +275,7 @@ async function loadStock(){
     const r=await sb.from('store_inventory').select('*').eq('store_id',currentStore.id).order('product_name');
     if(r.error) throw r.error;
     const rows=r.data||[];
-    document.getElementById('stockList').innerHTML=rows.length?rows.map(p=>'<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px"><b>'+escapeHtml(p.product_name||'')+'</b><div class="small">Qty: '+(p.quantity||0)+' | Rs.'+Number(p.price||0).toLocaleString('en-IN')+' | Store: '+escapeHtml(currentStore.store_code||'')+'</div></div>').join(''):'<div class="small">No stock assigned - Database lo unna anni stores ki same</div>';
+    document.getElementById('stockList').innerHTML=rows.length?rows.map(p=>'<div style="padding:8px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px"><b>'+escapeHtml(p.product_name||'')+'</b><div class="small">Qty: '+(p.quantity||0)+' | Rs.'+Number(p.price||0).toLocaleString('en-IN')+' | Store: '+escapeHtml(currentStore.store_code||'')+'</div></div>').join(''):'<div class="small">No stock assigned - All stores</div>';
   }catch(e){
     // Fallback to stores.stock column if table not found
     try{
@@ -303,7 +296,7 @@ async function loadStoreRedemptionStatus(status){
   if(!currentStore || !sb) return;
   const box=document.getElementById('storeRedemptionStatusList');
   if(!box) return;
-  box.innerHTML='<div class="small">Loading redemption records - Database lo unna anni stores ki same...</div>';
+  box.innerHTML='<div class="small">Loading redemption records - All stores...</div>';
   try{
     let r=await sb.rpc('flm_store_redemption_history',{p_store_code:currentStore.store_code,p_days:365});
     if(r.error){
@@ -334,7 +327,7 @@ function renderStoreRedemptionStatus(){
   if(sum){
     sum.innerHTML='<div class="grid2">'+'<div class="dark-card"><div class="small">🟠 Processing</div><b>'+srpMoney(total(p))+'</b></div>'+'<div class="dark-card"><div class="small">✅ Approved</div><b>'+srpMoney(total(a))+'</b></div>'+'<div class="dark-card"><div class="small">❌ Rejected</div><b>'+srpMoney(total(r))+'</b></div>'+'<div class="dark-card"><div class="small">📋 Total</div><b>'+srpMoney(total(rows))+'</b></div>'+'</div>';
   }
-  if(!rows.length){box.innerHTML='<div class="small">No redemption records found - Database lo unna anni stores ki same workflow.</div>';return;}
+  if(!rows.length){box.innerHTML='<div class="small">No redemption records found - All stores workflow.</div>';return;}
   box.innerHTML=rows.map(function(x){
     const st=String(x.status||'').toLowerCase();
     const badge=st==='approved'? '<span class="ok">✅ COMPLETED</span>': st==='rejected'? '<span class="err">❌ REJECTED</span>': '<span style="color:#b45309;font-weight:900">🟠 ADMIN PROCESSING</span>';
@@ -344,7 +337,7 @@ function renderStoreRedemptionStatus(){
 }
 async function retryRejectedStoreRedemption(id){
   if(!currentStore || !sb) return;
-  if(!confirm('Process this rejected redemption again? - Database lo unna anni stores ki same')) return;
+  if(!confirm('Process this rejected redemption again? - All stores')) return;
   try{
     let r=await sb.rpc('flm_store_reprocess_redemption',{p_redemption_id:id,p_store_code:currentStore.store_code});
     if(r.error){
@@ -352,7 +345,7 @@ async function retryRejectedStoreRedemption(id){
       if(!r2.error) r=r2;
     }
     if(r.error) throw r.error;
-    alert('✅ Redemption moved back to admin processing - Database lo unna anni stores ki same.');
+    alert('✅ Redemption moved back to admin processing - All stores.');
     await loadStoreRedemptionStatus();
   }catch(e){alert('Re-process failed: '+(e.message||e));}
 }
