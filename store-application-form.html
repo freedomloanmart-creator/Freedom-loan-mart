@@ -36,28 +36,28 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 
 <div class="header">
 <h1>🏪 FLM Store - Interest Form</h1>
-<p>Store pettadaniki interest unna vallu details + location map ivvandi - FLM Team contact chestundi</p>
-<p style="font-size:11px;background:rgba(255,255,255,.2);padding:6px 12px;border-radius:999px;display:inline-block;margin-top:10px">📍 Location Map + Shop Photos + Investment Details</p>
+<p>If you are interested in opening a store, please provide your details and location map - FLM Team will contact you</p>
+<p style="font-size:11px;background:rgba(255,255,255,.2);padding:6px 12px;border-radius:999px;display:inline-block;margin-top:10px">📍 Location Map + Investment Details</p>
 </div>
 
 <div class="card">
 <div class="step"><div class="active"></div><div class="active"></div><div></div></div>
 <h3>👤 Personal Details</h3>
 <label>Full Name <span class="required">*</span></label>
-<input id="fullName" placeholder="Meeru peru - Full Name">
+<input id="fullName" placeholder="Enter your full name">
 <div class="row">
-<div><label>Mobile Number <span class="required">*</span></label><input id="mobile" placeholder="10 digits - 8309091326" maxlength="10" type="tel"></div>
-<div><label>WhatsApp Number</label><input id="whatsapp" placeholder="WhatsApp - Same ayithe same ivvandi" maxlength="10" type="tel"></div>
+<div><label>Mobile Number <span class="required">*</span></label><input id="mobile" placeholder="10 digits - Example: 8309091326" maxlength="10" type="tel"></div>
+<div><label>WhatsApp Number</label><input id="whatsapp" placeholder="Enter WhatsApp number - Same as mobile if same" maxlength="10" type="tel"></div>
 </div>
 <div class="row">
-<div><label>Email</label><input id="email" placeholder="Email - optional" type="email"></div>
-<div><label>FL ID (Unte) - FLM Member ayithe</label><input id="flId" placeholder="FL570342 - Unte ivvandi"></div>
+<div><label>Email</label><input id="email" placeholder="Email (Optional)" type="email"></div>
+<div><label>FL ID (If Available) - If you are FLM Member</label><input id="flId" placeholder="Example: FL570342 - Enter if available"></div>
 </div>
 </div>
 
 <div class="card">
-<h3>📍 Store Location - Map Tho</h3>
-<p class="small">Store ekkada pedataro exact location map lo select cheyandi - Drag marker or click on map</p>
+<h3>📍 Store Location - With Map</h3>
+<p class="small">Select exact store location on map - Drag marker or click on map</p>
 
 <div class="row">
 <div><label>State <span class="required">*</span></label>
@@ -68,18 +68,18 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 
 <div class="row">
 <div><label>Town / City <span class="required">*</span></label><input id="town" placeholder="Paleru, Khammam, Warangal..."></div>
-<div><label>Mandal / Area</label><input id="mandal" placeholder="Mandal or Area Name"></div>
+<div><label>Mandal / Area</label><input id="mandal" placeholder="Mandal / Area Name"></div>
 </div>
 
 <label>Full Shop Address <span class="required">*</span></label>
-<textarea id="address" rows="2" placeholder="Shop full address - Door No, Street, Landmark - Complete ga ivvandi"></textarea>
+<textarea id="address" rows="2" placeholder="Enter complete shop address - Door No, Street, Landmark"></textarea>
 
 <label>📍 Select Exact Location on Map - Drag Marker or Click Map <span class="required">*</span></label>
 <div class="map-wrap"><div id="map"></div></div>
 
 <div class="location-info" id="locationInfo">
-📍 <b>Location:</b> Map lo click cheyandi or marker ni drag cheyandi<br>
-<span class="small">Latitude, Longitude automatic ga vastayi - Shop exact location kosam</span>
+📍 <b>Location:</b> Click on map or drag marker to set location<br>
+<span class="small">Latitude, Longitude will be auto-filled - For exact shop location</span>
 </div>
 
 <div class="row">
@@ -87,12 +87,12 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 <div><label>Longitude</label><input id="lng" placeholder="79.123456" readonly></div>
 </div>
 
-<button class="blue" onclick="getCurrentLocation()">📍 Naa Current Location Teesuko - GPS</button>
-<div class="small">📱 Mobile lo unte current location button tho shop location easy ga set cheyachu - Shop daggara unte click cheyandi</div>
+<button class="blue" onclick="getCurrentLocation()">📍 Get My Current Location - GPS</button>
+<div class="small">📱 If you are at shop location, click this button to set current location via GPS</div>
 </div>
 
 <div class="card">
-<h3>🏪 Store Details + Investment</h3>
+<h3>🏪 Store Details & Investment</h3>
 <div class="row">
 <div><label>Shop Size (Sq Ft)</label><select id="shopSize"><option value="">Select</option><option value="100-200">100-200 Sq Ft</option><option value="200-400">200-400 Sq Ft</option><option value="400-600">400-600 Sq Ft</option><option value="600+">600+ Sq Ft</option></select></div>
 <div><label>Own / Rent</label><select id="ownRent"><option value="">Select</option><option value="Own">Own Shop</option><option value="Rent">Rent Shop</option><option value="Lease">Lease</option></select></div>
@@ -104,16 +104,16 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 <label>Previous Shop / Business Experience</label>
 <select id="experience"><option value="">Select</option><option value="No Experience">No Experience - First Time</option><option value="Kirana">Kirana / Grocery Shop</option><option value="Super Market">Super Market</option><option value="Other Business">Other Business</option></select>
 
-<label>Why FLM Store? - Mee interest enduku? (Optional)</label>
-<textarea id="why" rows="2" placeholder="FLM store enduku pettadam anukuntunnaru? Mee area lo demand ela undi?"></textarea>
+<label>Why FLM Store? - Your interest reason (Optional)</label>
+<textarea id="why" rows="2" placeholder="Why do you want to open FLM store? How is demand in your area?"></textarea>
 </div>
 
 <div class="card">
-<h3>✅ Submit - FLM Team Contact Chestundi</h3>
+<h3>✅ Submit - FLM Team Will Contact You</h3>
 <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:12px;padding:12px;font-size:12px">
-⚠️ <b>Note:</b> Details submit chesaka FLM team 24 hours lo meeku call chestundi - Location verification + Store setup details cheptaru
+⚠️ <b>Note:</b> After submitting details, FLM team will call you within 24 hours for location verification and store setup
 </div>
-<button class="green" id="submitBtn" onclick="submitForm()">🚀 Submit Store Application - Location Map Tho</button>
+<button class="green" id="submitBtn" onclick="submitForm()">🚀 Submit Store Application - With Location Map</button>
 <div id="result"></div>
 <div class="small" style="margin-top:12px">
 ✅ Form submit ayyaka: 1) FLM Admin panel lo kanipistundi 2) Location map tho admin ki telustundi 3) Team call chestundi 4) Store code istaru<br>
@@ -123,8 +123,8 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 
 <div class="card" style="text-align:center">
 <p style="font-weight:800">🏪 FLM - Freedom Loans Mart - Super Market Stores</p>
-<p class="small">All Stores Same Billing - 69KB OK - V6 FINAL - Qty Typing + Barcode Display + 8309091326 Fix + Store Application Map</p>
-<p class="small">For Support: Call FLM Team - Store Applications daily check chestunnaru</p>
+<p class="small">All Stores Same Billing System - V6 FINAL</p>
+<p class="small">For Support: Contact FLM Team - Store applications checked daily</p>
 </div>
 
 <script>
@@ -181,16 +181,16 @@ function setLocation(la, ln){
 
 function getCurrentLocation(){
   if(!navigator.geolocation){ alert('GPS not supported'); return; }
-  const btn=event.target; btn.disabled=true; btn.innerText='📍 Getting GPS...';
+  const btn=event.target; btn.disabled=true; btn.innerText='📍 Getting GPS Location...';
   navigator.geolocation.getCurrentPosition(pos=>{
     const c=[pos.coords.latitude, pos.coords.longitude];
     map.setView(c, 16);
     marker.setLatLng(c);
     setLocation(c[0], c[1]);
-    btn.disabled=false; btn.innerText='📍 Naa Current Location Teesuko - GPS ✅';
+    btn.disabled=false; btn.innerText='📍 Get My Current Location - GPS ✅';
   }, err=>{
-    alert('GPS error: '+err.message+' - Map lo manual ga select cheyandi');
-    btn.disabled=false; btn.innerText='📍 Naa Current Location Teesuko - GPS';
+    alert('GPS Error: '+err.message+' - Please select manually on map');
+    btn.disabled=false; btn.innerText='📍 Get My Current Location - GPS';
   }, {enableHighAccuracy:true, timeout:10000});
 }
 
@@ -213,11 +213,11 @@ async function submitForm(){
   const experience=document.getElementById('experience').value;
   const why=document.getElementById('why').value.trim();
 
-  if(!fullName || !mobile || mobile.length!==10){ document.getElementById('result').innerHTML='<div class="err">❌ Name + 10 digit mobile compulsory</div>'; return; }
-  if(!state || !district || !town || !address){ document.getElementById('result').innerHTML='<div class="err">❌ State, District, Town, Address compulsory - Location kosam</div>'; return; }
-  if(!latV || !lngV){ document.getElementById('result').innerHTML='<div class="err">❌ Map lo location select cheyandi - Marker drag or map click - Location important!</div>'; return; }
+  if(!fullName || !mobile || mobile.length!==10){ document.getElementById('result').innerHTML='<div class="err">❌ Name and 10 digit mobile are required</div>'; return; }
+  if(!state || !district || !town || !address){ document.getElementById('result').innerHTML='<div class="err">❌ State, District, Town, Address are required for location</div>'; return; }
+  if(!latV || !lngV){ document.getElementById('result').innerHTML='<div class="err">❌ Please select location on map - Drag marker or click map - Location is important!</div>'; return; }
 
-  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.innerText='Submitting... Location Map Tho...';
+  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.innerText='Submitting with Location Map...';
 
   try{
     const payload={
@@ -254,12 +254,12 @@ async function submitForm(){
         // Final fallback - save to localStorage + show success (so form not lost)
         const localKey='flm_store_applications_'+Date.now();
         localStorage.setItem(localKey, JSON.stringify(payload));
-        document.getElementById('result').innerHTML=`<div class="ok">✅ Application Saved Locally! (Table not found - Admin will check localStorage)<br>
+        document.getElementById('result').innerHTML=`<div class="ok">✅ Application Saved Locally! (Table not found)<br>
         <b>${fullName}</b> - ${town}, ${district}<br>
-        📍 Location: <a href="https://www.google.com/maps?q=${latV},${lngV}" target="_blank">Map Link</a><br>
-        FLM Team ki screenshot pampandi - Table create cheyali: <code>store_applications</code><br>
+        📍 Location: <a href="https://www.google.com/maps?q=${latV},${lngV}" target="_blank">View Map</a><br>
+        Please send screenshot to FLM Team - Need to create table: <code>store_applications</code><br>
         <span class="small">Mobile: ${mobile} - Town: ${town}</span></div>`;
-        btn.disabled=false; btn.innerText='🚀 Submit Store Application - Location Map Tho';
+        btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Location Map';
         return;
       }
       res=res2;
@@ -267,9 +267,9 @@ async function submitForm(){
 
     document.getElementById('result').innerHTML=`<div class="ok">✅ Application Submitted Successfully!<br>
     <b>${fullName}</b> - ${town}, ${district}<br>
-    📍 Location Map Saved: Lat ${latV}, Lng ${lngV}<br>
+    📍 Location Saved: Latitude ${latV}, Lng ${lngV}<br>
     <a href="https://www.google.com/maps?q=${latV},${lngV}" target="_blank" style="color:#065f46">🗺️ View on Google Maps</a><br>
-    FLM Team 24 hours lo call chestundi - Store code istaru!<br>
+    FLM Team will call you within 24 hours - Store code will be provided!<br>
     <span class="small">Application ID: ${(res.data&&res.data[0]&&res.data[0].id)||'Saved'} - Mobile: ${mobile}</span></div>`;
     
     // Clear form
@@ -279,12 +279,12 @@ async function submitForm(){
     }, 2000);
 
   }catch(e){
-    document.getElementById('result').innerHTML=`<div class="err">❌ Error: ${e.message}<br><span class="small">Local lo save chesanu - Screenshot teesukuni admin ki pampandi<br>Location: https://www.google.com/maps?q=${document.getElementById('lat').value},${document.getElementById('lng').value}</span></div>`;
+    document.getElementById('result').innerHTML=`<div class="err">❌ Error: ${e.message}<br><span class="small">Saved locally - Please take screenshot and send to admin<br>Location: https://www.google.com/maps?q=${document.getElementById('lat').value},${document.getElementById('lng').value}</span></div>`;
     // Save locally as backup
     const backup={fullName,mobile,town,district,address,lat:document.getElementById('lat').value,lng:document.getElementById('lng').value,time:new Date().toISOString()};
     localStorage.setItem('flm_store_app_backup_'+Date.now(), JSON.stringify(backup));
   }finally{
-    btn.disabled=false; btn.innerText='🚀 Submit Store Application - Location Map Tho';
+    btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Location Map';
   }
 }
 
