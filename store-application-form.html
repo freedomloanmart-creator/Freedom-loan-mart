@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="te">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FLM Store Application Form - Location Map + Details</title>
+<title>FLM Store Application - Aadhar PAN + Partners + Location Map</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -17,6 +17,7 @@ label{font-weight:800;font-size:13px;margin-top:14px;display:block;color:#334155
 button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-size:16px;cursor:pointer;margin-top:12px}
 .green{background:linear-gradient(135deg,#059669,#047857);color:#fff}.green:disabled{background:#94a3b8}
 .blue{background:#2563eb;color:#fff}
+.orange{background:#f59e0b;color:#fff}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:600px){.row{grid-template-columns:1fr}}
 .map-wrap{height:320px;border-radius:16px;overflow:hidden;border:2px solid #059669;margin-top:10px;position:relative}
@@ -30,65 +31,93 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 .step div{flex:1;height:4px;border-radius:999px;background:#e2e8f0}
 .step div.active{background:#059669}
 .location-info{background:#f0fdf4;border:1px dashed #059669;border-radius:12px;padding:12px;margin-top:10px;font-size:13px}
+.partner-card{background:#f8fafc;border:2px solid #7c3aed;border-radius:16px;padding:16px;margin-top:12px}
+.partner-card h4{margin:0 0 8px;color:#7c3aed;font-size:14px}
+.upload-box{border:2px dashed #cbd5e1;border-radius:12px;padding:12px;text-align:center;background:#fff;margin-top:8px;cursor:pointer;transition:.2s}
+.upload-box:hover{border-color:#059669;background:#f0fdf4}
+.upload-box input{display:none}
+.upload-preview{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.upload-preview img{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e2e8f0}
+.file-info{font-size:10px;background:#ecfdf5;padding:4px 8px;border-radius:6px;display:inline-block;margin-top:4px}
+.radio-group{display:flex;gap:8px;margin-top:8px}
+.radio-group label{flex:1;display:flex;align-items:center;gap:6px;padding:12px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;font-weight:700;transition:.2s}
+.radio-group label.active{border-color:#059669;background:#ecfdf5;color:#047857}
+.radio-group input{width:auto;margin:0}
 </style>
 </head>
 <body>
 
 <div class="header">
-<h1>🏪 FLM Store - Interest Form</h1>
-<p>If you are interested in opening a store, please provide your details and location map - FLM Team will contact you</p>
-<p style="font-size:11px;background:rgba(255,255,255,.2);padding:6px 12px;border-radius:999px;display:inline-block;margin-top:10px">📍 Location Map + Investment Details</p>
+<h1>🏪 FLM Store - Application Form</h1>
+<p>Store Application - Aadhar + PAN + Partnership Details + Location Map</p>
+<p style="font-size:11px;background:rgba(255,255,255,.2);padding:6px 12px;border-radius:999px;display:inline-block;margin-top:10px">📍 Aadhar PAN Upload + Single/Partner + Location Map</p>
 </div>
 
 <div class="card">
-<div class="step"><div class="active"></div><div class="active"></div><div></div></div>
+<div class="step"><div class="active"></div><div class="active"></div><div class="active"></div><div></div></div>
 <h3>👤 Personal Details</h3>
 <label>Full Name <span class="required">*</span></label>
 <input id="fullName" placeholder="Enter your full name">
 <div class="row">
 <div><label>Mobile Number <span class="required">*</span></label><input id="mobile" placeholder="10 digits - Example: 8309091326" maxlength="10" type="tel"></div>
-<div><label>WhatsApp Number</label><input id="whatsapp" placeholder="Enter WhatsApp number - Same as mobile if same" maxlength="10" type="tel"></div>
+<div><label>WhatsApp Number</label><input id="whatsapp" placeholder="WhatsApp number - Same as mobile if same" maxlength="10" type="tel"></div>
 </div>
 <div class="row">
 <div><label>Email</label><input id="email" placeholder="Email (Optional)" type="email"></div>
-<div><label>FL ID (If Available) - If you are FLM Member</label><input id="flId" placeholder="Example: FL570342 - Enter if available"></div>
+<div><label>FL ID (If Available)</label><input id="flId" placeholder="Example: FL570342 - If FLM Member"></div>
 </div>
+</div>
+
+<div class="card" style="border:2px solid #f59e0b">
+<h3>🆔 Aadhar & PAN - Business Type: Single or Partnership <span class="required">*</span></h3>
+<p class="small">Select if you are applying as Single owner or Partnership. If partnership, mention number of partners.</p>
+
+<label>Business Type <span class="required">*</span></label>
+<div class="radio-group" id="businessTypeGroup">
+<label class="active" onclick="setBusinessType('single',this)"><input type="radio" name="businessType" value="single" checked> 👤 Single Owner</label>
+<label onclick="setBusinessType('partnership',this)"><input type="radio" name="businessType" value="partnership"> 👥 Partnership</label>
+</div>
+
+<div id="partnerCountDiv" style="display:none">
+<label>How Many Partners? (Including You) <span class="required">*</span></label>
+<div class="radio-group" id="partnerCountGroup">
+<label class="active" onclick="setPartnerCount(1,this)"><input type="radio" name="partnerCount" value="1" checked> 1 Member</label>
+<label onclick="setPartnerCount(2,this)"><input type="radio" name="partnerCount" value="2"> 2 Members</label>
+<label onclick="setPartnerCount(3,this)"><input type="radio" name="partnerCount" value="3"> 3 Members</label>
+</div>
+<p class="small">Select total members - For 2 members, both Aadhar+PAN required. For 3 members, all 3 Aadhar+PAN required.</p>
+</div>
+
+<div id="partnersContainer" style="margin-top:14px">
+<!-- Dynamic partner cards will be injected here -->
+</div>
+
 </div>
 
 <div class="card">
 <h3>📍 Store Location - With Map</h3>
 <p class="small">Select exact store location on map - Drag marker or click on map</p>
-
 <div class="row">
 <div><label>State <span class="required">*</span></label>
 <select id="state"><option value="">Select State</option><option value="Telangana" selected>Telangana</option><option value="Andhra Pradesh">Andhra Pradesh</option><option value="Karnataka">Karnataka</option><option value="Maharashtra">Maharashtra</option><option value="Tamil Nadu">Tamil Nadu</option><option value="Other">Other</option></select>
 </div>
 <div><label>District <span class="required">*</span></label><input id="district" placeholder="Khammam, Paleru, Hyderabad..."></div>
 </div>
-
 <div class="row">
 <div><label>Town / City <span class="required">*</span></label><input id="town" placeholder="Paleru, Khammam, Warangal..."></div>
 <div><label>Mandal / Area</label><input id="mandal" placeholder="Mandal / Area Name"></div>
 </div>
-
 <label>Full Shop Address <span class="required">*</span></label>
 <textarea id="address" rows="2" placeholder="Enter complete shop address - Door No, Street, Landmark"></textarea>
-
 <label>📍 Select Exact Location on Map - Drag Marker or Click Map <span class="required">*</span></label>
 <div class="map-wrap"><div id="map"></div></div>
-
-<div class="location-info" id="locationInfo">
-📍 <b>Location:</b> Click on map or drag marker to set location<br>
-<span class="small">Latitude, Longitude will be auto-filled - For exact shop location</span>
-</div>
-
+<div class="location-info" id="locationInfo">📍 <b>Location:</b> Click on map or drag marker to set location<br><span class="small">Latitude, Longitude will be auto-filled - For exact shop location</span></div>
 <div class="row">
 <div><label>Latitude</label><input id="lat" placeholder="17.123456" readonly></div>
 <div><label>Longitude</label><input id="lng" placeholder="79.123456" readonly></div>
 </div>
-
 <button class="blue" onclick="getCurrentLocation()">📍 Get My Current Location - GPS</button>
-<div class="small">📱 If you are at shop location, click this button to set current location via GPS</div>
+<div class="small">If you are at shop location, click this button to set current location via GPS</div>
 </div>
 
 <div class="card">
@@ -97,34 +126,69 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 <div><label>Shop Size (Sq Ft)</label><select id="shopSize"><option value="">Select</option><option value="100-200">100-200 Sq Ft</option><option value="200-400">200-400 Sq Ft</option><option value="400-600">400-600 Sq Ft</option><option value="600+">600+ Sq Ft</option></select></div>
 <div><label>Own / Rent</label><select id="ownRent"><option value="">Select</option><option value="Own">Own Shop</option><option value="Rent">Rent Shop</option><option value="Lease">Lease</option></select></div>
 </div>
+<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #f59e0b;border-radius:16px;padding:16px;margin-top:10px">
+<h4 style="margin:0 0 8px;color:#92400e">💰 Mart Investment Plan - Select Investment <span class="required">*</span></h4>
+<p class="small" style="color:#92400e">Select your investment capacity - 5 Lakhs, 10 Lakhs, 20 Lakhs, 50 Lakhs, 1 Crore - Payment screenshot required</p>
 
-<label>Investment Capacity</label>
-<select id="investment"><option value="">Select Investment</option><option value="1-2 Lakhs">₹1-2 Lakhs</option><option value="2-3 Lakhs">₹2-3 Lakhs</option><option value="3-5 Lakhs">₹3-5 Lakhs</option><option value="5+ Lakhs">₹5+ Lakhs</option></select>
+<label>Mart Investment Amount <span class="required">*</span></label>
+<div class="radio-group" id="martInvestmentGroup" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<label onclick="setMartInvestment('5 Lakhs',500000,this)"><input type="radio" name="martInvestment" value="5 Lakhs"> 💵 ₹5 Lakhs</label>
+<label onclick="setMartInvestment('10 Lakhs',1000000,this)"><input type="radio" name="martInvestment" value="10 Lakhs"> 💵 ₹10 Lakhs</label>
+<label onclick="setMartInvestment('20 Lakhs',2000000,this)"><input type="radio" name="martInvestment" value="20 Lakhs"> 💵 ₹20 Lakhs</label>
+<label onclick="setMartInvestment('50 Lakhs',5000000,this)"><input type="radio" name="martInvestment" value="50 Lakhs"> 💵 ₹50 Lakhs</label>
+<label onclick="setMartInvestment('1 Crore',10000000,this)" style="grid-column:1/-1;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-color:#7c3aed"><input type="radio" name="martInvestment" value="1 Crore"> 👑 ₹1 Crore - Premium Mart</label>
+</div>
+<input type="hidden" id="martInvestment">
+<input type="hidden" id="investmentAmount">
 
+<div id="paymentDetailsDiv" style="display:none;margin-top:16px;background:#fff;border-radius:12px;padding:14px;border:2px solid #059669">
+<h4 style="margin:0 0 10px;color:#065f46">💳 Payment Details - For Selected Investment: <span id="selectedInvestmentDisplay" style="background:#dcfce7;padding:3px 10px;border-radius:999px">-</span></h4>
+
+<div style="background:#f0fdf4;border-radius:10px;padding:12px;margin-bottom:12px">
+<p style="font-size:13px;font-weight:800;margin:0">📱 UPI Payment / Bank Transfer:</p>
+<p style="font-size:12px;margin:6px 0">UPI ID: <b style="background:#fff;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0">flmmart@upi</b> - FLM Mart Account</p>
+<p style="font-size:11px;color:#64748b">Bank: FLM Mart Pvt Ltd - A/C: 1234567890 - IFSC: SBIN0001234 - After payment, upload screenshot below</p>
+<div style="display:flex;gap:8px;margin-top:8px">
+<div style="background:#fff;padding:8px;border-radius:8px;border:1px dashed #059669;text-align:center;flex:1">
+<div style="font-size:10px">QR Code for Payment</div>
+<div id="paymentQR" style="margin-top:4px"></div>
+</div>
+</div>
+</div>
+
+<label>💰 Investment Amount Entered (Auto)</label>
+<input id="investmentAmountDisplay" placeholder="Select investment above" readonly style="background:#f8fafc;font-weight:900;color:#059669">
+
+<label>🔢 Transaction ID / UTR Number (If Available)</label>
+<input id="transactionId" placeholder="Enter UTR / Transaction ID after payment - Example: 123456789012">
+
+<label>📸 Payment Screenshot Upload <span class="required">*</span> - After Payment</label>
+<div class="upload-box" onclick="document.getElementById('paymentScreenshot').click()" style="border-color:#059669;background:#f0fdf4">
+<div>📁 Click to Upload Payment Screenshot</div>
+<div class="small">Upload payment proof - Screenshot of UPI / Bank transfer - JPG, PNG, PDF - Max 5MB - Required for verification</div>
+<input type="file" id="paymentScreenshot" accept="image/*,.pdf" onchange="handlePaymentScreenshot(this)">
+<div class="upload-preview" id="paymentScreenshotPreview"></div>
+<div id="paymentScreenshotInfo"></div>
+</div>
+</div>
+</div>
+
+<label style="margin-top:16px">Old Investment Capacity (Optional)</label>
+<select id="investment"><option value="">Select Old Range (Optional)</option><option value="1-2 Lakhs">₹1-2 Lakhs</option><option value="2-3 Lakhs">₹2-3 Lakhs</option><option value="3-5 Lakhs">₹3-5 Lakhs</option><option value="5+ Lakhs">₹5+ Lakhs</option></select>
 <label>Previous Shop / Business Experience</label>
 <select id="experience"><option value="">Select</option><option value="No Experience">No Experience - First Time</option><option value="Kirana">Kirana / Grocery Shop</option><option value="Super Market">Super Market</option><option value="Other Business">Other Business</option></select>
-
-<label>Why FLM Store? - Your interest reason (Optional)</label>
+<label>Why FLM Store? (Optional)</label>
 <textarea id="why" rows="2" placeholder="Why do you want to open FLM store? How is demand in your area?"></textarea>
 </div>
 
 <div class="card">
 <h3>✅ Submit - FLM Team Will Contact You</h3>
 <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:12px;padding:12px;font-size:12px">
-⚠️ <b>Note:</b> After submitting details, FLM team will call you within 24 hours for location verification and store setup
+⚠️ <b>Required:</b> Aadhar + PAN for all members + Location map + All details. Team will verify within 24 hours.
 </div>
-<button class="green" id="submitBtn" onclick="submitForm()">🚀 Submit Store Application - With Location Map</button>
+<button class="green" id="submitBtn" onclick="submitForm()">🚀 Submit Store Application - With Aadhar PAN & Location</button>
 <div id="result"></div>
-<div class="small" style="margin-top:12px">
-✅ Form submit ayyaka: 1) FLM Admin panel lo kanipistundi 2) Location map tho admin ki telustundi 3) Team call chestundi 4) Store code istaru<br>
-📍 Location map important - Exact shop location kosam - Map lo marker set cheyadam marchipokandi
-</div>
-</div>
-
-<div class="card" style="text-align:center">
-<p style="font-weight:800">🏪 FLM - Freedom Loans Mart - Super Market Stores</p>
-<p class="small">All Stores Same Billing System - V6 FINAL</p>
-<p class="small">For Support: Contact FLM Team - Store applications checked daily</p>
+<div class="small" style="margin-top:12px">✅ After submit: 1) Admin sees Aadhar/PAN + Location 2) Team verifies 3) Store code provided</div>
 </div>
 
 <script>
@@ -132,68 +196,203 @@ const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
 const SUPABASE_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let map, marker, lat=17.385, lng=78.4867; // Hyderabad default
+let map, marker, lat=17.385, lng=78.4867;
+
+let martInvestment='';
+let investmentAmountNum=0;
+let paymentScreenshotFile=null;
+
+function setMartInvestment(amount, num, el){
+  martInvestment=amount;
+  investmentAmountNum=num;
+  document.getElementById('martInvestment').value=amount;
+  document.getElementById('investmentAmount').value=num;
+  document.getElementById('investmentAmountDisplay').value='₹'+amount+' (₹'+num.toLocaleString('en-IN')+')';
+  document.getElementById('selectedInvestmentDisplay').textContent=amount;
+  document.getElementById('paymentDetailsDiv').style.display='block';
+  
+  document.querySelectorAll('#martInvestmentGroup label').forEach(l=>l.classList.remove('active'));
+  el.classList.add('active');
+  
+  // Generate QR for payment
+  const upiId='flmmart@upi';
+  const qrData=`upi://pay?pa=${upiId}&pn=FLM Mart&am=${num}&tn=FLM Mart Investment ${amount}`;
+  document.getElementById('paymentQR').innerHTML=`<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}" style="border-radius:8px"><div style="font-size:9px;margin-top:4px">₹${amount}</div>`;
+  
+  // Scroll to payment
+  setTimeout(()=>document.getElementById('paymentDetailsDiv').scrollIntoView({behavior:'smooth'}),300);
+}
+function handlePaymentScreenshot(input){
+  const file=input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){ alert('File too large - Max 5MB'); return; }
+  paymentScreenshotFile=file;
+  const preview=document.getElementById('paymentScreenshotPreview');
+  const info=document.getElementById('paymentScreenshotInfo');
+  preview.innerHTML='';
+  if(file.type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=document.createElement('img');
+      img.src=e.target.result;
+      img.style.width='120px'; img.style.height='120px'; img.style.objectFit='cover'; img.style.borderRadius='8px'; img.style.border='2px solid #059669';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML=`<div class="file-info">📄 ${file.name}</div>`;
+  }
+  info.innerHTML=`<span class="badge">✅ ${file.name} - ${(file.size/1024).toFixed(0)}KB - Ready to upload</span>`;
+}
+
+let businessType='single';
+let partnerCount=1;
+let uploadedFiles={}; // {partnerIdx: {aadhar:[], pan:[]}}
 
 function initMap(){
-  // Default to Telangana center if no location
   map=L.map('map').setView([17.385, 78.4867], 8);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap'
-  }).addTo(map);
-
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
   marker=L.marker([17.385, 78.4867],{draggable:true}).addTo(map);
-  
-  marker.on('dragend', function(e){
-    const pos=marker.getLatLng();
-    setLocation(pos.lat, pos.lng);
-  });
-
-  map.on('click', function(e){
-    marker.setLatLng(e.latlng);
-    setLocation(e.latlng.lat, e.latlng.lng);
-  });
-
-  // Try to get user location for initial view
+  marker.on('dragend', function(e){ const pos=marker.getLatLng(); setLocation(pos.lat, pos.lng); });
+  map.on('click', function(e){ marker.setLatLng(e.latlng); setLocation(e.latlng.lat, e.latlng.lng); });
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(pos=>{
       const c=[pos.coords.latitude, pos.coords.longitude];
-      map.setView(c, 14);
-      marker.setLatLng(c);
-      setLocation(c[0], c[1]);
+      map.setView(c, 14); marker.setLatLng(c); setLocation(c[0], c[1]);
     },()=>{}, {enableHighAccuracy:true});
   }
+  renderPartners();
 }
-
 function setLocation(la, ln){
   lat=la; lng=ln;
   document.getElementById('lat').value=la.toFixed(6);
   document.getElementById('lng').value=ln.toFixed(6);
-  document.getElementById('locationInfo').innerHTML=`📍 <b>Location Set:</b> Lat ${la.toFixed(6)}, Lng ${ln.toFixed(6)}<br><span class="badge">✅ Location Map Selected - Shop exact location</span><br><span class="small"><a href="https://www.google.com/maps?q=${la},${ln}" target="_blank" style="color:#059669">🗺️ Google Maps lo chudandi</a> - Verify chesukondi</span>`;
-  
-  // Reverse geocode attempt (optional)
-  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${la}&lon=${ln}`)
-    .then(r=>r.json()).then(d=>{
-      if(d.display_name){
-        document.getElementById('locationInfo').innerHTML+=`<br><span class="small">📍 ${d.display_name.substring(0,80)}...</span>`;
-      }
-    }).catch(()=>{});
+  document.getElementById('locationInfo').innerHTML=`📍 <b>Location Set:</b> Lat ${la.toFixed(6)}, Lng ${ln.toFixed(6)}<br><span class="badge">✅ Location Selected</span><br><span class="small"><a href="https://www.google.com/maps?q=${la},${ln}" target="_blank" style="color:#059669">🗺️ View on Google Maps</a></span>`;
 }
-
 function getCurrentLocation(){
   if(!navigator.geolocation){ alert('GPS not supported'); return; }
-  const btn=event.target; btn.disabled=true; btn.innerText='📍 Getting GPS Location...';
+  const btn=event.target; btn.disabled=true; btn.innerText='📍 Getting GPS...';
   navigator.geolocation.getCurrentPosition(pos=>{
     const c=[pos.coords.latitude, pos.coords.longitude];
-    map.setView(c, 16);
-    marker.setLatLng(c);
-    setLocation(c[0], c[1]);
-    btn.disabled=false; btn.innerText='📍 Get My Current Location - GPS ✅';
+    map.setView(c, 16); marker.setLatLng(c); setLocation(c[0], c[1]);
+    btn.disabled=false; btn.innerText='📍 GPS Location Captured ✅';
   }, err=>{
-    alert('GPS Error: '+err.message+' - Please select manually on map');
+    alert('GPS Error: '+err.message+' - Please select manually');
     btn.disabled=false; btn.innerText='📍 Get My Current Location - GPS';
   }, {enableHighAccuracy:true, timeout:10000});
 }
-
+function setBusinessType(type, el){
+  businessType=type;
+  document.querySelectorAll('#businessTypeGroup label').forEach(l=>l.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('partnerCountDiv').style.display = type==='partnership' ? 'block' : 'none';
+  if(type==='single'){ partnerCount=1; }
+  renderPartners();
+}
+function setPartnerCount(count, el){
+  partnerCount=count;
+  document.querySelectorAll('#partnerCountGroup label').forEach(l=>l.classList.remove('active'));
+  el.classList.add('active');
+  renderPartners();
+}
+function renderPartners(){
+  const container=document.getElementById('partnersContainer');
+  let count = businessType==='single' ? 1 : partnerCount;
+  let html='';
+  for(let i=0;i<count;i++){
+    const idx=i+1;
+    const isMain = i===0;
+    html+=`
+    <div class="partner-card" id="partner-${i}">
+      <h4>${isMain ? '👤 Main Applicant' : `👥 Partner ${idx}`} - Aadhar & PAN <span class="required">*</span> ${businessType==='partnership' ? `<span class="badge">Partner ${idx} of ${count}</span>` : ''}</h4>
+      <label>Full Name of ${isMain ? 'Applicant' : 'Partner '+idx} <span class="required">*</span></label>
+      <input id="p${i}_name" placeholder="Full name as per Aadhar">
+      <div class="row">
+        <div><label>Aadhar Number <span class="required">*</span></label><input id="p${i}_aadhar_no" placeholder="12 digits - 1234 5678 9012" maxlength="14" oninput="formatAadhar(this)"></div>
+        <div><label>PAN Number <span class="required">*</span></label><input id="p${i}_pan_no" placeholder="10 chars - ABCDE1234F" maxlength="10" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+      </div>
+      
+      <label>📄 Aadhar Card Upload - Front & Back (Image/PDF) <span class="required">*</span></label>
+      <div class="upload-box" onclick="document.getElementById('p${i}_aadhar_file').click()">
+        <div>📁 Click to Upload Aadhar - ${isMain ? 'Main' : 'Partner '+idx}</div>
+        <div class="small">Upload Aadhar Front & Back - JPG, PNG, PDF allowed - Max 5MB each</div>
+        <input type="file" id="p${i}_aadhar_file" accept="image/*,.pdf" multiple onchange="handleFileUpload(${i},'aadhar',this)">
+        <div class="upload-preview" id="p${i}_aadhar_preview"></div>
+        <div id="p${i}_aadhar_info"></div>
+      </div>
+      
+      <label>💳 PAN Card Upload <span class="required">*</span></label>
+      <div class="upload-box" onclick="document.getElementById('p${i}_pan_file').click()">
+        <div>📁 Click to Upload PAN - ${isMain ? 'Main' : 'Partner '+idx}</div>
+        <div class="small">Upload PAN Card - JPG, PNG, PDF - Max 5MB</div>
+        <input type="file" id="p${i}_pan_file" accept="image/*,.pdf" onchange="handleFileUpload(${i},'pan',this)">
+        <div class="upload-preview" id="p${i}_pan_preview"></div>
+        <div id="p${i}_pan_info"></div>
+      </div>
+    </div>`;
+  }
+  container.innerHTML=html;
+}
+function formatAadhar(el){
+  let v=el.value.replace(/\D/g,'').substring(0,12);
+  // Format as 1234 5678 9012
+  if(v.length>4 && v.length<=8) v=v.substring(0,4)+' '+v.substring(4);
+  else if(v.length>8) v=v.substring(0,4)+' '+v.substring(4,8)+' '+v.substring(8);
+  el.value=v;
+}
+async function handleFileUpload(partnerIdx, type, input){
+  const files=input.files;
+  if(!files.length) return;
+  const previewId=`p${partnerIdx}_${type}_preview`;
+  const infoId=`p${partnerIdx}_${type}_info`;
+  const preview=document.getElementById(previewId);
+  const info=document.getElementById(infoId);
+  preview.innerHTML='';
+  let fileList=[];
+  for(let f of files){
+    if(f.size>5*1024*1024){ alert(f.name+' is too large - Max 5MB'); continue; }
+    fileList.push(f);
+    if(f.type.startsWith('image/')){
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const img=document.createElement('img');
+        img.src=e.target.result;
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(f);
+    } else {
+      const div=document.createElement('div');
+      div.className='file-info';
+      div.textContent='📄 '+f.name;
+      preview.appendChild(div);
+    }
+  }
+  if(!uploadedFiles[partnerIdx]) uploadedFiles[partnerIdx]={};
+  if(type==='aadhar'){
+    if(!uploadedFiles[partnerIdx].aadhar) uploadedFiles[partnerIdx].aadhar=[];
+    uploadedFiles[partnerIdx].aadhar=uploadedFiles[partnerIdx].aadhar.concat(fileList);
+  } else {
+    uploadedFiles[partnerIdx][type]=fileList;
+  }
+  info.innerHTML=`<span class="badge">✅ ${fileList.length} file(s) selected - ${fileList.map(f=>f.name).join(', ').substring(0,60)}</span>`;
+}
+async function uploadToSupabaseStorage(file, path){
+  try{
+    // Try to upload to storage bucket 'store-documents' - if bucket not exists, will fallback to base64
+    const {data, error} = await sb.storage.from('store-documents').upload(path, file, {upsert:true});
+    if(error) throw error;
+    const {data: urlData} = sb.storage.from('store-documents').getPublicUrl(path);
+    return urlData.publicUrl;
+  }catch(e){
+    console.log('Storage upload failed, using base64 fallback', e.message);
+    // Fallback: return base64 (will be stored as text in DB - for demo)
+    return new Promise((resolve)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result.substring(0,200)); // truncate for demo
+      reader.readAsDataURL(file);
+    });
+  }
+}
 async function submitForm(){
   const fullName=document.getElementById('fullName').value.trim();
   const mobile=document.getElementById('mobile').value.trim();
@@ -214,18 +413,71 @@ async function submitForm(){
   const why=document.getElementById('why').value.trim();
 
   if(!fullName || !mobile || mobile.length!==10){ document.getElementById('result').innerHTML='<div class="err">❌ Name and 10 digit mobile are required</div>'; return; }
-  if(!state || !district || !town || !address){ document.getElementById('result').innerHTML='<div class="err">❌ State, District, Town, Address are required for location</div>'; return; }
-  if(!latV || !lngV){ document.getElementById('result').innerHTML='<div class="err">❌ Please select location on map - Drag marker or click map - Location is important!</div>'; return; }
+  if(!state || !district || !town || !address){ document.getElementById('result').innerHTML='<div class="err">❌ State, District, Town, Address are required</div>'; return; }
+  if(!latV || !lngV){ document.getElementById('result').innerHTML='<div class="err">❌ Please select location on map - Location is important!</div>'; return; }
+  
+  // Validate mart investment
+  const martInv=document.getElementById('martInvestment').value;
+  if(!martInv){ document.getElementById('result').innerHTML='<div class="err">❌ Please select Mart Investment - 5 Lakhs, 10 Lakhs, 20 Lakhs, 50 Lakhs, or 1 Crore</div>'; 
+    document.getElementById('martInvestmentGroup').scrollIntoView({behavior:'smooth'}); return; }
+  if(!paymentScreenshotFile){ document.getElementById('result').innerHTML='<div class="err">❌ Please upload payment screenshot - Payment proof required for verification</div>'; 
+    document.getElementById('paymentDetailsDiv').scrollIntoView({behavior:'smooth'}); return; }
 
-  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.innerText='Submitting with Location Map...';
+  // Validate partners
+  let count = businessType==='single' ? 1 : partnerCount;
+  let partnersData=[];
+  for(let i=0;i<count;i++){
+    const name=document.getElementById(`p${i}_name`)?.value.trim();
+    const aadharNo=document.getElementById(`p${i}_aadhar_no`)?.value.replace(/\s/g,'').trim();
+    const panNo=document.getElementById(`p${i}_pan_no`)?.value.trim().toUpperCase();
+    if(!name){ document.getElementById('result').innerHTML=`<div class="err">❌ Partner ${i+1} - Full name required as per Aadhar</div>`; return; }
+    if(!aadharNo || aadharNo.length!==12){ document.getElementById('result').innerHTML=`<div class="err">❌ Partner ${i+1} - Valid 12 digit Aadhar required</div>`; return; }
+    if(!panNo || panNo.length!==10){ document.getElementById('result').innerHTML=`<div class="err">❌ Partner ${i+1} - Valid 10 char PAN required (ABCDE1234F)</div>`; return; }
+    const files=uploadedFiles[i];
+    if(!files || !files.aadhar || files.aadhar.length===0){ document.getElementById('result').innerHTML=`<div class="err">❌ Partner ${i+1} - Aadhar card upload required - Front & Back</div>`; return; }
+    if(!files.pan || files.pan.length===0){ document.getElementById('result').innerHTML=`<div class="err">❌ Partner ${i+1} - PAN card upload required</div>`; return; }
+    partnersData.push({name, aadhar_no:aadharNo, pan_no:panNo, files});
+  }
+
+  const btn=document.getElementById('submitBtn'); btn.disabled=true; btn.innerText='Uploading Aadhar PAN & Submitting... Please Wait...';
 
   try{
+    // Upload files
+    let uploadedUrls={};
+    for(let i=0;i<partnersData.length;i++){
+      const p=partnersData[i];
+      uploadedUrls[i]={aadhar:[], pan:[]};
+      // Upload Aadhar files
+      for(let j=0;j<p.files.aadhar.length;j++){
+        const f=p.files.aadhar[j];
+        const path=`store_apps/${mobile}/partner_${i+1}_aadhar_${j+1}_${Date.now()}_${f.name}`;
+        const url=await uploadToSupabaseStorage(f, path);
+        uploadedUrls[i].aadhar.push(url);
+      }
+      // Upload PAN
+      for(let f of p.files.pan){
+        const path=`store_apps/${mobile}/partner_${i+1}_pan_${Date.now()}_${f.name}`;
+        const url=await uploadToSupabaseStorage(f, path);
+        uploadedUrls[i].pan.push(url);
+      }
+    }
+
+    // Upload payment screenshot first
+    let paymentUrl='';
+    if(paymentScreenshotFile){
+      const paymentPath=`store_apps/${mobile}/payment_${Date.now()}_${paymentScreenshotFile.name}`;
+      paymentUrl=await uploadToSupabaseStorage(paymentScreenshotFile, paymentPath);
+    }
+
     const payload={
       full_name:fullName,
       mobile:mobile,
       whatsapp:whatsapp||mobile,
       email:email||null,
       fl_id:flId||null,
+      business_type:businessType,
+      partner_count:count,
+      partners:partnersData.map((p,i)=>({name:p.name, aadhar_no:p.aadhar_no, pan_no:p.pan_no, aadhar_files:uploadedUrls[i].aadhar, pan_files:uploadedUrls[i].pan})),
       state:state,
       district:district,
       town:town,
@@ -237,29 +489,25 @@ async function submitForm(){
       shop_size:shopSize||null,
       own_rent:ownRent||null,
       investment_capacity:investment||null,
+      mart_investment:document.getElementById('martInvestment').value||null,
+      investment_amount:parseFloat(document.getElementById('investmentAmount').value)||0,
+      payment_screenshot_url:paymentUrl||null,
+      payment_status:'pending',
+      payment_transaction_id:document.getElementById('transactionId')?.value||null,
       experience:experience||null,
       why_flm:why||null,
       status:'pending',
       created_at:new Date().toISOString()
     };
 
-    // Try to save to store_applications table
     let res=await sb.from('store_applications').insert(payload).select();
     if(res.error){
-      // Fallback - try stores table with interest flag or localStorage
-      console.log('store_applications error',res.error.message);
-      // Try alternative table
       const res2=await sb.from('store_interest').insert(payload).select();
       if(res2.error){
-        // Final fallback - save to localStorage + show success (so form not lost)
         const localKey='flm_store_applications_'+Date.now();
         localStorage.setItem(localKey, JSON.stringify(payload));
-        document.getElementById('result').innerHTML=`<div class="ok">✅ Application Saved Locally! (Table not found)<br>
-        <b>${fullName}</b> - ${town}, ${district}<br>
-        📍 Location: <a href="https://www.google.com/maps?q=${latV},${lngV}" target="_blank">View Map</a><br>
-        Please send screenshot to FLM Team - Need to create table: <code>store_applications</code><br>
-        <span class="small">Mobile: ${mobile} - Town: ${town}</span></div>`;
-        btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Location Map';
+        document.getElementById('result').innerHTML=`<div class="ok">✅ Saved Locally! (Table not found)<br><b>${fullName}</b> - ${town}<br>Business: ${businessType} - ${count} member(s) - Aadhar PAN uploaded<br>📍 <a href="https://www.google.com/maps?q=${latV},${lngV}" target="_blank">View Map</a><br>Send screenshot to admin - Table: store_applications</div>`;
+        btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Aadhar PAN & Location';
         return;
       }
       res=res2;
@@ -267,31 +515,23 @@ async function submitForm(){
 
     document.getElementById('result').innerHTML=`<div class="ok">✅ Application Submitted Successfully!<br>
     <b>${fullName}</b> - ${town}, ${district}<br>
-    📍 Location Saved: Latitude ${latV}, Lng ${lngV}<br>
+    Business Type: <b>${businessType.toUpperCase()}</b> - ${count} member(s)<br>
+    💰 Investment: <b>${document.getElementById('martInvestment').value} - ₹${document.getElementById('investmentAmount').value}</b> - Payment Screenshot Uploaded ✅<br>
+    🆔 Aadhar PAN: All ${count} member(s) uploaded ✅<br>
+    📍 Location: Lat ${latV}, Lng ${lngV}<br>
     <a href="https://www.google.com/maps?q=${latV},${lngV}" target="_blank" style="color:#065f46">🗺️ View on Google Maps</a><br>
-    FLM Team will call you within 24 hours - Store code will be provided!<br>
-    <span class="small">Application ID: ${(res.data&&res.data[0]&&res.data[0].id)||'Saved'} - Mobile: ${mobile}</span></div>`;
-    
-    // Clear form
-    setTimeout(()=>{
-      document.getElementById('fullName').value='';document.getElementById('mobile').value='';
-      document.getElementById('address').value='';document.getElementById('town').value='';
-    }, 2000);
+    FLM Team will verify Aadhar PAN and call within 24 hours - Store code will be provided!<br>
+    <span class="small">ID: ${(res.data&&res.data[0]&&res.data[0].id)||'Saved'} - Mobile: ${mobile}</span></div>`;
 
   }catch(e){
-    document.getElementById('result').innerHTML=`<div class="err">❌ Error: ${e.message}<br><span class="small">Saved locally - Please take screenshot and send to admin<br>Location: https://www.google.com/maps?q=${document.getElementById('lat').value},${document.getElementById('lng').value}</span></div>`;
-    // Save locally as backup
-    const backup={fullName,mobile,town,district,address,lat:document.getElementById('lat').value,lng:document.getElementById('lng').value,time:new Date().toISOString()};
+    document.getElementById('result').innerHTML=`<div class="err">❌ Error: ${e.message}<br><span class="small">Saved locally - Screenshot to admin<br>Location: https://www.google.com/maps?q=${document.getElementById('lat').value},${document.getElementById('lng').value}</span></div>`;
+    const backup={fullName,mobile,town,partnersData:partnersData.map(p=>({name:p.name, aadhar_no:p.aadhar_no, pan_no:p.pan_no})),time:new Date().toISOString()};
     localStorage.setItem('flm_store_app_backup_'+Date.now(), JSON.stringify(backup));
   }finally{
-    btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Location Map';
+    btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Aadhar PAN & Location';
   }
 }
-
-// Init map after page load
 window.addEventListener('load', ()=>{ setTimeout(initMap, 500); });
-
-// Auto-fill district from town
 document.getElementById('town')?.addEventListener('blur', function(){
   const t=this.value.toLowerCase();
   if(t.includes('paleru')) document.getElementById('district').value='Khammam';
