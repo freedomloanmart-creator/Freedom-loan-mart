@@ -66,6 +66,17 @@ button{width:100%;padding:14px;border:0;border-radius:12px;font-weight:900;font-
 <div><label>Email</label><input id="email" placeholder="Email (Optional)" type="email"></div>
 <div><label>FL ID (If Available)</label><input id="flId" placeholder="Example: FL570342 - If FLM Member"></div>
 </div>
+
+<div style="background:linear-gradient(135deg,#dcfce7,#a7f3d0);border:2px solid #059669;border-radius:12px;padding:12px;margin-top:12px">
+<label style="margin-top:0;color:#065f46">🤝 Referral / Sponsor - For Andhra & Telangana Auto: FL241190 - Theja <span class="badge" style="background:#059669;color:#fff">Auto for AP & TS</span></label>
+<div class="row">
+<div><input id="referralId" placeholder="Referral FL ID - Auto for AP/TS: FL241190" style="font-weight:900;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+<div><input id="referralName" placeholder="Referral Name - Auto: Theja" readonly style="background:#f0fdf4;font-weight:800"></div>
+</div>
+<div class="small" style="color:#065f46">✅ Andhra Pradesh & Telangana select cheste automatic ga FL241190 - Theja vastundi - Referral commission ki</div>
+<div id="referralInfo" style="margin-top:8px;font-size:12px;display:none"></div>
+</div>
+
 </div>
 
 <div class="card" style="border:2px solid #f59e0b">
@@ -196,6 +207,113 @@ const SUPABASE_URL='https://izmkjarrksemenjzboid.supabase.co';
 const SUPABASE_KEY='sb_publishable_AoFAsuCyID6ejO3_7bOvuA_lc-xJcyF';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+let adminPaymentSettings=null;
+
+// Referral logic: For AP and Telangana, auto set FL241190 - Theja
+function updateReferralForState(){
+  const state=document.getElementById('state')?.value||'';
+  const referralIdEl=document.getElementById('referralId');
+  const referralNameEl=document.getElementById('referralName');
+  const referralInfoEl=document.getElementById('referralInfo');
+  
+  if(!referralIdEl || !referralNameEl) return;
+  
+  if(state==='Telangana' || state==='Andhra Pradesh'){
+    referralIdEl.value='FL241190';
+    referralNameEl.value='Theja';
+    referralNameEl.style.background='#dcfce7';
+    referralNameEl.style.color='#065f46';
+    referralNameEl.style.border='2px solid #059669';
+    referralIdEl.style.background='#dcfce7';
+    referralIdEl.style.border='2px solid #059669';
+    if(referralInfoEl){
+      referralInfoEl.style.display='block';
+      referralInfoEl.innerHTML=`<div style="background:#059669;color:#fff;padding:8px;border-radius:8px;font-weight:800">✅ Andhra/Telangana Selected - Referral Auto Set: <b>FL241190 - Theja</b> - Commission will go to Theja</div>`;
+    }
+  } else {
+    // For other states, clear if it was auto-set, or keep if user manually entered different
+    if(referralIdEl.value==='FL241190'){
+      referralIdEl.value='';
+      referralNameEl.value='';
+      referralNameEl.style.background='#fff';
+      referralIdEl.style.background='#fff';
+      if(referralInfoEl) referralInfoEl.style.display='none';
+    }
+  }
+}
+
+// Also check district/town for Telangana/AP keywords
+function checkLocationForReferral(){
+  const state=document.getElementById('state')?.value||'';
+  const district=(document.getElementById('district')?.value||'').toLowerCase();
+  const town=(document.getElementById('town')?.value||'').toLowerCase();
+  
+  // If state is AP/TS or district/town indicates AP/TS, set referral
+  const isAPTS = state==='Telangana' || state==='Andhra Pradesh' || 
+                 ['khammam','warangal','hyderabad','paleru','nalgonda','mahabubabad','karimnagar','nizamabad','adilabad','rangareddy','medak','siddipet','jagtial','hanamkonda','mulugu','bhadradri','suryapet','yadadri','jayashankar','wanaparthy','nagarkurnool','gadwal','medchal','vikarabad','sangareddy','kamareddy','rajanna','peddapalli','mancherial','nirmal','asifabad','khammam','kothagudem','khammam','vijayawada','guntur','vizag','visakhapatnam','kakinada','rajahmundry','eluru','tirupati','kadapa','kurnool','anantapur','nellore','ongole','machilipatnam','bhimavaram','tanuku','srikakulam','vizianagaram','east godavari','west godavari','krishna','prakasam','chittoor','ysr','ananthapur'].some(k => district.includes(k) || town.includes(k));
+  
+  if(isAPTS && (state==='Telangana' || state==='Andhra Pradesh' || district || town)){
+    // Only auto-set if state is AP/TS, not just district match without state
+    if(state==='Telangana' || state==='Andhra Pradesh'){
+      updateReferralForState();
+    }
+  }
+}
+
+
+async function loadAdminPaymentSettings(){
+  try{
+    let settings=null;
+    // Try to load from payment_settings table
+    if(sb){
+      let r=await sb.from('payment_settings').select('*').eq('type','store_mart_investment').order('created_at',{ascending:false}).limit(1);
+      if(!r.error && r.data && r.data.length>0){
+        settings=r.data[0];
+      } else {
+        // Try flm_settings
+        let r2=await sb.from('flm_settings').select('*').eq('key','payment_account').limit(1);
+        if(!r2.error && r2.data && r2.data.length>0){
+          settings=r2.data[0].value || r2.data[0];
+        }
+      }
+    }
+    // Fallback to localStorage (admin saved locally)
+    if(!settings){
+      const local=localStorage.getItem('flm_payment_account_settings');
+      if(local) settings=JSON.parse(local);
+    }
+    if(settings){
+      adminPaymentSettings=settings;
+      // Update UI with admin settings
+      updatePaymentDetailsFromAdmin(settings);
+    }
+  }catch(e){ console.log('Failed to load admin payment settings', e.message); }
+}
+
+function updatePaymentDetailsFromAdmin(settings){
+  // Update the payment details display
+  const upiId=settings.upi_id||'flmmart@upi';
+  const upiName=settings.upi_name||'FLM Mart';
+  const holder=settings.account_holder||'FLM Mart Pvt Ltd';
+  const bank=settings.bank_name||'State Bank of India';
+  const acc=settings.account_number||'12345678901234';
+  const ifsc=settings.ifsc||'SBIN0001234';
+  const branch=settings.branch||'';
+  
+  // Store for later use in QR generation
+  window.adminUpiId=upiId;
+  window.adminPaymentSettings=settings;
+  
+  // If payment details div exists, update it
+  const paymentDiv=document.getElementById('paymentDetailsDiv');
+  if(paymentDiv && paymentDiv.style.display!=='none'){
+    // Update displayed details
+    const upiDisplay=document.querySelector('#paymentDetailsDiv [id*="upi"], #paymentDetailsDiv b');
+    // The actual update will happen in setMartInvestment which uses admin settings
+  }
+}
+
+
 let map, marker, lat=17.385, lng=78.4867;
 
 let martInvestment='';
@@ -214,9 +332,31 @@ function setMartInvestment(amount, num, el){
   document.querySelectorAll('#martInvestmentGroup label').forEach(l=>l.classList.remove('active'));
   el.classList.add('active');
   
-  // Generate QR for payment
-  const upiId='flmmart@upi';
-  const qrData=`upi://pay?pa=${upiId}&pn=FLM Mart&am=${num}&tn=FLM Mart Investment ${amount}`;
+  // Generate QR for payment - Use admin settings if available
+  const upiId=(window.adminPaymentSettings && window.adminPaymentSettings.upi_id) ? window.adminPaymentSettings.upi_id : (window.adminUpiId||'flmmart@upi');
+  const upiName=(window.adminPaymentSettings && window.adminPaymentSettings.upi_name) ? window.adminPaymentSettings.upi_name : 'FLM Mart';
+  const accHolder=(window.adminPaymentSettings && window.adminPaymentSettings.account_holder) ? window.adminPaymentSettings.account_holder : 'FLM Mart Pvt Ltd';
+  const bankName=(window.adminPaymentSettings && window.adminPaymentSettings.bank_name) ? window.adminPaymentSettings.bank_name : '';
+  const accNo=(window.adminPaymentSettings && window.adminPaymentSettings.account_number) ? window.adminPaymentSettings.account_number : '';
+  const ifscCode=(window.adminPaymentSettings && window.adminPaymentSettings.ifsc) ? window.adminPaymentSettings.ifsc : '';
+  
+  // Update payment details display with admin settings
+  const paymentDetailsDiv=document.getElementById('paymentDetailsDiv');
+  if(paymentDetailsDiv){
+    const bankInfo=paymentDetailsDiv.querySelector('p:nth-child(3), div p:nth-of-type(2)');
+    // Update bank info text
+    const allPs=paymentDetailsDiv.querySelectorAll('p');
+    for(let p of allPs){
+      if(p.textContent.includes('Bank:') || p.textContent.includes('A/C:')){
+        p.innerHTML=`Bank: ${accHolder} - ${bankName} - A/C: ${accNo} - IFSC: ${ifscCode} - After payment, upload screenshot below`;
+      }
+      if(p.textContent.includes('UPI ID:')){
+        p.innerHTML=`UPI ID: <b style="background:#fff;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0">${upiId}</b> - ${upiName} Account`;
+      }
+    }
+  }
+  
+  const qrData=`upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${num}&tn=FLM Mart Investment ${amount}`;
   document.getElementById('paymentQR').innerHTML=`<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(qrData)}" style="border-radius:8px"><div style="font-size:9px;margin-top:4px">₹${amount}</div>`;
   
   // Scroll to payment
@@ -416,6 +556,9 @@ async function submitForm(){
   if(!state || !district || !town || !address){ document.getElementById('result').innerHTML='<div class="err">❌ State, District, Town, Address are required</div>'; return; }
   if(!latV || !lngV){ document.getElementById('result').innerHTML='<div class="err">❌ Please select location on map - Location is important!</div>'; return; }
   
+  // Auto set referral for AP/TS before validation
+  updateReferralForState();
+  
   // Validate mart investment
   const martInv=document.getElementById('martInvestment').value;
   if(!martInv){ document.getElementById('result').innerHTML='<div class="err">❌ Please select Mart Investment - 5 Lakhs, 10 Lakhs, 20 Lakhs, 50 Lakhs, or 1 Crore</div>'; 
@@ -471,6 +614,8 @@ async function submitForm(){
 
     const payload={
       full_name:fullName,
+      referral_id:document.getElementById('referralId')?.value||'FL241190',
+      referral_name:document.getElementById('referralName')?.value||'Theja',
       mobile:mobile,
       whatsapp:whatsapp||mobile,
       email:email||null,
@@ -515,6 +660,7 @@ async function submitForm(){
 
     document.getElementById('result').innerHTML=`<div class="ok">✅ Application Submitted Successfully!<br>
     <b>${fullName}</b> - ${town}, ${district}<br>
+    🤝 Referral: <b>${document.getElementById('referralId')?.value||'FL241190'} - ${document.getElementById('referralName')?.value||'Theja'}</b> (For AP & TS)<br>
     Business Type: <b>${businessType.toUpperCase()}</b> - ${count} member(s)<br>
     💰 Investment: <b>${document.getElementById('martInvestment').value} - ₹${document.getElementById('investmentAmount').value}</b> - Payment Screenshot Uploaded ✅<br>
     🆔 Aadhar PAN: All ${count} member(s) uploaded ✅<br>
@@ -531,7 +677,21 @@ async function submitForm(){
     btn.disabled=false; btn.innerText='🚀 Submit Store Application - With Aadhar PAN & Location';
   }
 }
-window.addEventListener('load', ()=>{ setTimeout(initMap, 500); });
+window.addEventListener('load', ()=>{ 
+  setTimeout(initMap, 500); 
+  setTimeout(loadAdminPaymentSettings, 800);
+  // Referral auto for AP/TS
+  const stateEl=document.getElementById('state');
+  if(stateEl){
+    stateEl.addEventListener('change', updateReferralForState);
+    // Initial check
+    setTimeout(updateReferralForState, 1000);
+  }
+  const districtEl=document.getElementById('district');
+  const townEl=document.getElementById('town');
+  if(districtEl) districtEl.addEventListener('blur', checkLocationForReferral);
+  if(townEl) townEl.addEventListener('blur', checkLocationForReferral);
+});
 document.getElementById('town')?.addEventListener('blur', function(){
   const t=this.value.toLowerCase();
   if(t.includes('paleru')) document.getElementById('district').value='Khammam';

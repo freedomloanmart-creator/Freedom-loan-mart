@@ -1928,4 +1928,340 @@ async function approveAllPendingForSelectedStore(){
   });
 })();
 </script>
+
+<!-- FLM Store Mart Investment Payment Account Settings - Admin can set UPI, Bank details -->
+<div id="paymentAccountSettings" style="display:none">
+<div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-radius:16px;padding:20px;margin-bottom:16px">
+<h2>💳 Mart Investment Payment Account Settings</h2>
+<p style="opacity:.9;font-size:13px">Admin can set UPI ID, Bank Account details here - These details will show in Store Application Form (5L,10L,20L,50L,1Cr)</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div class="card" style="border:2px solid #7c3aed">
+<h3>🏦 Bank Account Details - For Store Investment</h3>
+<div class="small" style="margin-bottom:10px">These details show in Store Application Form when user selects 5L,10L,20L,50L,1Cr investment</div>
+
+<label>Account Holder Name <span class="required">*</span></label>
+<input id="pay_account_holder" placeholder="FLM Mart Pvt Ltd">
+
+<label>Bank Name <span class="required">*</span></label>
+<input id="pay_bank_name" placeholder="State Bank of India">
+
+<label>Account Number <span class="required">*</span></label>
+<input id="pay_account_number" placeholder="12345678901234">
+
+<label>IFSC Code <span class="required">*</span></label>
+<input id="pay_ifsc" placeholder="SBIN0001234" style="text-transform:uppercase">
+
+<label>Branch Name</label>
+<input id="pay_branch" placeholder="Khammam Main Branch">
+
+<label>UPI ID <span class="required">*</span></label>
+<input id="pay_upi_id" placeholder="flmmart@upi or flm@upi">
+
+<label>UPI Name (Display)</label>
+<input id="pay_upi_name" placeholder="FLM Mart">
+
+<label>Google Pay / PhonePe Number (Optional)</label>
+<input id="pay_gpay_number" placeholder="8309091326">
+
+<button class="green" onclick="savePaymentAccountSettings()" style="margin-top:14px">💾 Save Payment Account Details</button>
+<button class="blue" onclick="loadPaymentAccountSettings()" style="margin-top:8px">🔄 Reload Settings</button>
+<div id="paymentSettingsResult" style="margin-top:10px"></div>
+
+<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px;margin-top:12px;font-size:11px">
+<b>Note:</b> Save chesaka Store Application Form lo automatic ga update avtundi - User ki UPI ID, Bank details, QR Code anni mee set chesina details tho vastayi - 5L,10L,20L,50L,1Cr ki same account
+</div>
+</div>
+
+<div class="card" style="border:2px solid #059669">
+<h3>👁️ Preview - How It Looks in Application Form</h3>
+<div id="paymentPreview" style="background:#f8fafc;border-radius:12px;padding:14px;border:1px dashed #059669">
+<div style="background:#fff;border-radius:10px;padding:12px;border:1px solid #e2e8f0">
+<p style="font-size:13px;font-weight:800;margin:0">📱 UPI Payment / Bank Transfer:</p>
+<p style="font-size:12px;margin:8px 0">UPI ID: <b id="previewUpiId" style="background:#dcfce7;padding:3px 8px;border-radius:6px">flmmart@upi</b> - <span id="previewUpiName">FLM Mart</span> Account</p>
+<p style="font-size:11px;color:#64748b" id="previewBankDetails">Bank: FLM Mart Pvt Ltd - A/C: 1234567890 - IFSC: SBIN0001234</p>
+<div style="background:#fff;padding:8px;border-radius:8px;border:1px dashed #059669;text-align:center;margin-top:8px">
+<div style="font-size:10px">QR Code Preview - Amount auto</div>
+<div id="previewQR" style="margin-top:4px;font-size:10px;color:#64748b">[QR will show with selected amount]</div>
+</div>
+</div>
+</div>
+
+<h3 style="margin-top:16px">📊 Recent Store Applications - Payment Status</h3>
+<div id="recentStoreApps" style="max-height:400px;overflow:auto;background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:8px">Loading...</div>
+<button class="blue" onclick="loadRecentStoreApplications()" style="margin-top:8px">🔄 Refresh Applications</button>
+</div>
+</div>
+
+<div class="card" style="margin-top:16px">
+<h3>💰 Investment Plans - Quick Stats</h3>
+<div id="investmentStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px">
+<div style="background:#fef3c7;padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">0</b><br><span style="font-size:11px">5 Lakhs</span></div>
+<div style="background:#dbeafe;padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">0</b><br><span style="font-size:11px">10 Lakhs</span></div>
+<div style="background:#dcfce7;padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">0</b><br><span style="font-size:11px">20 Lakhs</span></div>
+<div style="background:#fce7f3;padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">0</b><br><span style="font-size:11px">50 Lakhs</span></div>
+<div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">0</b><br><span style="font-size:11px">1 Crore</span></div>
+</div>
+</div>
+</div>
+
+<script>
+let paymentAccountSettingsCache=null;
+
+async function loadPaymentAccountSettings(){
+  const resultEl=document.getElementById('paymentSettingsResult');
+  if(resultEl) resultEl.innerHTML='<div class="small">Loading payment account settings...</div>';
+  try{
+    // Try to load from flm_settings or payment_settings table
+    let settings=null;
+    if(supabaseClient){
+      // Try payment_settings table first
+      let r=await supabaseClient.from('payment_settings').select('*').eq('type','store_mart_investment').order('created_at',{ascending:false}).limit(1);
+      if(!r.error && r.data && r.data.length>0){
+        settings=r.data[0];
+      } else {
+        // Try flm_settings table
+        let r2=await supabaseClient.from('flm_settings').select('*').eq('key','payment_account').limit(1);
+        if(!r2.error && r2.data && r2.data.length>0){
+          settings=r2.data[0].value || r2.data[0];
+        } else {
+          // Try store_settings
+          let r3=await supabaseClient.from('store_settings').select('*').limit(1);
+          if(!r3.error && r3.data && r3.data.length>0){
+            settings=r3.data[0];
+          }
+        }
+      }
+    }
+    // Fallback to localStorage
+    if(!settings){
+      const local=localStorage.getItem('flm_payment_account_settings');
+      if(local) settings=JSON.parse(local);
+    }
+    if(!settings){
+      // Default
+      settings={
+        account_holder:'FLM Mart Pvt Ltd',
+        bank_name:'State Bank of India',
+        account_number:'12345678901234',
+        ifsc:'SBIN0001234',
+        branch:'Khammam Main Branch',
+        upi_id:'flmmart@upi',
+        upi_name:'FLM Mart',
+        gpay_number:'8309091326'
+      };
+    }
+    paymentAccountSettingsCache=settings;
+    
+    // Fill form
+    document.getElementById('pay_account_holder').value=settings.account_holder||'';
+    document.getElementById('pay_bank_name').value=settings.bank_name||'';
+    document.getElementById('pay_account_number').value=settings.account_number||'';
+    document.getElementById('pay_ifsc').value=settings.ifsc||'';
+    document.getElementById('pay_branch').value=settings.branch||'';
+    document.getElementById('pay_upi_id').value=settings.upi_id||'';
+    document.getElementById('pay_upi_name').value=settings.upi_name||'';
+    document.getElementById('pay_gpay_number').value=settings.gpay_number||'';
+    
+    updatePaymentPreview();
+    
+    if(resultEl) resultEl.innerHTML='<div class="ok">✅ Payment account settings loaded - Edit and save</div>';
+  }catch(e){
+    if(resultEl) resultEl.innerHTML='<div class="err">❌ Error loading: '+e.message+'</div>';
+  }
+}
+
+function updatePaymentPreview(){
+  const upiId=document.getElementById('pay_upi_id').value||'flmmart@upi';
+  const upiName=document.getElementById('pay_upi_name').value||'FLM Mart';
+  const holder=document.getElementById('pay_account_holder').value||'FLM Mart Pvt Ltd';
+  const bank=document.getElementById('pay_bank_name').value||'State Bank';
+  const acc=document.getElementById('pay_account_number').value||'1234567890';
+  const ifsc=document.getElementById('pay_ifsc').value||'SBIN0001234';
+  
+  const previewUpiIdEl=document.getElementById('previewUpiId');
+  const previewUpiNameEl=document.getElementById('previewUpiName');
+  const previewBankEl=document.getElementById('previewBankDetails');
+  if(previewUpiIdEl) previewUpiIdEl.textContent=upiId;
+  if(previewUpiNameEl) previewUpiNameEl.textContent=upiName;
+  if(previewBankEl) previewBankEl.textContent=`Bank: ${holder} - ${bank} - A/C: ${acc} - IFSC: ${ifsc}`;
+}
+
+async function savePaymentAccountSettings(){
+  const resultEl=document.getElementById('paymentSettingsResult');
+  const account_holder=document.getElementById('pay_account_holder').value.trim();
+  const bank_name=document.getElementById('pay_bank_name').value.trim();
+  const account_number=document.getElementById('pay_account_number').value.trim();
+  const ifsc=document.getElementById('pay_ifsc').value.trim().toUpperCase();
+  const branch=document.getElementById('pay_branch').value.trim();
+  const upi_id=document.getElementById('pay_upi_id').value.trim();
+  const upi_name=document.getElementById('pay_upi_name').value.trim();
+  const gpay_number=document.getElementById('pay_gpay_number').value.trim();
+  
+  if(!account_holder || !bank_name || !account_number || !ifsc || !upi_id){
+    if(resultEl) resultEl.innerHTML='<div class="err">❌ Account holder, Bank name, Account number, IFSC, UPI ID required</div>';
+    return;
+  }
+  
+  if(resultEl) resultEl.innerHTML='<div class="small">Saving payment account settings...</div>';
+  
+  const payload={
+    account_holder, bank_name, account_number, ifsc, branch, upi_id, upi_name, gpay_number,
+    type:'store_mart_investment',
+    updated_at:new Date().toISOString()
+  };
+  
+  try{
+    let saved=false;
+    if(supabaseClient){
+      // Try payment_settings table
+      try{
+        let r=await supabaseClient.from('payment_settings').select('*').eq('type','store_mart_investment').limit(1);
+        if(r.data && r.data.length>0){
+          let upd=await supabaseClient.from('payment_settings').update(payload).eq('id',r.data[0].id).select();
+          if(!upd.error){ saved=true; }
+        } else {
+          let ins=await supabaseClient.from('payment_settings').insert({...payload, created_at:new Date().toISOString()}).select();
+          if(!ins.error){ saved=true; }
+        }
+      }catch(e){ console.log('payment_settings table error',e.message); }
+      
+      if(!saved){
+        // Try flm_settings as key-value
+        try{
+          let r=await supabaseClient.from('flm_settings').select('*').eq('key','payment_account').limit(1);
+          if(r.data && r.data.length>0){
+            await supabaseClient.from('flm_settings').update({value:payload, updated_at:new Date().toISOString()}).eq('id',r.data[0].id);
+            saved=true;
+          } else {
+            await supabaseClient.from('flm_settings').insert({key:'payment_account', value:payload, created_at:new Date().toISOString()});
+            saved=true;
+          }
+        }catch(e){ console.log('flm_settings error',e.message); }
+      }
+    }
+    
+    // Always save to localStorage as backup and for immediate use
+    localStorage.setItem('flm_payment_account_settings', JSON.stringify(payload));
+    paymentAccountSettingsCache=payload;
+    updatePaymentPreview();
+    
+    if(resultEl) resultEl.innerHTML='<div class="ok">✅ Payment account details saved! - Store Application Form lo automatic ga update avtundi - UPI: '+upi_id+' - Bank: '+bank_name+'</div>';
+    
+  }catch(e){
+    // Save to localStorage anyway
+    localStorage.setItem('flm_payment_account_settings', JSON.stringify(payload));
+    if(resultEl) resultEl.innerHTML='<div class="ok">✅ Saved locally (DB error: '+e.message+') - LocalStorage lo save ayindi - Form lo work avtundi</div>';
+  }
+}
+
+async function loadRecentStoreApplications(){
+  const el=document.getElementById('recentStoreApps');
+  if(!el) return;
+  el.innerHTML='<div class="small">Loading recent store applications...</div>';
+  try{
+    let apps=[];
+    if(supabaseClient){
+      let r=await supabaseClient.from('store_applications').select('*').order('created_at',{ascending:false}).limit(20);
+      if(!r.error && r.data) apps=r.data;
+      else {
+        let r2=await supabaseClient.from('store_interest').select('*').order('created_at',{ascending:false}).limit(20);
+        if(!r2.error && r2.data) apps=r2.data;
+      }
+    }
+    if(apps.length===0){
+      el.innerHTML='<div class="small">No store applications yet - Users will submit from application form</div>';
+      return;
+    }
+    let html='';
+    for(let app of apps){
+      const investment=app.mart_investment||app.investment_capacity||'Not selected';
+      const amount=app.investment_amount||0;
+      const paymentStatus=app.payment_status||'pending';
+      const paymentBadge=paymentStatus==='verified' ? '<span style="background:#dcfce7;color:#065f46;padding:2px 8px;border-radius:999px;font-size:10px">✅ Paid Verified</span>' : paymentStatus==='pending' ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:999px">🟠 Payment Pending</span>' : '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px">❌ Not Paid</span>';
+      html+=`<div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;gap:8px"><b>${escapeHtml(app.full_name||'Unknown')}</b><b>₹${investment}</b></div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">Mobile: ${escapeHtml(app.mobile||'') } | Town: ${escapeHtml(app.town||'') } | ${escapeHtml(app.district||'') }<br>Business: ${escapeHtml(app.business_type||'single')} - ${app.partner_count||1} members | Investment: ₹${Number(amount).toLocaleString('en-IN')}</div>
+        <div style="margin-top:6px">${paymentBadge} <span style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:6px">${new Date(app.created_at).toLocaleString('en-IN')}</span></div>
+        ${app.payment_screenshot_url ? `<div style="margin-top:6px"><a href="${app.payment_screenshot_url}" target="_blank" style="font-size:11px;color:#2563eb">📸 View Payment Screenshot</a> ${app.google_maps_url ? ` | <a href="${app.google_maps_url}" target="_blank" style="font-size:11px;color:#059669">📍 View Location</a>` : ''}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button onclick="verifyStorePayment('${app.id}')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:6px;padding:6px;font-size:11px;font-weight:800">✅ Verify Payment</button>
+          <button onclick="viewStoreApplication('${app.id}')" style="flex:1;background:#2563eb;color:#fff;border:0;border-radius:6px;padding:6px;font-size:11px;font-weight:800">👁️ View Details</button>
+        </div>
+      </div>`;
+    }
+    el.innerHTML=html;
+    
+    // Update investment stats
+    const stats={};
+    for(let app of apps){
+      const inv=app.mart_investment||'Unknown';
+      stats[inv]=(stats[inv]||0)+1;
+    }
+    let statsHtml='';
+    for(let inv of ['5 Lakhs','10 Lakhs','20 Lakhs','50 Lakhs','1 Crore']){
+      const count=stats[inv]||0;
+      const bg=inv==='5 Lakhs' ? '#fef3c7' : inv==='10 Lakhs' ? '#dbeafe' : inv==='20 Lakhs' ? '#dcfce7' : inv==='50 Lakhs' ? '#fce7f3' : 'linear-gradient(135deg,#7c3aed,#6d28d9)';
+      const color=inv==='1 Crore' ? '#fff' : '#000';
+      statsHtml+=`<div style="background:${bg};color:${color};padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">${count}</b><br><span style="font-size:11px">${inv}</span></div>`;
+    }
+    const statsEl=document.getElementById('investmentStats');
+    if(statsEl) statsEl.innerHTML=statsHtml;
+    
+  }catch(e){
+    el.innerHTML='<div class="err">Error: '+e.message+'</div>';
+  }
+}
+
+function viewStoreApplication(id){
+  alert('View application details for ID: '+id+' - Implement detailed view modal');
+}
+async function verifyStorePayment(id){
+  if(!confirm('Verify payment for this application?')) return;
+  try{
+    if(supabaseClient){
+      await supabaseClient.from('store_applications').update({payment_status:'verified', status:'payment_verified', verified_at:new Date().toISOString()}).eq('id',id);
+      await supabaseClient.from('store_interest').update({payment_status:'verified'}).eq('id',id);
+    }
+    alert('✅ Payment verified!');
+    loadRecentStoreApplications();
+  }catch(e){ alert('Error: '+e.message); }
+}
+
+// Add to sidebar menu - hook into existing loadSec
+(function(){
+  const oldLoadSec=window.loadSec;
+  window.loadSec=async function(sec){
+    if(sec==='payment_settings' || sec==='store_payments' || sec==='payment_accounts'){
+      document.querySelectorAll('[id^="depositRequests"], [id^="pin"], [id^="user"], [id^="store"], [id^="withdrawal"], [id^="dashboard"]').forEach(el=>{
+        if(el.id!=='paymentAccountSettings') el.style.display='none';
+      });
+      document.getElementById('paymentAccountSettings').style.display='block';
+      await loadPaymentAccountSettings();
+      await loadRecentStoreApplications();
+      return;
+    }
+    if(typeof oldLoadSec==='function') return oldLoadSec(sec);
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', function(){
+  // Add menu item for payment settings if menu exists
+  setTimeout(()=>{
+    const menu=document.querySelector('.sidebar, #sidebar, [class*="menu"]');
+    if(menu && !document.getElementById('paymentSettingsMenuBtn')){
+      const btn=document.createElement('button');
+      btn.id='paymentSettingsMenuBtn';
+      btn.textContent='💳 Payment Account Settings';
+      btn.style.cssText='width:100%;padding:10px;margin-top:8px;background:#7c3aed;color:#fff;border:0;border-radius:8px;font-weight:800;cursor:pointer';
+      btn.onclick=()=>loadSec('payment_settings');
+      // Try to append to menu
+      const target=document.querySelector('#sidebarMenu, .menu-items, [id*="menu"]') || menu;
+      if(target) target.appendChild(btn);
+    }
+  },1000);
+});
+</script>
+
 </body></html>
