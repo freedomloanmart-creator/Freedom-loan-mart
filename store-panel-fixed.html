@@ -375,4 +375,97 @@ init();
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeRedeemSuccessModal();});
 document.getElementById('redeemSuccessModal')?.addEventListener('click',e=>{if(e.target.id==='redeemSuccessModal')closeRedeemSuccessModal();});
 </script>
+
+<script>
+// FL241190 Theja Referral + Investment + Approval Letter Integration for Store Panel
+let currentStoreReferral = {id: 'FL241190', name: 'Theja'};
+let currentStoreInvestment = '10 Lakhs';
+let currentStoreCodeOfficial = 'FLM-KHMTN-RS001';
+
+function openBilling(){
+  const storeCode = currentStore?.store_code || currentStoreCodeOfficial || 'FLM-KHMTN-RS001';
+  const referralId = currentStore?.referral_id || currentStoreReferral.id || 'FL241190';
+  const referralName = currentStore?.referral_name || currentStoreReferral.name || 'Theja';
+  const investment = currentStore?.investment || currentStoreInvestment || '10 Lakhs';
+  const storeName = currentStore?.store_name || 'FLM Store';
+  const town = currentStore?.town || 'Paleru';
+  const district = currentStore?.district || 'Khammam';
+  const state = currentStore?.state || 'Telangana';
+  
+  // Store code auto tag in billing - Pass via URL + localStorage
+  localStorage.setItem('flm_current_store_code', storeCode);
+  localStorage.setItem('flm_current_store_referral', JSON.stringify({id: referralId, name: referralName}));
+  localStorage.setItem('flm_current_store_investment', investment);
+  localStorage.setItem('flm_current_store_info', JSON.stringify({storeCode, storeName, town, district, state, referralId, referralName, investment}));
+  
+  const billingUrl = `FLM_Billing_V6_FINAL.html?store=${encodeURIComponent(storeCode)}&referral=${encodeURIComponent(referralId)}&referralName=${encodeURIComponent(referralName)}&investment=${encodeURIComponent(investment)}&town=${encodeURIComponent(town)}&name=${encodeURIComponent(storeName)}`;
+  window.open(billingUrl, '_blank');
+}
+
+function openApprovalLetter(){
+  const storeCode = currentStore?.store_code || currentStoreCodeOfficial;
+  const storeName = currentStore?.store_name || currentStore?.owner_name || 'Store Owner';
+  const mobile = currentStore?.phone || currentStore?.mobile || '8309091326';
+  const town = currentStore?.town || 'Paleru';
+  const district = currentStore?.district || 'Khammam';
+  const state = currentStore?.state || 'Telangana';
+  const address = currentStore?.address || '';
+  const investment = currentStore?.investment || currentStoreInvestment || '10 Lakhs';
+  const referralId = currentStore?.referral_id || 'FL241190';
+  const referralName = currentStore?.referral_name || 'Theja';
+  
+  const letterUrl = `store-approval-letter.html?code=${encodeURIComponent(storeCode)}&name=${encodeURIComponent(storeName)}&mobile=${encodeURIComponent(mobile)}&town=${encodeURIComponent(town)}&district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}&address=${encodeURIComponent(address)}&investment=${encodeURIComponent(investment)}&referral=${encodeURIComponent(referralId)}&referralName=${encodeURIComponent(referralName)}&businessType=${encodeURIComponent(currentStore?.business_type || 'Single Owner')}`;
+  window.open(letterUrl, '_blank');
+}
+
+function updateStoreBillingBadges(){
+  const storeCode = currentStore?.store_code || 'FLM-KHMTN-RS001';
+  const referralId = currentStore?.referral_id || 'FL241190';
+  const referralName = currentStore?.referral_name || 'Theja';
+  const investment = currentStore?.investment || currentStore?.mart_investment || '10 Lakhs';
+  const storeName = currentStore?.store_name || currentStore?.owner_name || 'Store';
+  
+  const badgeCode = document.getElementById('billingStoreCodeBadge');
+  const badgeReferral = document.getElementById('billingReferralBadge');
+  const badgeInvestment = document.getElementById('billingInvestmentBadge');
+  const badgeIdTag = document.getElementById('billingStoreIdTag');
+  const letterLink = document.getElementById('approvalLetterLink');
+  const emailLink = document.getElementById('approvalEmailLink');
+  const billingLink = document.getElementById('billingWithStoreLink');
+  
+  if(badgeCode) badgeCode.textContent = storeCode;
+  if(badgeReferral) badgeReferral.textContent = `${referralId} - ${referralName} (AP & TS)`;
+  if(badgeInvestment) badgeInvestment.textContent = investment;
+  if(badgeIdTag) badgeIdTag.textContent = `${storeCode} - ${storeName}`;
+  
+  const letterParams = `code=${encodeURIComponent(storeCode)}&name=${encodeURIComponent(storeName)}&mobile=${encodeURIComponent(currentStore?.phone||'8309091326')}&town=${encodeURIComponent(currentStore?.town||'Paleru')}&district=${encodeURIComponent(currentStore?.district||'Khammam')}&state=${encodeURIComponent(currentStore?.state||'Telangana')}&investment=${encodeURIComponent(investment)}&referral=${encodeURIComponent(referralId)}&referralName=${encodeURIComponent(referralName)}`;
+  
+  if(letterLink) letterLink.href = `store-approval-letter.html?${letterParams}`;
+  if(emailLink) emailLink.href = `store-approval-email.html?${letterParams}`;
+  if(billingLink) billingLink.href = `FLM_Billing_V6_FINAL.html?store=${encodeURIComponent(storeCode)}&referral=${encodeURIComponent(referralId)}`;
+}
+
+// Hook into storeLogin to update badges after login
+(function(){
+  const originalStoreLogin = window.storeLogin;
+  if(typeof originalStoreLogin === 'undefined'){
+    // Will be hooked after init
+    setTimeout(()=>{
+      const orig = window.storeLogin;
+      if(orig){
+        window.storeLogin = async function(){
+          await orig();
+          setTimeout(updateStoreBillingBadges, 500);
+        };
+      }
+    }, 1000);
+  }
+})();
+
+// Update badges on load if store already logged in
+document.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(updateStoreBillingBadges, 1500);
+});
+</script>
+
 </body></html>

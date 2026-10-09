@@ -60,7 +60,7 @@ header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid 
 <header>
 <div style="display:flex;gap:10px;align-items:center">
 <div class="logo">F</div>
-<div><b id="storeNameDisplay" style="font-size:15px">FLM Store</b><br><span style="font-size:11px;color:var(--muted)" id="liveDateTime">--</span><br><span style="font-size:10px;color:var(--primary);font-weight:800" id="storeCodeDisplay">FLM-PLR-001</span></div>
+<div><b id="storeNameDisplay" style="font-size:15px">FLM Store</b><br><span style="font-size:11px;color:var(--muted)" id="liveDateTime">--</span><br><span style="font-size:10px;color:var(--primary);font-weight:800;background:#059669;color:#fff;padding:3px 8px;border-radius:999px" id="storeCodeDisplay">V15 Fixed</span></div>
 </div>
 <div style="display:flex;gap:6px">
 <button class="btn" onclick="openHistory()">📜 History</button>
@@ -534,7 +534,7 @@ settings.upi=document.getElementById('setUpi').value||'flmstore@upi';
 settings.gstin=document.getElementById('setGstin').value||'';
 settings.footer=document.getElementById('setFooter').value||'Thank you!';
 settings.excludeCats=[...document.querySelectorAll('#excludeCats input:checked')].map(i=>i.value);
-save();document.getElementById('storeNameDisplay').textContent=settings.storeName;document.getElementById('storeCodeDisplay').textContent=settings.storeCode+' - FLM Store';
+save();document.getElementById('storeNameDisplay').textContent=settings.storeName;document.getElementById('storeCodeDisplay').textContent='V15 Fixed';
 closeSettings();updateTotals();alert('✅ Saved! All stores same - !');
 }
 
@@ -563,5 +563,128 @@ function openReports(){const total=bills.reduce((s,b)=>s+b.grandTotal,0);const t
 
 init();
 </script>
+
+<script>
+// FL241190 Theja Referral + Store Code FLM-KHMTN-RS001 Integration for Billing
+(function(){
+  // Get store info from URL params or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const storeCodeFromUrl = urlParams.get('store') || urlParams.get('code') || localStorage.getItem('flm_current_store_code') || 'FLM-KHMTN-RS001';
+  const referralIdFromUrl = urlParams.get('referral') || 'FL241190';
+  const referralNameFromUrl = urlParams.get('referralName') || 'Theja';
+  const investmentFromUrl = urlParams.get('investment') || localStorage.getItem('flm_current_store_investment') || '10 Lakhs';
+  const storeInfoFromStorage = localStorage.getItem('flm_current_store_info');
+  
+  let storeInfo = {storeCode: storeCodeFromUrl, referralId: referralIdFromUrl, referralName: referralNameFromUrl, investment: investmentFromUrl};
+  if(storeInfoFromStorage){
+    try{
+      const parsed = JSON.parse(storeInfoFromStorage);
+      storeInfo = {...storeInfo, ...parsed};
+    }catch(e){}
+  }
+  
+  // Override settings with official store code
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      if(typeof settings !== 'undefined'){
+        settings.storeCode = storeInfo.storeCode || settings.storeCode || 'FLM-KHMTN-RS001';
+        settings.referralId = storeInfo.referralId || 'FL241190';
+        settings.referralName = storeInfo.referralName || 'Theja';
+        settings.investment = storeInfo.investment || '10 Lakhs';
+        
+        // Update display
+        const codeEl = document.getElementById('storeCodeDisplay');
+        const nameEl = document.getElementById('storeNameDisplay');
+        if(codeEl){
+          codeEl.textContent = `V15 Fixed`;
+          codeEl.style.background = '#059669';
+          codeEl.style.color = '#fff';
+          codeEl.style.padding = '3px 8px';
+          codeEl.style.borderRadius = '999px';
+        }
+        if(nameEl && storeInfo.storeName){
+          nameEl.textContent = `${storeInfo.storeName} - ${storeInfo.town || ''} - Referral: ${storeInfo.referralId} ${storeInfo.referralName}`;
+        }
+        
+        // Save
+        if(typeof save === 'function') save();
+      }
+      
+      // Add referral badge to header
+      const header = document.querySelector('header');
+      if(header && !document.getElementById('referralBadgeBilling')){
+        const badge = document.createElement('div');
+        badge.id = 'referralBadgeBilling'; badge.style.display = 'none'; // Hidden - User wants only V15 Fixed
+        badge.style.cssText = 'background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:900;margin-left:8px';
+        badge.style.display = 'none'; // Removed as per user request - Only V15 Fixed should show
+        const logoDiv = header.querySelector('div');
+        if(logoDiv) logoDiv.appendChild(badge);
+      }
+    }, 800);
+  });
+  
+  // Override showBill to include store code and referral
+  const originalShowBill = window.showBill;
+  window.showBill = function(b){
+    // Add store code and referral to bill object
+    b.storeCode = settings?.storeCode || storeInfo.storeCode || 'FLM-KHMTN-RS001';
+    b.referralId = settings?.referralId || 'FL241190';
+    b.referralName = settings?.referralName || 'Theja';
+    b.investment = settings?.investment || '10 Lakhs';
+    
+    const txt = `🏪 ${settings.storeName} (${b.storeCode}) - V15 GST Fixed - NO SPIN - Official
+Bill No: ${b.id} | ${new Date(b.date).toLocaleString('en-IN')}
+Customer: ${b.customerName} ${b.isFlm?`(${b.flId}) ✓`:''}
+Mobile: ${b.customerMobile}
+Store: ${b.storeCode} - Referral: ${b.referralId} - ${b.referralName} (AP & TS Commission)
+Investment: ${b.investment} - Location: ${storeInfo.town || ''}, ${storeInfo.district || ''}, ${storeInfo.state || ''}
+----------------------------
+${b.items.map((it,i)=>`${i+1}. ${it.name} [${it.barcode||'No'}] x${it.qty} @${it.price}=Rs.${it.price*it.qty} ${it.barcode?`[📷${it.barcode}]`:''}`).join('\n')}
+----------------------------
+Subtotal: Rs.${b.subtotal.toFixed(0)}
+GST: Rs.${b.gst.toFixed(0)}
+${b.festivalDiscount>0?`Festival OFF: -Rs.${b.festivalDiscount.toFixed(0)}\n`:''}Grand Total: Rs.${b.grandTotal.toFixed(0)}
+Payment: ${b.payment}
+Store Code Tag: ${b.storeCode} - Bill Official - Referral ${b.referralId}
+Investment Plan: ${b.investment}
+----------------------------
+${settings.footer}
+Official Store: ${b.storeCode} - FLM Mart - FL241190 Theja (AP & TS)
+Verify: https://freedomloansmart.in/store-approval-letter.html?code=${b.storeCode}`;
+    
+    document.getElementById('billPreview').textContent=txt;
+    document.getElementById('whatsappBtn').href=`https://wa.me/91${b.customerMobile}?text=${encodeURIComponent(txt)}`;
+    document.getElementById('billModal').style.display='grid';
+  };
+})();
+</script>
+
+
+<script>
+// Clean Header - Only V15 Fixed - No extra text as per user request
+(function(){
+  const urlParams = new URLSearchParams(window.location.search);
+  const storeCodeFromUrl = urlParams.get('store') || localStorage.getItem('flm_current_store_code') || 'FLM-KHMTN-RS001';
+  
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      const codeEl = document.getElementById('storeCodeDisplay');
+      if(codeEl){
+        codeEl.textContent = 'V15 Fixed';
+        codeEl.style.background = '#059669';
+        codeEl.style.color = '#fff';
+        codeEl.style.padding = '3px 10px';
+        codeEl.style.borderRadius = '999px';
+        codeEl.style.fontWeight = '900';
+        codeEl.style.fontSize = '11px';
+      }
+      // Hide any referral badge if exists
+      const refBadge = document.getElementById('referralBadgeBilling');
+      if(refBadge) refBadge.style.display = 'none';
+    }, 500);
+  });
+})();
+</script>
+
 </body>
 </html>

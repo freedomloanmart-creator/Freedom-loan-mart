@@ -2264,4 +2264,227 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
+// Store Approval - Official Letter + Email with FLM-KHMTN-RS001 code
+let storeApprovalCounter = parseInt(localStorage.getItem('flm_store_approval_counter') || '1');
+
+function generateStoreCode(town, district, state, count){
+  // Format: FLM-KHMTN-RS001 (KHMTN from district, RS from town, 001 number)
+  // Example: Paleru, Khammam, Telangana -> FLM-KHMTN-PLR001 or FLM-KHMTN-RS001 as requested
+  // For user requested format: FLM-KHMTN-RS001 (KHMTN = Khammam Town, RS001 = Running Series)
+  const districtCode = district ? district.substring(0,5).toUpperCase().replace(/[^A-Z]/g,'').padEnd(5,'X').substring(0,5) : 'KHMTN';
+  const townCode = town ? town.substring(0,2).toUpperCase().replace(/[^A-Z]/g,'') : 'RS';
+  const num = String(count).padStart(3,'0');
+  return `FLM-${districtCode}-${townCode}${num}`;
+}
+
+function generateOfficialStoreCode(){
+  // For FLM-KHMTN-RS001 as requested - Use fixed format as per user
+  // FLM-KHMTN-RS001 = FLM + Khammam Town + Running Series 001
+  const customCode = prompt('Enter Official Store Code (e.g., FLM-KHMTN-RS001) or leave blank for auto:', 'FLM-KHMTN-RS001');
+  if(customCode && customCode.trim()){
+    return customCode.trim().toUpperCase();
+  }
+  return generateStoreCode('Paleru', 'Khammam', 'Telangana', storeApprovalCounter);
+}
+
+async function approveStoreWithOfficialLetter(appId){
+  const app = (window.__storeApps||[]).find(x=>String(x.id)===String(appId));
+  if(!app){ alert('Application not found'); return; }
+  
+  const storeCode = generateOfficialStoreCode();
+  if(!storeCode){ return; }
+  
+  if(!confirm(`Approve Store with Official Code: ${storeCode}\n\nOwner: ${app.full_name}\nLocation: ${app.town}, ${app.district}, ${app.state}\nInvestment: ${app.mart_investment || app.investment_capacity}\nReferral: ${app.referral_id || 'FL241190'} - ${app.referral_name || 'Theja'}\n\nThis will:\n- Generate Official Approval Letter\n- Generate Official Email\n- Create Store Login\n- Send to ${app.mobile}\n\nContinue?`)){
+    return;
+  }
+  
+  try{
+    // Update application as approved with store code
+    if(supabaseClient){
+      await supabaseClient.from('store_applications').update({
+        status: 'approved',
+        approved_store_code: storeCode,
+        approved_at: new Date().toISOString(),
+        approved_by: 'Admin'
+      }).eq('id', appId);
+      
+      await supabaseClient.from('store_interest').update({
+        status: 'approved',
+        approved_store_code: storeCode
+      }).eq('id', appId);
+      
+      // Create store entry
+      await supabaseClient.from('stores').insert({
+        store_code: storeCode,
+        store_name: `${app.town} - ${app.full_name} Store`,
+        owner_name: app.full_name,
+        phone: app.mobile,
+        town: app.town,
+        district: app.district,
+        state: app.state,
+        address: app.address,
+        latitude: app.latitude,
+        longitude: app.longitude,
+        investment: app.mart_investment || app.investment_capacity,
+        referral_id: app.referral_id || 'FL241190',
+        referral_name: app.referral_name || 'Theja',
+        status: 'active',
+        created_at: new Date().toISOString()
+      });
+    }
+    
+    // Generate Official Letter URL with params
+    const letterParams = new URLSearchParams({
+      code: storeCode,
+      name: app.full_name,
+      mobile: app.mobile,
+      town: app.town || '',
+      district: app.district || '',
+      state: app.state || '',
+      address: app.address || '',
+      investment: app.mart_investment || app.investment_capacity || '10 Lakhs',
+      referral: app.referral_id || 'FL241190',
+      referralName: app.referral_name || 'Theja',
+      businessType: app.business_type === 'partnership' ? `Partnership (${app.partner_count} Members)` : 'Single Owner'
+    });
+    
+    const letterUrl = `store-approval-letter.html?${letterParams.toString()}`;
+    const emailUrl = `store-approval-email.html?${letterParams.toString()}`;
+    
+    // Increment counter
+    storeApprovalCounter++;
+    localStorage.setItem('flm_store_approval_counter', String(storeApprovalCounter));
+    
+    // Show success with links
+    const resultHtml = `
+      <div style="background:#dcfce7;border:2px solid #059669;border-radius:12px;padding:16px;margin-top:12px">
+        <h3 style="margin:0;color:#065f46">✅ Store Approved Officially!</h3>
+        <p style="margin:8px 0"><b>Store Code:</b> <span style="background:#059669;color:#fff;padding:4px 12px;border-radius:999px;font-family:monospace;font-size:16px">${storeCode}</span></p>
+        <p style="font-size:12px"><b>Owner:</b> ${app.full_name} | <b>Location:</b> ${app.town}, ${app.district} | <b>Investment:</b> ${app.mart_investment || '10 Lakhs'} | <b>Referral:</b> ${app.referral_id || 'FL241190'} - ${app.referral_name || 'Theja'}</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <a href="${letterUrl}" target="_blank" style="flex:1;background:#059669;color:#fff;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-weight:800">📄 Official Letter - ${storeCode}</a>
+          <a href="${emailUrl}" target="_blank" style="flex:1;background:#2563eb;color:#fff;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-weight:800">📧 Official Email</a>
+        </div>
+        <div style="margin-top:12px;background:#fff;border-radius:8px;padding:10px;font-size:11px">
+          <b>Next:</b> 1) Print Letterhead 2) Send Email to ${app.mobile} 3) WhatsApp Letter PDF 4) Store can login with ${storeCode}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button onclick="window.open('${letterUrl}','_blank')" style="flex:1;background:#f59e0b;color:#fff;border:0;border-radius:6px;padding:8px;font-weight:800">🖨️ Print Letter</button>
+          <button onclick="copyApprovalDetails('${storeCode}','${app.full_name}','${app.mobile}','${app.town}')" style="flex:1;background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:8px;font-weight:800">📋 Copy Details</button>
+        </div>
+      </div>
+    `;
+    
+    // Try to show in recent apps area
+    const el = document.getElementById('recentStoreApps');
+    if(el){
+      el.innerHTML = resultHtml + el.innerHTML;
+    } else {
+      alert(`✅ Store Approved!\n\nStore Code: ${storeCode}\nOwner: ${app.full_name}\nLocation: ${app.town}, ${app.district}\nInvestment: ${app.mart_investment || '10 Lakhs'}\nReferral: ${app.referral_id || 'FL241190'} - ${app.referral_name || 'Theja'}\n\nOfficial Letter: ${letterUrl}\nOfficial Email: ${emailUrl}\n\nPrint letter and send email!`);
+      window.open(letterUrl, '_blank');
+    }
+    
+    // Reload applications
+    setTimeout(()=>loadRecentStoreApplications(), 1000);
+    
+  }catch(e){
+    alert('Approval failed: ' + e.message);
+  }
+}
+
+function copyApprovalDetails(code, name, mobile, town){
+  const text = `FLM Mart Store Officially Approved!
+
+Store Code: ${code}
+Owner: ${name}
+Mobile: ${mobile}
+Location: ${town}
+
+Official Approval Letter: https://freedomloansmart.in/store-approval-letter.html?code=${code}&name=${encodeURIComponent(name)}&mobile=${mobile}&town=${encodeURIComponent(town)}
+
+Your store is approved! Use code ${code} to login to Store Panel and Billing.
+
+Regards,
+FLM Mart Team
+8309091326`;
+
+  navigator.clipboard.writeText(text).then(()=>{
+    alert('✅ Approval details copied! Send via WhatsApp to ' + mobile);
+  });
+}
+
+// Enhanced loadRecentStoreApplications with Approve button
+const originalLoadRecentStoreApplications = window.loadRecentStoreApplications;
+window.loadRecentStoreApplications = async function(){
+  const el=document.getElementById('recentStoreApps');
+  if(!el) return;
+  el.innerHTML='<div class="small">Loading recent store applications...</div>';
+  try{
+    let apps=[];
+    if(supabaseClient){
+      let r=await supabaseClient.from('store_applications').select('*').order('created_at',{ascending:false}).limit(20);
+      if(!r.error && r.data) apps=r.data;
+      else {
+        let r2=await supabaseClient.from('store_interest').select('*').order('created_at',{ascending:false}).limit(20);
+        if(!r2.error && r2.data) apps=r2.data;
+      }
+    }
+    window.__storeApps = apps; // Store globally for approval function
+    
+    if(apps.length===0){
+      el.innerHTML='<div class="small">No store applications yet - Users will submit from application form</div>';
+      return;
+    }
+    let html='';
+    for(let app of apps){
+      const investment=app.mart_investment||app.investment_capacity||'Not selected';
+      const amount=app.investment_amount||0;
+      const paymentStatus=app.payment_status||'pending';
+      const status=app.status||'pending';
+      const isApproved = status==='approved';
+      const storeCode = app.approved_store_code || '';
+      
+      const paymentBadge=paymentStatus==='verified' ? '<span style="background:#dcfce7;color:#065f46;padding:2px 8px;border-radius:999px;font-size:10px">✅ Paid Verified</span>' : paymentStatus==='pending' ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:999px">🟠 Payment Pending</span>' : '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px">❌ Not Paid</span>';
+      
+      const statusBadge=isApproved ? `<span style="background:#059669;color:#fff;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800">✅ APPROVED - ${storeCode}</span>` : status==='payment_verified' ? '<span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:999px;font-size:10px">💳 Payment Verified</span>' : '<span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:999px;font-size:10px">🟠 Pending Approval</span>';
+      
+      const referralDisplay = `${app.referral_id||'FL241190'} - ${app.referral_name||'Theja'}`;
+      
+      html+=`<div style="border:2px solid ${isApproved ? '#059669' : '#e2e8f0'};border-radius:12px;padding:12px;margin-bottom:10px;background:${isApproved ? '#f0fdf4' : '#fff'}">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${escapeHtml(app.full_name||'Unknown')}</b><b>₹${investment}</b></div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">Mobile: ${escapeHtml(app.mobile||'') } | Town: ${escapeHtml(app.town||'') } | ${escapeHtml(app.district||'') } | ${escapeHtml(app.state||'') }<br>Business: ${escapeHtml(app.business_type||'single')} - ${app.partner_count||1} members | Investment: ₹${Number(amount).toLocaleString('en-IN')} | Referral: <b>${escapeHtml(referralDisplay)}</b></div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${paymentBadge} ${statusBadge} <span style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:6px">${new Date(app.created_at).toLocaleString('en-IN')}</span></div>
+        ${app.payment_screenshot_url ? `<div style="margin-top:6px"><a href="${app.payment_screenshot_url}" target="_blank" style="font-size:11px;color:#2563eb">📸 View Payment Screenshot</a> ${app.google_maps_url ? ` | <a href="${app.google_maps_url}" target="_blank" style="font-size:11px;color:#059669">📍 View Location</a>` : ''}</div>` : ''}
+        ${app.partners ? `<div style="margin-top:6px;font-size:10px;background:#f8fafc;padding:6px;border-radius:6px">🆔 Partners: ${app.partners.length} members - Aadhar PAN uploaded ${app.partners.map(p=>p.name).join(', ').substring(0,60)}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          ${!isApproved ? `<button onclick="approveStoreWithOfficialLetter('${app.id}')" style="flex:1;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:0;border-radius:8px;padding:10px;font-size:12px;font-weight:900">✅ Approve - Generate FLM-KHMTN-RS001</button>` : `<button onclick="window.open('store-approval-letter.html?code=${encodeURIComponent(storeCode)}&name=${encodeURIComponent(app.full_name)}&mobile=${encodeURIComponent(app.mobile)}&town=${encodeURIComponent(app.town||'')}&district=${encodeURIComponent(app.district||'')}&state=${encodeURIComponent(app.state||'')}&address=${encodeURIComponent(app.address||'')}&investment=${encodeURIComponent(investment)}&referral=${encodeURIComponent(app.referral_id||'FL241190')}&referralName=${encodeURIComponent(app.referral_name||'Theja')}&businessType=${encodeURIComponent(app.business_type||'Single')}', '_blank')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:8px;font-size:11px;font-weight:800">📄 View Letter - ${storeCode}</button>`}
+          <button onclick="verifyStorePayment('${app.id}')" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:8px;font-size:11px;font-weight:800">💳 ${paymentStatus==='verified' ? 'Verified' : 'Verify Payment'}</button>
+        </div>
+        ${isApproved ? `<div style="margin-top:8px;background:#fff;border:1px solid #059669;border-radius:8px;padding:8px;font-size:11px"><b>Official Store Code:</b> <span style="font-family:monospace;background:#059669;color:#fff;padding:2px 8px;border-radius:4px">${storeCode}</span> - <a href="store-approval-letter.html?code=${encodeURIComponent(storeCode)}&name=${encodeURIComponent(app.full_name)}" target="_blank" style="color:#059669;font-weight:800">View Official Letter</a> | <a href="store-approval-email.html?code=${encodeURIComponent(storeCode)}&name=${encodeURIComponent(app.full_name)}" target="_blank" style="color:#2563eb">View Official Email</a></div>` : ''}
+      </div>`;
+    }
+    el.innerHTML=html;
+    
+    // Update investment stats
+    const stats={};
+    for(let app of apps){
+      const inv=app.mart_investment||'Unknown';
+      stats[inv]=(stats[inv]||0)+1;
+    }
+    let statsHtml='';
+    for(let inv of ['5 Lakhs','10 Lakhs','20 Lakhs','50 Lakhs','1 Crore']){
+      const count=stats[inv]||0;
+      const bg=inv==='5 Lakhs' ? '#fef3c7' : inv==='10 Lakhs' ? '#dbeafe' : inv==='20 Lakhs' ? '#dcfce7' : inv==='50 Lakhs' ? '#fce7f3' : 'linear-gradient(135deg,#7c3aed,#6d28d9)';
+      const color=inv==='1 Crore' ? '#fff' : '#000';
+      statsHtml+=`<div style="background:${bg};color:${color};padding:12px;border-radius:10px;text-align:center"><b style="font-size:20px">${count}</b><br><span style="font-size:11px">${inv}</span></div>`;
+    }
+    const statsEl=document.getElementById('investmentStats');
+    if(statsEl) statsEl.innerHTML=statsHtml;
+    
+  }catch(e){
+    el.innerHTML='<div class="err">Error: '+e.message+'</div>';
+  }
+}
+
 </body></html>
