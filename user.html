@@ -297,7 +297,7 @@ body{background:#eef2f7;color:#0f172a}
 <div id="sec-withdraw" style="display:none"><div class="card" style="text-align:center;padding:28px 18px"><div style="font-size:42px">💸</div><h3 style="margin-top:8px">Withdraw & Redeem</h3><p style="color:#64748b;font-size:12px;margin-top:6px">All withdrawals and ROI redemption are now handled inside <b>My Wallets</b>.</p><button onclick="showSec('wallets')" style="margin-top:14px;width:100%;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">Open My Wallets</button></div></div>
 <div id="sec-profile" style="display:none"><div style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border-radius:20px;padding:16px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="showSec('dashboard')">☰</span><b>Profile</b></div><div style="background:#fff;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:8px"><div style="width:32px;height:24px;background:#1e40af;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800">FLM</div><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="profTopName">Theja</div><div style="font-size:10px;color:#64748b" id="profTopFl">FL ID</div></div></div></div><div class="card" style="padding:0;overflow:hidden;border-radius:20px"><div style="background:linear-gradient(135deg,#c17a2a,#9c4a4a);padding:14px;display:flex;align-items:center;gap:10px;justify-content:center"><div style="width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:flex;align-items:center;justify-content:center">👤</div><b style="color:#fff">Profile</b></div><div style="text-align:center;padding:8px 0;color:#64748b;font-size:12px" id="profFlId">FL ID</div><div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Name <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profName" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Phone <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profPhone" disabled style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div><div><div style="font-size:12px;font-weight:700;color:#1e3a5a;margin-bottom:6px">Email <span style="font-size:10px;color:#dc2626;font-weight:400">• Admin only</span></div><input id="profEmail" disabled type="email" style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:14px;background:#f8fafc;color:#64748b"></div></div></div><div class="card" id="flmChangePasswordCard" style="border:2px solid #bfdbfe;margin-top:12px">
 <div style="font-weight:900;font-size:17px;color:#1e3a8a">🔐 Change Password</div>
-<div style="font-size:12px;color:#64748b;margin:5px 0 12px">Admin ఇచ్చిన temporary password బదులుగా మీకు గుర్తుండే కొత్త password పెట్టుకోండి.</div>
+<div style="font-size:12px;color:#64748b;margin:5px 0 12px">Replace the temporary password provided by the admin with a new password you can remember.</div>
 <label for="flmNewPassword" style="display:block;font-size:12px;font-weight:800;margin-bottom:5px">New Password</label>
 <div style="display:flex;gap:6px"><input id="flmNewPassword" type="password" autocomplete="new-password" placeholder="Enter new password" style="flex:1;min-width:0;padding:12px;border:1px solid #cbd5e1;border-radius:10px"><button type="button" onclick="flmTogglePasswordField('flmNewPassword',this)" style="padding:0 12px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc">👁️</button></div>
 <label for="flmConfirmPassword" style="display:block;font-size:12px;font-weight:800;margin:10px 0 5px">Confirm New Password</label>
@@ -3489,22 +3489,22 @@ async function flmChangeOwnPassword(){
       msg=document.getElementById('flmChangePasswordMsg'),
       btn=document.getElementById('flmChangePasswordBtn');
   function show(t,color){if(msg){msg.textContent=t;msg.style.color=color;}}
-  if(!fl){show('Session expired. Please log in again.','#dc2626');return;}
-  if(p1.length<8){show('Password కనీసం 8 characters ఉండాలి.','#dc2626');return;}
-  if(p1!==p2){show('రెండు password fields ఒకేలా లేవు.','#dc2626');return;}
-  if(!/[A-Za-z]/.test(p1)||!/[0-9]/.test(p1)){show('Letters మరియు numbers కలిపి password పెట్టండి.','#dc2626');return;}
-  if(!confirm('మీ FLM login password మార్చాలా? కొత్త password గుర్తుంచుకోండి.'))return;
+  if(!fl){show('Your session has expired. Please log in again.','#dc2626');return;}
+  if(p1.length<8){show('Password must be at least 8 characters long.','#dc2626');return;}
+  if(p1!==p2){show('The passwords do not match. Please enter the same password in both fields.','#dc2626');return;}
+  if(!/[A-Za-z]/.test(p1)||!/[0-9]/.test(p1)){show('Use a combination of letters and numbers.','#dc2626');return;}
+  if(!confirm('Are you sure you want to change your FLM login password? Make sure you remember the new password.'))return;
   if(btn){btn.disabled=true;btn.textContent='Updating...';}
   try{
     // The database policy/RPC must authorize this update for the logged-in member.
     var result=await supabaseClient.from('users').update({password:p1}).eq('fl_id',fl).select('fl_id').maybeSingle();
     if(result.error)throw result.error;
-    if(!result.data)throw new Error('Password update was not authorized or no member row was updated. Supabase policy/RPC setup may be required.');
+    if(!result.data)throw new Error('The password update was not authorized or no member record was updated. Please contact the administrator.');
     document.getElementById('flmNewPassword').value='';
     document.getElementById('flmConfirmPassword').value='';
-    show('✅ Password updated. Next time, log in using your new password.','#047857');
+    show('✅ Password updated successfully. Use your new password the next time you log in.','#047857');
   }catch(e){
-    show('Password update failed: '+(e&&e.message?e.message:'Please contact admin.'),'#dc2626');
+    show('Password update failed: '+(e&&e.message?e.message:'Please contact the administrator.'),'#dc2626');
   }finally{
     if(btn){btn.disabled=false;btn.textContent='💾 Update My Password';}
   }
