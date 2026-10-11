@@ -410,7 +410,12 @@ function flmUserRow(u){
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap">${actBtn}<button class="user-edit-btn" onclick='adminViewAsUser(${JSON.stringify(u.fl_id||'')},${JSON.stringify(u.full_name||'')})'>👤 Open User</button><button class="user-edit-btn" onclick='openUserEditor(${safe})'>✏️ Edit</button></div>
    </div>
-   <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml((function(){var nm=flmAdminSponsorName(u.sponsor_id);return (nm?nm+' ':'')+(u.sponsor_id||'—');})())}</b></div><div><span>🌳 Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
+   <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml((function(){var nm=flmAdminSponsorName(u.sponsor_id);return (nm?nm+' ':'')+(u.sponsor_id||'—');})())}</b></div><div><span>🌳 Total Binary Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+     <button type="button" onclick="flmToggleDirectMembers('${String(u.fl_id||'').replace(/'/g, '&#39;')}','left')" style="border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:10px;padding:10px 6px;font-weight:800">👥 Direct Left (<span id="direct-left-count-${String(u.fl_id||'').replace(/[^A-Za-z0-9_-]/g,'')}">${flmAdminDirectCount(u.fl_id,'left')}</span>)</button>
+     <button type="button" onclick="flmToggleDirectMembers('${String(u.fl_id||'').replace(/'/g, '&#39;')}','right')" style="border:1px solid #bbf7d0;background:#f0fdf4;color:#047857;border-radius:10px;padding:10px 6px;font-weight:800">👥 Direct Right (<span id="direct-right-count-${String(u.fl_id||'').replace(/[^A-Za-z0-9_-]/g,'')}">${flmAdminDirectCount(u.fl_id,'right')}</span>)</button>
+   </div>
+   <div id="direct-members-${String(u.fl_id||'').replace(/[^A-Za-z0-9_-]/g,'')}" style="display:none;margin-top:8px"></div>
  </div>`;
 }
 async function adminActivateUser(flId){
@@ -471,6 +476,30 @@ async function resetUserPassword(){
  try{const {error}=await supabaseClient.from('users').update({password:pw}).eq('fl_id',flId);if(error)throw error;document.getElementById('editUserPassword').value=pw;document.getElementById('editUserPassword').type='text';alert('✅ Password reset successfully. The new temporary password is visible in the Password field. Tap 📋 Copy to copy it, then share it securely with the member.');}catch(e){alert('❌ Password reset failed: '+(e.message||e));}
 }
 let adminUsersCache=[];
+function flmAdminDirectCount(flId,side){
+ const id=String(flId||'').trim().toUpperCase();
+ return adminUsersCache.filter(function(u){
+   return String(u.direct_sponsor_id||'').trim().toUpperCase()===id &&
+     String(u.direct_side||u.side||'').trim().toLowerCase()===side;
+ }).length;
+}
+function flmToggleDirectMembers(flId,side){
+ const key=String(flId||'').replace(/[^A-Za-z0-9_-]/g,'');
+ const box=document.getElementById('direct-members-'+key);
+ if(!box)return;
+ if(box.style.display==='block' && box.dataset.side===side){box.style.display='none';return;}
+ box.style.display='block';box.dataset.side=side;
+ const id=String(flId||'').trim().toUpperCase();
+ const members=adminUsersCache.filter(function(u){
+   return String(u.direct_sponsor_id||'').trim().toUpperCase()===id &&
+     String(u.direct_side||u.side||'').trim().toLowerCase()===side;
+ });
+ const title=side==='left'?'Direct Left Members':'Direct Right Members';
+ box.innerHTML='<div style="border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#fff"><b style="display:block;margin-bottom:8px;color:'+(side==='left'?'#1d4ed8':'#047857')+'">'+title+' ('+members.length+')</b>'+
+ (members.length?members.map(function(m){
+   return '<div style="padding:9px 2px;border-top:1px solid #f1f5f9"><b style="color:#0f172a">'+escapeHtml(m.full_name||'Unnamed')+'</b><div style="font-size:12px;color:#1d4ed8;font-weight:800;margin-top:2px">'+escapeHtml(m.fl_id||'—')+'</div><div style="font-size:12px;color:#64748b;margin-top:3px">📱 '+escapeHtml(m.mobile||'—')+' · '+(flmIsActiveVal(m.is_active)?'ACTIVE':'INACTIVE')+'</div></div>';
+ }).join(''):'<div style="font-size:12px;color:#64748b;padding:8px 0">No direct members found on this side.</div>')+'</div>';
+}
 function renderAdminUsers(){
  const el=document.getElementById('usersList');
  const q=(document.getElementById('userAdminSearch')?.value||'').trim().toLowerCase();
@@ -535,7 +564,19 @@ function flmAdminTeamStats(rootId,tree){
 async function loadAdminUsers(){
  const el=document.getElementById('usersList');if(!el)return;el.innerHTML='<div class="user-loading">⏳ Loading members from Live DB...</div>';
  try{
-   var allUsers=await flmAdminLoadAllUsers();try{window.flmAdminNameById={};allUsers.forEach(function(x){window.flmAdminNameById[String(x.fl_id||'').trim().toUpperCase()]=x.full_name||'';});}catch(e){}
+   var allUsers=await flmAdminLoadAllUsers();
+   // Fetch original/direct sponsor data separately so older schemas still load the member list.
+   try{
+     var dr=await supabaseClient.from('users').select('fl_id,direct_sponsor_id,direct_side');
+     if(!dr.error){
+       var directMap={};
+       (dr.data||[]).forEach(function(x){directMap[String(x.fl_id||'').trim().toUpperCase()]=x;});
+       allUsers=allUsers.map(function(u){var d=directMap[String(u.fl_id||'').trim().toUpperCase()]||{};return Object.assign({},u,{direct_sponsor_id:d.direct_sponsor_id||'',direct_side:d.direct_side||''});});
+     }else{
+       console.warn('Direct referral list unavailable: users.direct_sponsor_id/direct_side columns not found or not readable.',dr.error.message);
+     }
+   }catch(directErr){console.warn('Direct referral list unavailable:',directErr.message||directErr);}
+   try{window.flmAdminNameById={};allUsers.forEach(function(x){window.flmAdminNameById[String(x.fl_id||'').trim().toUpperCase()]=x.full_name||'';});}catch(e){}
    var tree=flmAdminBuildPlacement(allUsers);
    var stats={};
    allUsers.forEach(function(u){stats[String(u.fl_id||'').trim().toUpperCase()]=flmAdminTeamStats(u.fl_id,tree);});
