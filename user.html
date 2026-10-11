@@ -767,8 +767,8 @@ async function loadInvite(){
 
     var lwc=document.getElementById('leftWingCount');if(lwc)lwc.innerText=lw;
     var rwc=document.getElementById('rightWingCount');if(rwc)rwc.innerText=rw;
-    var lp=document.getElementById('leftPlacement');if(lp)lp.innerText=Number(liveStats.directLeft||0)>0?'Filled':(Number(liveStats.directLeftAll||0)>0?String(liveStats.directLeftAll):'Open'); /* NEW: Filled=active only */
-    var rp=document.getElementById('rightPlacement');if(rp)rp.innerText=Number(liveStats.directRight||0)>0?'Filled':(Number(liveStats.directRightAll||0)>0?String(liveStats.directRightAll):'Open'); /* NEW: Filled=active only */
+    var lp=document.getElementById('leftPlacement');if(lp)lp.innerText=Number(liveStats.directLeftAll||0)>0?'Filled':'Open'; /* Placement status reflects whether a direct referral exists; active-only counts remain separate for fund eligibility. */
+    var rp=document.getElementById('rightPlacement');if(rp)rp.innerText=Number(liveStats.directRightAll||0)>0?'Filled':'Open'; /* Placement status reflects whether a direct referral exists; active-only counts remain separate for fund eligibility. */
 
     var lls=document.getElementById('leftLinkStatus');
     if(lls)lls.innerText=Number(liveStats.directLeft||0)>0?(Number(liveStats.directLeft||0)+' members'):'Open';
