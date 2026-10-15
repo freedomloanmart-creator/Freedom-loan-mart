@@ -1277,9 +1277,12 @@ function payoutHtml(x){
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
 function wdIsFinanceTransaction(x){
   const t = String(x.transaction_type||x.wallet_type||x.title||'').trim().toLowerCase();
-  // Updated: Show ALL finance types - fund, matching, loan, roi
-  if(!t) return true;
-  return t.includes('withdraw') || t.includes('fund') || t.includes('matching') || t.includes('loan') || t.includes('roi') || t.includes('coupon') || t.includes('income') || t.includes('company');
+  // STRICT: Only withdrawals - fund withdrawal, matching withdrawal, loan withdrawal
+  return t.includes('withdraw');
+}
+function wdIsStoreRedemption(x){
+  const t = String(x.transaction_type||x.wallet_type||x.title||'').trim().toLowerCase();
+  return t.includes('roi') && (t.includes('store') || t.includes('redeem') || t.includes('coupon'));
 }
 function wdIsPendingStatus(s){const x=safeText(s).trim().toLowerCase();return x==='processing'||x==='pending';}
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
@@ -1305,26 +1308,55 @@ function renderAdminWithdrawCard(x,compact){
 }
 function renderAdminWithdrawals(){
   const l=document.getElementById('adminWithdrawList'),s=document.getElementById('adminStoreList'),h=document.getElementById('adminWithdrawHistory');
-  if(!l||!s||!h)return;
-  try{
-    const q=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
-    const st=(document.getElementById('wdStatus')?.value||'all').trim().toLowerCase();
-    const rows=adminWithdrawalRows.filter(x=>{if(!wdIsFinanceTransaction(x))return false;const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();let z=safeText(x.status||'processing').trim().toLowerCase();if(z==='pending')z='processing';return(!q||hay.includes(q))&&(st==='all'||st===z);});
-    const d=rows.filter(x=>!wdIsStore(x)),r=rows.filter(x=>wdIsStore(x));
-    l.innerHTML=d.length?d.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No matching/loan direct withdrawal requests.</div>';
-    s.innerHTML=r.length?r.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No ROI/store redemption records.</div>';
-    h.innerHTML=rows.length?rows.map(x=>renderAdminWithdrawCard(x,true)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No finance records found.</div>';
-  }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Render error: '+escapeHtml(e.message)+'</div>';}
+  if(!l||!h) return;
+  const search=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
+  const statusF=(document.getElementById('wdStatus')?.value||'').trim().toLowerCase();
+
+  // Use only withdrawals
+  const allFinance = (window.__financeRowsOnly || adminWithdrawalRows.filter(wdIsFinanceTransaction));
+  const pendingFinance = (window.__pendingOnly || allFinance.filter(x=>{const v=String(x.status||'').toLowerCase(); return v==='pending'||v==='processing';}));
+
+  // For Matching / Loan Direct Withdrawals section - ONLY pending withdrawals
+  let d = pendingFinance;
+  // For Complete Finance History - show ALL withdrawals (pending + approved + rejected)
+  let rows = allFinance;
+
+  // Apply search filter
+  if(search){
+    const filterFn = x => {
+      const hay=[x.fl_id, x.user_fl_id, x.title, x.wallet_type, x.transaction_type].join(' ').toLowerCase();
+      return hay.includes(search);
+    };
+    d = d.filter(filterFn);
+    rows = rows.filter(filterFn);
+  }
+  if(statusF && statusF!=='all'){
+    const statusNorm = x => {const v=String(x.status||'').toLowerCase(); return v==='pending'?'processing':v;};
+    d = d.filter(x=>statusNorm(x)===statusF);
+    rows = rows.filter(x=>statusNorm(x)===statusF);
+  }
+
+  // Main list - only pending withdrawals
+  l.innerHTML=d.length?d.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:20px;text-align:center;color:#64748b;background:#fff;border:2px dashed #e2e8f0;border-radius:12px">No pending withdrawals - Only users who requested withdrawal will appear here.</div>';
+
+  // Store list - ROI redemptions pending
+  const storePending = adminWithdrawalRows.filter(x=>wdIsStoreRedemption(x) && ['pending','processing'].includes(String(x.status||'').toLowerCase()));
+  if(s){
+    let r = storePending;
+    if(search) r = r.filter(x=>String(x.fl_id||'').toLowerCase().includes(search));
+    s.innerHTML=r.length?r.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No ROI store redemptions pending.</div>';
+  }
+
+  // History - all withdrawals
+  h.innerHTML=rows.length?rows.map(x=>renderAdminWithdrawCard(x,true)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No withdrawal history.</div>';
 }
 async function loadAdminWithdrawals(){
   const l=document.getElementById('adminWithdrawList');if(!l||!supabaseClient)return;
-  l.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading finance records... Checking wallet_transactions...</div>';
+  l.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading only pending withdrawals...</div>';
   try{
     const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(1000);
     if(r.error)throw r.error;
-    console.log('FLM DEBUG: total wallet_transactions =', r.data.length, 'sample:', r.data[0]);
     adminWithdrawalRows=(r.data||[]).sort(function(a,b){ function pri(x){var s=String(x.status||'').toLowerCase(); if(s==='processing'||s==='pending') return 0; return 1;} var pa=pri(a),pb=pri(b); if(pa!==pb) return pa-pb; return new Date(b.created_at)-new Date(a.created_at); });
-    // Load only payout fields needed by the admin so every withdrawal card shows where the net amount must be sent.
     adminUserMap={};
     const flIds=[...new Set(adminWithdrawalRows.map(x=>safeText(x.fl_id||x.user_fl_id).trim().toUpperCase()).filter(Boolean))];
     if(flIds.length){
@@ -1332,13 +1364,24 @@ async function loadAdminWithdrawals(){
       if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[safeText(u.fl_id).toUpperCase()]=u;});
     }
     const n=x=>{const v=safeText(x.status).trim().toLowerCase();return v==='pending'?'processing':v;};
-    // UPDATED: No strict filter, show all as finance
+    // STRICT: Only withdrawal transactions
     const financeRows=adminWithdrawalRows.filter(wdIsFinanceTransaction);
-    console.log('FLM DEBUG: financeRows after filter =', financeRows.length);
-    document.getElementById('wdPendingCount').innerText=financeRows.filter(x=>['processing','pending'].includes(n(x))).length;
-    document.getElementById('wdApprovedCount').innerText=financeRows.filter(x=>['approved','completed'].includes(n(x))).length;
-    document.getElementById('wdRejectedCount').innerText=financeRows.filter(x=>n(x)==='rejected').length;
+    const pendingOnly = financeRows.filter(x=>['processing','pending'].includes(n(x)));
+    const approvedOnly = financeRows.filter(x=>['approved','completed'].includes(n(x)));
+    const rejectedOnly = financeRows.filter(x=>n(x)==='rejected');
+
+    // Counts will now show ONLY withdrawals, not all 998 records
+    document.getElementById('wdPendingCount').innerText=pendingOnly.length;
+    document.getElementById('wdApprovedCount').innerText=approvedOnly.length;
+    document.getElementById('wdRejectedCount').innerText=rejectedOnly.length;
     document.getElementById('wdTotalCount').innerText=financeRows.length;
+
+    // For display, we will show only pending in main section, all in history
+    // Store filtered globally for render
+    window.__financeRowsOnly = financeRows;
+    window.__pendingOnly = pendingOnly;
+
+    console.log('FLM FIXED: Total withdrawals:', financeRows.length, 'Pending:', pendingOnly.length);
     renderAdminWithdrawals();
   }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Could not load wallet transactions: '+escapeHtml(e.message)+'</div>'; console.error(e);}
 }
