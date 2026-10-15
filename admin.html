@@ -410,12 +410,7 @@ function flmUserRow(u){
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap">${actBtn}<button class="user-edit-btn" onclick='adminViewAsUser(${JSON.stringify(u.fl_id||'')},${JSON.stringify(u.full_name||'')})'>👤 Open User</button><button class="user-edit-btn" onclick='openUserEditor(${safe})'>✏️ Edit</button></div>
    </div>
-   <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml((function(){var nm=flmAdminSponsorName(u.sponsor_id);return (nm?nm+' ':'')+(u.sponsor_id||'—');})())}</b></div><div><span>🌳 Total Binary Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
-   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-     <button type="button" onclick="flmToggleDirectMembers('${String(u.fl_id||'').replace(/'/g, '&#39;')}','left')" style="border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:10px;padding:10px 6px;font-weight:800">👥 Direct Left (<span id="direct-left-count-${String(u.fl_id||'').replace(/[^A-Za-z0-9_-]/g,'')}">${flmAdminDirectCount(u.fl_id,'left')}</span>)</button>
-     <button type="button" onclick="flmToggleDirectMembers('${String(u.fl_id||'').replace(/'/g, '&#39;')}','right')" style="border:1px solid #bbf7d0;background:#f0fdf4;color:#047857;border-radius:10px;padding:10px 6px;font-weight:800">👥 Direct Right (<span id="direct-right-count-${String(u.fl_id||'').replace(/[^A-Za-z0-9_-]/g,'')}">${flmAdminDirectCount(u.fl_id,'right')}</span>)</button>
-   </div>
-   <div id="direct-members-${String(u.fl_id||'').replace(/[^A-Za-z0-9_-]/g,'')}" style="display:none;margin-top:8px"></div>
+   <div class="user-admin-grid"><div><span>📱 Mobile</span><b>${escapeHtml(u.mobile||'—')}</b></div><div><span>✉️ Email</span><b>${escapeHtml(u.email||'—')}</b></div><div><span>👤 Sponsor</span><b>${escapeHtml((function(){var nm=flmAdminSponsorName(u.sponsor_id);return (nm?nm+' ':'')+(u.sponsor_id||'—');})())}</b></div><div><span>🌳 Team</span><b>${total}</b><small style="display:block;margin-top:3px;color:#64748b;font-size:11px">Left: ${left} &nbsp;|&nbsp; Right: ${right}</small></div></div>
  </div>`;
 }
 async function adminActivateUser(flId){
@@ -454,7 +449,6 @@ function openUserEditor(u){
 }
 function closeUserEditor(){document.getElementById('userEditModal').classList.remove('show');}
 function toggleUserPassword(){const el=document.getElementById('editUserPassword');el.type=el.type==='password'?'text':'password';}
-async function copyUserPassword(){const el=document.getElementById('editUserPassword');const pw=String(el&&el.value||'');if(!pw){alert('Password field is empty. Enter or reset a password first.');return;}try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(pw);}else{el.focus();el.select();el.setSelectionRange(0,pw.length);const ok=document.execCommand('copy');if(!ok)throw new Error('Copy not supported');}alert('✅ Password copied. Share it securely with the member.');}catch(e){try{el.focus();el.select();el.setSelectionRange(0,pw.length);alert('Select the highlighted password and copy it manually.');}catch(_){alert('Unable to copy automatically. Please select and copy the password manually.');}}}
 async function saveUserAdmin(){
  if(!supabaseClient)return alert('Supabase is not connected.');
  const flId=document.getElementById('editUserFlId').value.trim().toUpperCase();
@@ -473,33 +467,9 @@ async function resetUserPassword(){
  const flId=document.getElementById('editUserFlId').value.trim().toUpperCase();if(!flId)return;
  const pw=flmRandomPassword();
  if(!confirm('Reset password for '+flId+'? A new temporary password will be generated.'))return;
- try{const {error}=await supabaseClient.from('users').update({password:pw}).eq('fl_id',flId);if(error)throw error;document.getElementById('editUserPassword').value=pw;document.getElementById('editUserPassword').type='text';alert('✅ Password reset successfully. The new temporary password is visible in the Password field. Tap 📋 Copy to copy it, then share it securely with the member.');}catch(e){alert('❌ Password reset failed: '+(e.message||e));}
+ try{const {error}=await supabaseClient.from('users').update({password:pw}).eq('fl_id',flId);if(error)throw error;document.getElementById('editUserPassword').value=pw;document.getElementById('editUserPassword').type='text';alert('✅ Password reset successfully. Temporary password: '+pw+'\nPlease share it securely with the member.');}catch(e){alert('❌ Password reset failed: '+(e.message||e));}
 }
 let adminUsersCache=[];
-function flmAdminDirectCount(flId,side){
- const id=String(flId||'').trim().toUpperCase();
- return adminUsersCache.filter(function(u){
-   return String(u.direct_sponsor_id||'').trim().toUpperCase()===id &&
-     String(u.direct_side||u.side||'').trim().toLowerCase()===side;
- }).length;
-}
-function flmToggleDirectMembers(flId,side){
- const key=String(flId||'').replace(/[^A-Za-z0-9_-]/g,'');
- const box=document.getElementById('direct-members-'+key);
- if(!box)return;
- if(box.style.display==='block' && box.dataset.side===side){box.style.display='none';return;}
- box.style.display='block';box.dataset.side=side;
- const id=String(flId||'').trim().toUpperCase();
- const members=adminUsersCache.filter(function(u){
-   return String(u.direct_sponsor_id||'').trim().toUpperCase()===id &&
-     String(u.direct_side||u.side||'').trim().toLowerCase()===side;
- });
- const title=side==='left'?'Direct Left Members':'Direct Right Members';
- box.innerHTML='<div style="border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#fff"><b style="display:block;margin-bottom:8px;color:'+(side==='left'?'#1d4ed8':'#047857')+'">'+title+' ('+members.length+')</b>'+
- (members.length?members.map(function(m){
-   return '<div style="padding:9px 2px;border-top:1px solid #f1f5f9"><b style="color:#0f172a">'+escapeHtml(m.full_name||'Unnamed')+'</b><div style="font-size:12px;color:#1d4ed8;font-weight:800;margin-top:2px">'+escapeHtml(m.fl_id||'—')+'</div><div style="font-size:12px;color:#64748b;margin-top:3px">📱 '+escapeHtml(m.mobile||'—')+' · '+(flmIsActiveVal(m.is_active)?'ACTIVE':'INACTIVE')+'</div></div>';
- }).join(''):'<div style="font-size:12px;color:#64748b;padding:8px 0">No direct members found on this side.</div>')+'</div>';
-}
 function renderAdminUsers(){
  const el=document.getElementById('usersList');
  const q=(document.getElementById('userAdminSearch')?.value||'').trim().toLowerCase();
@@ -564,19 +534,7 @@ function flmAdminTeamStats(rootId,tree){
 async function loadAdminUsers(){
  const el=document.getElementById('usersList');if(!el)return;el.innerHTML='<div class="user-loading">⏳ Loading members from Live DB...</div>';
  try{
-   var allUsers=await flmAdminLoadAllUsers();
-   // Fetch original/direct sponsor data separately so older schemas still load the member list.
-   try{
-     var dr=await supabaseClient.from('users').select('fl_id,direct_sponsor_id,direct_side');
-     if(!dr.error){
-       var directMap={};
-       (dr.data||[]).forEach(function(x){directMap[String(x.fl_id||'').trim().toUpperCase()]=x;});
-       allUsers=allUsers.map(function(u){var d=directMap[String(u.fl_id||'').trim().toUpperCase()]||{};return Object.assign({},u,{direct_sponsor_id:d.direct_sponsor_id||'',direct_side:d.direct_side||''});});
-     }else{
-       console.warn('Direct referral list unavailable: users.direct_sponsor_id/direct_side columns not found or not readable.',dr.error.message);
-     }
-   }catch(directErr){console.warn('Direct referral list unavailable:',directErr.message||directErr);}
-   try{window.flmAdminNameById={};allUsers.forEach(function(x){window.flmAdminNameById[String(x.fl_id||'').trim().toUpperCase()]=x.full_name||'';});}catch(e){}
+   var allUsers=await flmAdminLoadAllUsers();try{window.flmAdminNameById={};allUsers.forEach(function(x){window.flmAdminNameById[String(x.fl_id||'').trim().toUpperCase()]=x.full_name||'';});}catch(e){}
    var tree=flmAdminBuildPlacement(allUsers);
    var stats={};
    allUsers.forEach(function(u){stats[String(u.fl_id||'').trim().toUpperCase()]=flmAdminTeamStats(u.fl_id,tree);});
@@ -762,51 +720,6 @@ body{background:#eef2f7;color:#0f172a}
 .pins-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pins-form-bottom{margin-top:8px}.pins-filter-row{display:flex;gap:7px;overflow:auto;padding-bottom:2px}.pins-filter{border:1px solid #cbd5e1;background:#f8fafc;color:#475569;border-radius:999px;padding:8px 12px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}.pins-filter.active{background:#0f172a;color:#fff;border-color:#0f172a}.pins-filter.green{background:#ecfdf5;color:#166534;border-color:#bbf7d0}.pins-filter.brown{background:#fef2f2;color:#92400e;border-color:#fecaca}.pins-list-box{margin-top:9px;max-height:600px;overflow:auto;border-top:1px solid #f1f5f9;padding-top:7px}
 @media(max-width:480px){.pins-form-grid{grid-template-columns:1fr}.pins-form-bottom{margin-top:8px}.pins-hero-title{font-size:18px}.pins-stat-card b{font-size:20px}}
 </style>
-
-<style id="flm-admin-responsive-width-fix">
-/* FLM admin responsive width fix: prevent the dashboard from being confined
-   to a narrow left column on Android/mobile browsers. */
-html, body {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  overflow-x: hidden;
-}
-#adminMain {
-  display: block;
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 !important;
-  padding: 12px !important;
-  box-sizing: border-box !important;
-}
-#adminMain[style*="display:none"] { display: none !important; }
-#adminMain .topbar,
-#adminMain .card,
-#adminMain .dark-card,
-#adminMain .users-admin-header,
-#adminMain .user-admin-row,
-#adminMain .reg-history-card {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-#adminMain img, #adminMain input, #adminMain select, #adminMain textarea {
-  max-width: 100%;
-}
-#adminMain .topbar > div { min-width: 0; }
-#adminMain .topbar b { overflow-wrap: anywhere; }
-@media (max-width: 600px) {
-  #adminMain { padding: 8px !important; }
-  #adminMain .grid2 { grid-template-columns: 1fr !important; }
-  #adminMain .users-admin-toolbar { flex-direction: column; }
-  #adminMain .user-admin-grid { grid-template-columns: 1fr; }
-}
-</style>
-
 </head>
 <body>
 <div id="adminLogin"><div class="card" style="max-width:420px;width:100%;padding:24px;border-radius:20px;border:2px solid #059669"><div style="text-align:center;margin-bottom:16px"><div style="width:56px;height:56px;background:linear-gradient(135deg,#2563eb,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin:0 auto;font-size:20px">FLM</div><h2 style="margin-top:12px">Platform Admin Login</h2></div><input id="adminEmail" placeholder="Admin ID - super@freedomloans.in" class="input" style="margin-bottom:10px;height:44px"><input id="adminPass" type="password" placeholder="Password - super123" class="input" style="margin-bottom:12px;height:44px"><button onclick="adminLogin()" style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700;height:44px">Login - Admin Panel</button><div id="adminLoginMsg" style="margin-top:10px;font-size:12px;text-align:center"></div></div></div>
@@ -852,8 +765,8 @@ html, body {
 <div class="user-id-box">🆔 <span>Username / FL ID</span><b id="editUserFlIdText">Protected</b><input id="editUserFlId" type="hidden"></div>
 <label>Full Name</label><input id="editUserName" class="input" placeholder="Full Name">
 <div class="user-two-col"><div><label>Mobile Number</label><input id="editUserMobile" class="input" inputmode="numeric" maxlength="10" placeholder="10-digit mobile"></div><div><label>Email ID</label><input id="editUserEmail" class="input" type="email" placeholder="Email address"></div></div>
-<label>Password</label><div class="password-edit-wrap" style="display:flex;gap:6px;align-items:stretch"><input id="editUserPassword" class="input" type="text" autocomplete="new-password" placeholder="Type a new password or use Reset Password" style="flex:1;min-width:0;padding-right:10px"><button type="button" onclick="toggleUserPassword()" title="Show/hide password" style="position:static;flex:0 0 44px;height:auto;min-height:44px">👁</button><button type="button" onclick="copyUserPassword()" title="Copy password" style="position:static;flex:0 0 78px;height:auto;min-height:44px;background:#dcfce7;color:#166534;font-weight:800">📋 Copy</button></div>
-<div class="password-help">Password you type will be visible. Tap 📋 Copy to copy it. Leave blank to keep the current password, or use Reset Password to generate a temporary password.</div>
+<label>Password</label><div class="password-edit-wrap"><input id="editUserPassword" class="input" type="password" placeholder="Enter new password only if changing"><button type="button" onclick="toggleUserPassword()">👁</button></div>
+<div class="password-help">Leave password blank to keep the current password. Use Reset Password to generate a new temporary password.</div>
 <div class="user-edit-actions"><button type="button" onclick="adminViewAsUser(document.getElementById('editUserFlId').value,document.getElementById('editUserName').value)" style="flex:1;border:0;border-radius:12px;padding:13px;font-weight:900;cursor:pointer;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">👤 Open User Panel</button><button onclick="resetUserPassword()" class="reset-password-btn">🔐 Reset Password</button><button id="saveUserBtn" onclick="saveUserAdmin()" class="save-user-btn">💾 Save Member Changes</button></div>
 </div></div>
 <div id="sec-registrationPayments" style="display:none"><div class="card" style="border:3px solid #f59e0b;background:#fffbeb"><div style="font-weight:800;color:#92400e;font-size:16px">💳 Registration Payment Approvals</div><div style="font-size:11px;color:#78350f;margin-top:6px">Direct ₹2,000 payment registrations. Verify UTR/Hash + screenshot, then approve to create the member account and FL ID.</div><div style="margin-top:8px;padding:9px;border-radius:10px;background:#ecfdf5;border:1px solid #86efac;color:#166534;font-size:11px;font-weight:700">📧 7-ID Rule: Same mobile/email can be used for up to 7 FL IDs. Email #2–#7 will be accepted after the database UNIQUE constraint has been removed.</div><button onclick="loadRegistrationRequests()" style="width:100%;margin-top:12px;background:#f59e0b;color:#fff;border:0;border-radius:12px;padding:13px;font-weight:800">🔄 Load Pending Registrations</button><div class="grid2" style="margin-top:12px"><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Total</div><div id="regTodayTotal" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Pending</div><div id="regTodayPending" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Approved</div><div id="regTodayApproved" style="font-size:24px;font-weight:900">0</div></div><div class="dark-card"><div style="font-size:11px;color:#64748b">Today Rejected</div><div id="regTodayRejected" style="font-size:24px;font-weight:900">0</div></div></div><div id="registrationHistoryList" style="margin-top:12px"></div><div id="registrationRequestsList" style="margin-top:12px"></div></div></div>
@@ -1347,40 +1260,34 @@ function safeText(v){return String(v==null?'':v);}
 function copyAdminText(v){try{navigator.clipboard.writeText(String(v||''));alert('Copied');}catch(e){alert(String(v||''));}}
 function payoutHtml(x){
   const u=adminUserMap[safeText(x.fl_id||x.user_fl_id).toUpperCase()]||{};
-  let method=safeText(x.method||x.payout_method||x.payment_method).trim().toLowerCase();
-  // Older withdrawal rows may not have method saved. Infer only from saved payout details.
-  if(!method){
-    if(u.bank_account_number||u.bank_account_holder||u.bank_ifsc)method='bank';
-    else if(u.usdt_bep20)method='usdt';
-  }
-  let out='';
+  const method=safeText(x.method).toLowerCase();
   if(method==='bank'){
     const holder=escapeHtml(u.bank_account_holder||'Not saved');
     const bank=escapeHtml(u.bank_name||'Not saved');
     const acc=escapeHtml(u.bank_account_number||'Not saved');
     const ifsc=escapeHtml(u.bank_ifsc||'Not saved');
-    out='<div style="margin-top:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px;font-size:11px"><b style="color:#1e40af">🏦 BANK PAYOUT DETAILS</b><div style="margin-top:5px">Holder: <b>'+holder+'</b></div><div>Bank: <b>'+bank+'</b></div><div>Account: <b>'+acc+'</b></div><div>IFSC: <b>'+ifsc+'</b></div></div>';
-  }else if(method==='usdt'){
-    const addr=escapeHtml(u.usdt_bep20||'Not saved');
-    out='<div style="margin-top:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:9px;font-size:11px"><b style="color:#047857">🪙 USDT BEP-20 PAYOUT DETAILS</b><div style="margin-top:5px;word-break:break-all">Address: <b>'+addr+'</b></div></div>';
+    return '<div style="margin-top:8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:9px;font-size:10px"><b style="color:#1e40af">🏦 BANK PAYOUT DETAILS</b><div style="margin-top:5px">Holder: <b>'+holder+'</b></div><div>Bank: <b>'+bank+'</b></div><div>Account: <b>'+acc+'</b></div><div>IFSC: <b>'+ifsc+'</b></div></div>';
   }
-  return out;
+  if(method==='usdt'){
+    const addr=escapeHtml(u.usdt_bep20||'Not saved');
+    return '<div style="margin-top:8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:9px;font-size:10px"><b style="color:#047857">🪙 USDT BEP-20 PAYOUT DETAILS</b><div style="margin-top:5px;word-break:break-all">Address: <b>'+addr+'</b></div></div>';
+  }
+  return '';
 }
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
+function wdIsFinanceTransaction(x){const tx=safeText(x&&x.transaction_type||'').trim().toLowerCase();return tx==='roi_coupon'||tx.includes('withdrawal');}
+function wdIsPendingStatus(s){const x=safeText(s).trim().toLowerCase();return x==='processing'||x==='pending';}
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
 function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
 function wdIsStore(x){const m=safeText(x.method||'').trim().toLowerCase(),t=safeText(x.wallet_type||x.type||'').toLowerCase(),y=safeText(x.transaction_type||'').toLowerCase();return m==='store'||y==='roi_coupon'||t.includes('store')||t.includes('roi');}
 function renderAdminWithdrawCard(x,compact){
   const st=wdStatusLabel(x.status),c=st==='APPROVED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
   const a=Number(x.amount||0),net=x.net_amount!=null?Number(x.net_amount):a;
-  const memberId=safeText(x.fl_id||x.user_fl_id).trim().toUpperCase();
-  const member=adminUserMap[memberId]||{};
-  const who=(member.full_name?escapeHtml(member.full_name)+'<div style="font-size:11px;color:#1d4ed8;margin-top:3px">'+escapeHtml(memberId)+'</div>':escapeHtml(memberId||'Unknown'));
-  const store=escapeHtml(x.store_name||x.store_code||''),id=safeText(x.id);
+  const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown'),store=escapeHtml(x.store_name||x.store_code||''),id=safeText(x.id);
   let b='';
   const currentStatus=safeText(x.status||'processing').trim().toLowerCase();
   if(!compact){
-    if(currentStatus==='processing'){
+    if(wdIsPendingStatus(currentStatus)){
       if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
       else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
     }else if(currentStatus==='approved'||currentStatus==='completed'||currentStatus==='rejected'){
@@ -1388,9 +1295,8 @@ function renderAdminWithdrawCard(x,compact){
     }
   }
   const payout=payoutHtml(x);
-  const actionNote=(safeText(x.status||'processing').trim().toLowerCase()==='processing' && !wdIsStore(x))?'<div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px;font-size:10px;color:#92400e">Send <b>₹'+net.toLocaleString('en-IN')+'</b> to the payout details above only after verifying the member and payment status. Then click Approve.</div>':'';
-  const memberInfo=(member.mobile||member.email)?'<div style="margin-top:7px;background:#f8fafc;border-radius:8px;padding:8px;font-size:10px;color:#475569">'+(member.mobile?'📱 Mobile: <b>'+escapeHtml(member.mobile)+'</b>':'')+(member.mobile&&member.email?' &nbsp; • &nbsp; ':'')+(member.email?'✉️ Email: <b>'+escapeHtml(member.email)+'</b>':'')+'</div>':'';
-  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net to member: <b>₹'+net.toLocaleString('en-IN')+'</b>'+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+memberInfo+payout+actionNote+b+'</div>';
+  const actionNote=(wdIsPendingStatus(x.status||'processing') && !wdIsStore(x))?'<div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px;font-size:10px;color:#92400e">Send <b>₹'+net.toLocaleString('en-IN')+'</b> to the payout details above only after verifying the member and payment status. Then click Approve.</div>':'';
+  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net to member: <b>₹'+net.toLocaleString('en-IN')+'</b>'+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+payout+actionNote+b+'</div>';
 }
 function renderAdminWithdrawals(){
   const l=document.getElementById('adminWithdrawList'),s=document.getElementById('adminStoreList'),h=document.getElementById('adminWithdrawHistory');
@@ -1398,7 +1304,7 @@ function renderAdminWithdrawals(){
   try{
     const q=(document.getElementById('wdSearch')?.value||'').trim().toLowerCase();
     const st=(document.getElementById('wdStatus')?.value||'all').trim().toLowerCase();
-    const rows=adminWithdrawalRows.filter(x=>{const tx=safeText(x.transaction_type||'').trim().toLowerCase();if(tx!=='withdrawal' && tx!=='roi_coupon')return false;const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();const z=safeText(x.status||'processing').trim().toLowerCase();return(!q||hay.includes(q))&&(st==='all'||st===z);});
+    const rows=adminWithdrawalRows.filter(x=>{if(!wdIsFinanceTransaction(x))return false;const hay=[x.fl_id,x.user_fl_id,x.store_name,x.store_code,x.method,x.wallet_type,x.transaction_type,x.coupon_code].map(safeText).join(' ').toLowerCase();let z=safeText(x.status||'processing').trim().toLowerCase();if(z==='pending')z='processing';return(!q||hay.includes(q))&&(st==='all'||st===z);});
     const d=rows.filter(x=>!wdIsStore(x)),r=rows.filter(x=>wdIsStore(x));
     l.innerHTML=d.length?d.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No matching/loan direct withdrawal requests.</div>';
     s.innerHTML=r.length?r.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:14px;text-align:center;color:#64748b">No ROI/store redemption records.</div>';
@@ -1419,8 +1325,8 @@ async function loadAdminWithdrawals(){
       const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds);
       if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[safeText(u.fl_id).toUpperCase()]=u;});
     }
-    const n=x=>safeText(x.status).trim().toLowerCase();
-    const financeRows=adminWithdrawalRows.filter(x=>{const tx=safeText(x.transaction_type||'').trim().toLowerCase();return tx==='withdrawal'||tx==='roi_coupon';});
+    const n=x=>{const v=safeText(x.status).trim().toLowerCase();return v==='pending'?'processing':v;};
+    const financeRows=adminWithdrawalRows.filter(wdIsFinanceTransaction);
     document.getElementById('wdPendingCount').innerText=financeRows.filter(x=>n(x)==='processing').length;
     document.getElementById('wdApprovedCount').innerText=financeRows.filter(x=>['approved','completed'].includes(n(x))).length;
     document.getElementById('wdRejectedCount').innerText=financeRows.filter(x=>n(x)==='rejected').length;
@@ -1458,8 +1364,8 @@ async function adminEditWithdrawalStatus(id){
     await loadAdminWithdrawals();
   }catch(e){alert('Status edit error: '+(e.message||e));}
 }
-async function adminApproveWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;if(!confirm('Approve this withdrawal?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:null});if(r.error)throw r.error;alert('✅ Withdrawal approved. Wallet was already deducted at request time.');await loadAdminWithdrawals();}catch(e){alert('Approval error: '+e.message);}}
-async function adminSettleStore(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const code=safeText(x.store_code).trim();if(!code){alert('Store code is missing.');return;}if(!confirm('Mark this store transaction as settled?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:code});if(r.error)throw r.error;alert('✅ Store settlement completed.');await loadAdminWithdrawals();}catch(e){alert('Store settlement error: '+e.message);}}
+async function adminApproveWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||!wdIsPendingStatus(x.status||'processing'))return;if(!confirm('Approve this withdrawal?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:null});if(r.error)throw r.error;alert('✅ Withdrawal approved. Wallet was already deducted at request time.');await loadAdminWithdrawals();}catch(e){alert('Approval error: '+e.message);}}
+async function adminSettleStore(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||!wdIsPendingStatus(x.status||'processing'))return;const code=safeText(x.store_code).trim();if(!code){alert('Store code is missing.');return;}if(!confirm('Mark this store transaction as settled?'))return;try{const r=await supabaseClient.rpc('flm_approve_withdrawal',{p_transaction_id:Number(id),p_approved_by:getAdminId(),p_store_code:code});if(r.error)throw r.error;alert('✅ Store settlement completed.');await loadAdminWithdrawals();}catch(e){alert('Store settlement error: '+e.message);}}
 async function adminRejectWithdrawal(id){const x=adminWithdrawalRows.find(x=>safeText(x.id)===safeText(id));if(!x||safeText(x.status||'processing').trim().toLowerCase()!=='processing')return;const reason=prompt('Reason for rejection:','Please check payout details.');if(reason===null)return;try{const r=await supabaseClient.rpc('flm_reject_withdrawal',{p_transaction_id:Number(id),p_rejection_reason:reason.trim(),p_rejected_by:getAdminId()});if(r.error)throw r.error;alert('Request rejected and reserved wallet amount returned.');await loadAdminWithdrawals();}catch(e){alert('Reject error: '+e.message);}}
 
 async function getStoreCoords(){
@@ -2361,7 +2267,6 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 
-<script>
 // Store Approval - Official Letter + Email with FLM-KHMTN-RS001 code
 let storeApprovalCounter = parseInt(localStorage.getItem('flm_store_approval_counter') || '1');
 
@@ -2583,6 +2488,5 @@ window.loadRecentStoreApplications = async function(){
     el.innerHTML='<div class="err">Error: '+e.message+'</div>';
   }
 }
-</script>
 
 </body></html>
