@@ -1276,8 +1276,6 @@ function payoutHtml(x){
 }
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
 function wdIsFinanceTransaction(x){
-  // CORRECT: Only transaction_type = 'withdrawal' is real payout request (49 total)
-  // Exclude Daily ROI Credit (3380), matching_bonus, loan_release
   const t = String(x.transaction_type||'').trim().toLowerCase();
   return t === 'withdrawal';
 }
@@ -1338,7 +1336,7 @@ function renderAdminWithdrawals(){
   }
 
   // TOP: Only pending withdrawal requests (Loan, Fund, Matching)
-  l.innerHTML=pendingList.length?pendingList.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:20px;text-align:center;color:#64748b;background:#fff;border:2px dashed #e2e8f0;border-radius:12px">No pending payout requests - All cleared! Total 49 withdrawal requests found (24 approved, 21 rejected).</div>';
+  l.innerHTML=pendingList.length?pendingList.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:20px;text-align:center;color:#64748b;background:#fff;border:2px dashed #e2e8f0;border-radius:12px">No pending payout requests - All cleared! All withdrawals processed. Check counts above for actual totals.</div>';
 
   // ROI store pending
   const storePending = (window.__allFinance||[]).filter(x=>{
@@ -1356,29 +1354,37 @@ async function loadAdminWithdrawals(){
   const l=document.getElementById('adminWithdrawList');if(!l||!supabaseClient)return;
   l.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">Loading ONLY real withdrawal requests (49 total, daily credits excluded)...</div>';
   try{
-    const r=await supabaseClient.from('wallet_transactions').select('*').order('created_at',{ascending:false}).limit(1000);
+    const r=await supabaseClient.from('wallet_transactions').select('*').eq('transaction_type','withdrawal').order('created_at',{ascending:false}).limit(1000);
     if(r.error)throw r.error;
     adminWithdrawalRows=r.data||[];
     adminWithdrawalRows.sort(function(a,b){ function pri(x){var s=String(x.status||'').toLowerCase(); if(s==='processing'||s==='pending') return 0; if(s==='approved') return 1; return 2;} var pa=pri(a),pb=pri(b); if(pa!==pb) return pa-pb; return new Date(b.created_at)-new Date(a.created_at); });
+    
     adminUserMap={};
-    const flIds=[...new Set(adminWithdrawalRows.map(x=>String(x.fl_id||x.user_fl_id||'').trim().toUpperCase()).filter(Boolean))].slice(0,100);
+    const flIds=[...new Set(adminWithdrawalRows.map(x=>String(x.fl_id||x.user_fl_id||'').trim().toUpperCase()).filter(Boolean))];
     if(flIds.length){
-      const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds);
+      const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds.slice(0,100));
       if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[String(u.fl_id).toUpperCase()]=u;});
     }
+    
     const n=x=>{const v=String(x.status||'').trim().toLowerCase();return v==='pending'?'processing':v;};
+
+    // ONLY real withdrawal requests - transaction_type = withdrawal
     const withdrawalRows = adminWithdrawalRows.filter(isRealWithdrawalRequest);
+
     const pending = withdrawalRows.filter(x=>['processing','pending'].includes(n(x)));
     const approved = withdrawalRows.filter(x=>['approved','completed'].includes(n(x)));
     const rejected = withdrawalRows.filter(x=>n(x)==='rejected');
+
     document.getElementById('wdPendingCount').innerText = pending.length;
     document.getElementById('wdApprovedCount').innerText = approved.length;
     document.getElementById('wdRejectedCount').innerText = rejected.length;
     document.getElementById('wdTotalCount').innerText = withdrawalRows.length;
+
     window.__withdrawalRows = withdrawalRows;
     window.__pending = pending;
     window.__allFinance = adminWithdrawalRows;
-    console.log('FLM FINAL: All DB', adminWithdrawalRows.length, 'Only withdrawals', withdrawalRows.length, 'Pending', pending.length, 'Approved', approved.length, 'Rejected', rejected.length);
+
+    console.log('FLM FINAL CORRECT: All DB rows', adminWithdrawalRows.length, 'Only withdrawal requests', withdrawalRows.length, 'Pending', pending.length, 'Approved', approved.length, 'Rejected', rejected.length);
     renderAdminWithdrawals();
   }catch(e){l.innerHTML='<div style="padding:14px;color:#991b1b;background:#fef2f2;border-radius:10px">Error: '+escapeHtml(e.message)+'</div>'; console.error(e);}
 }
@@ -2315,8 +2321,7 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 
-<script>
-<script>\n// Store Approval - Official Letter + Email with FLM-KHMTN-RS001 code
+// Store Approval - Official Letter + Email with FLM-KHMTN-RS001 code
 let storeApprovalCounter = parseInt(localStorage.getItem('flm_store_approval_counter') || '1');
 
 function generateStoreCode(town, district, state, count){
@@ -2538,6 +2543,4 @@ window.loadRecentStoreApplications = async function(){
   }
 }
 
-
-</script>
 </body></html>
