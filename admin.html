@@ -1257,7 +1257,24 @@ setTimeout(checkAllLowStocks, 2000);
 let adminWithdrawalRows=[];
 let adminUserMap={};
 function safeText(v){return String(v==null?'':v);} 
-function copyAdminText(v){try{navigator.clipboard.writeText(String(v||''));alert('Copied');}catch(e){alert(String(v||''));}}
+function copyAdminText(v){try{navigator.clipboard.writeText(String(v||''));alert('Copied');}
+// --- EARLY DEFINITION: Withdrawal filters - defined before any use to avoid ReferenceError ---
+function isRealWithdrawalRequest(x){
+  try{
+    const t = String(x && x.transaction_type || '').trim().toLowerCase();
+    return t === 'withdrawal';
+  }catch(e){ return false; }
+}
+function wdIsFinanceTransaction(x){ return isRealWithdrawalRequest(x); }
+function wdIsStoreRedemption(x){
+  try{
+    const t = String(x && x.transaction_type || '').trim().toLowerCase();
+    return t === 'roi_coupon' || t === 'coupon';
+  }catch(e){ return false; }
+}
+// --- END EARLY DEFINITIONS ---
+
+catch(e){alert(String(v||''));}}
 function payoutHtml(x){
   const u=adminUserMap[safeText(x.fl_id||x.user_fl_id).toUpperCase()]||{};
   const method=safeText(x.method).toLowerCase();
@@ -1275,7 +1292,8 @@ function payoutHtml(x){
   return '';
 }
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
-function wdIsFinanceTransaction(x){const tx=safeText(x&&x.transaction_type||'').trim().toLowerCase();return tx==='roi_coupon'||tx.includes('withdrawal');}
+// duplicate wdIsFinanceTransaction removed (early definition kept)
+
 function wdIsPendingStatus(s){const x=safeText(s).trim().toLowerCase();return x==='processing'||x==='pending';}
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
 function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
