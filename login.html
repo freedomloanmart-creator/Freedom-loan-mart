@@ -84,54 +84,6 @@ body{background:#eef2f7;display:flex;align-items:center;justify-content:center;m
 </style>
 </head>
 <body>
-<style>
-#flmRenewalBanner{
-  position:fixed;top:0;left:0;right:0;z-index:99999;
-  background:linear-gradient(90deg,#dc2626,#b91c1c);
-  color:#fff;text-align:center;
-  padding:12px 40px 12px 16px;
-  font-weight:900;font-size:14px;
-  letter-spacing:0.3px;
-  box-shadow:0 2px 12px rgba(220,38,38,0.5);
-  display:flex;justify-content:center;align-items:center;
-}
-#flmRenewalBanner span{flex:1;text-align:center}
-#flmRenewalBannerClose{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  background:rgba(255,255,255,0.25);border:0;color:#fff;
-  width:28px;height:28px;border-radius:50%;cursor:pointer;font-weight:900;
-}
-#flmRenewalBanner.hidden{display:none !important}
-body{padding-top:48px !important}
-</style>
-<div id="flmRenewalBanner"><span>⚠️ Renewal required contact hosting support</span><button id="flmRenewalBannerClose" onclick="flmHideRenewalBanner()" title="Hide">✕</button></div>
-<script>
-function flmShowRenewalBanner(){
-  var b=document.getElementById('flmRenewalBanner');
-  if(!b) return;
-  var off=localStorage.getItem('flm_renewal_banner_off');
-  if(off==='1'){ b.classList.add('hidden'); document.body.style.paddingTop='0px'; } else { b.classList.remove('hidden'); document.body.style.paddingTop='48px'; }
-}
-function flmHideRenewalBanner(){
-  localStorage.setItem('flm_renewal_banner_off','1');
-  var b=document.getElementById('flmRenewalBanner');
-  if(b) b.classList.add('hidden');
-  document.body.style.paddingTop='0px';
-}
-function flmEnableRenewalBanner(){
-  localStorage.removeItem('flm_renewal_banner_off');
-  var b=document.getElementById('flmRenewalBanner');
-  if(b){ b.classList.remove('hidden'); document.body.style.paddingTop='48px'; }
-}
-function flmDisableRenewalBanner(){
-  localStorage.setItem('flm_renewal_banner_off','1');
-  var b=document.getElementById('flmRenewalBanner');
-  if(b) b.classList.add('hidden');
-  document.body.style.paddingTop='0px';
-}
-document.addEventListener('DOMContentLoaded', function(){ setTimeout(flmShowRenewalBanner, 100); });
-</script>
-
 <div class="card" id="loginWrap">
 <div style="text-align:center;margin-bottom:24px">
   <div style="width:64px;height:64px;background:#2563eb;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px">FLM</div>

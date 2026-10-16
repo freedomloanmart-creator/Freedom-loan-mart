@@ -164,61 +164,7 @@ body{background:#eef2f7;color:#0f172a}
 </style>
 
 </head>
-<body>
-<style>
-#flmRenewalBanner{
-  position:sticky;top:0;z-index:9999;
-  background:linear-gradient(90deg,#dc2626,#b91c1c);
-  color:#fff;text-align:center;
-  padding:10px 40px 10px 16px;
-  font-weight:900;font-size:14px;
-  letter-spacing:0.5px;
-  box-shadow:0 2px 10px rgba(220,38,38,0.4);
-  display:flex;justify-content:center;align-items:center;gap:8px;
-}
-#flmRenewalBanner span{flex:1;text-align:center}
-#flmRenewalBannerClose{
-  position:absolute;right:8px;top:50%;transform:translateY(-50%);
-  background:rgba(255,255,255,0.2);border:0;color:#fff;
-  width:28px;height:28px;border-radius:50%;cursor:pointer;font-weight:900;
-}
-#flmRenewalBanner.hidden{display:none}
-</style>
-<div id="flmRenewalBanner"><span>⚠️ Renewal required contact hosting support</span><button id="flmRenewalBannerClose" onclick="flmHideRenewalBanner()" title="Hide">✕</button></div>
-<script>
-function flmShowRenewalBanner(){
-  var b=document.getElementById('flmRenewalBanner');
-  if(!b) return;
-  var off=localStorage.getItem('flm_renewal_banner_off');
-  if(off==='1'){ b.classList.add('hidden'); } else { b.classList.remove('hidden'); }
-}
-function flmHideRenewalBanner(){
-  localStorage.setItem('flm_renewal_banner_off','1');
-  var b=document.getElementById('flmRenewalBanner');
-  if(b) b.classList.add('hidden');
-}
-function flmEnableRenewalBanner(){
-  localStorage.removeItem('flm_renewal_banner_off');
-  var b=document.getElementById('flmRenewalBanner');
-  if(b) b.classList.remove('hidden');
-}
-function flmDisableRenewalBanner(){
-  localStorage.setItem('flm_renewal_banner_off','1');
-  var b=document.getElementById('flmRenewalBanner');
-  if(b) b.classList.add('hidden');
-}
-document.addEventListener('DOMContentLoaded', function(){ setTimeout(flmShowRenewalBanner, 100); });
-(function(){
-  var origShowSec = window.showSec;
-  if(origShowSec){
-    window.showSec = function(id,fromPop){
-      origShowSec(id,fromPop);
-      setTimeout(flmShowRenewalBanner, 50);
-    };
-  }
-})();
-</script>
-<!-- FLM_MATCHING_FINAL_BUILD_20260918 -->
+<body><!-- FLM_MATCHING_FINAL_BUILD_20260918 -->
 <div style="padding:12px" id="main">
 <div class="banner"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(15,23,42,.7),rgba(14,116,144,.5));"></div><div class="banner-text"><div style="font-size:12px;opacity:.8">Member's</div><div style="font-size:18px;font-weight:800">Dashboard</div></div><div style="position:absolute;right:12px;top:12px;background:#fff;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e3a8a">FREEDOM LOANS MART<br><span style="font-size:8px;font-weight:400">Way to your Financial Freedom</span></div><div id="flmBannerMedia" style="display:none;position:absolute;left:46%;right:12px;top:48px;bottom:10px;overflow:hidden;border-radius:14px;background:rgba(15,23,42,.18);z-index:3"></div></div>
 <div class="topbar" style="margin-top:12px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;cursor:pointer" onclick="toggleMenu()">☰</span><b style="font-size:16px;color:#1e3a8a" id="topTitle">Dashboard</b></div><div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;padding:6px 10px;border-radius:999px"><div><div style="font-size:11px;font-weight:800;color:#1e40af" id="topName">Loading...</div><div style="font-size:10px;color:#64748b" id="topFlId">FL ID</div></div></div></div>
