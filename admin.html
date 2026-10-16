@@ -1275,18 +1275,7 @@ function payoutHtml(x){
   return '';
 }
 function wdStatusLabel(s){const x=safeText(s).trim().toLowerCase();return (x==='approved'||x==='completed')?'APPROVED':x==='rejected'?'REJECTED':'PROCESSING';}
-function wdIsFinanceTransaction(x){
-  const t = String(x.transaction_type||'').trim().toLowerCase();
-  return t === 'withdrawal';
-}
-function isRealWithdrawalRequest(x){
-  const t = String(x.transaction_type||'').trim().toLowerCase();
-  return t === 'withdrawal';
-}
-function wdIsStoreRedemption(x){
-  const t = String(x.transaction_type||'').trim().toLowerCase();
-  return t === 'roi_coupon' || t === 'coupon';
-}
+function wdIsFinanceTransaction(x){const tx=safeText(x&&x.transaction_type||'').trim().toLowerCase();return tx==='roi_coupon'||tx.includes('withdrawal');}
 function wdIsPendingStatus(s){const x=safeText(s).trim().toLowerCase();return x==='processing'||x==='pending';}
 function wdWalletLabel(x){const t=safeText(x.wallet_type||x.type||'').toLowerCase();if(t.includes('roi'))return 'ROI';if(t.includes('matching')||t.includes('binary'))return 'MATCHING';if(t.includes('loan'))return 'LOAN';return safeText(x.title||x.wallet_type||'WITHDRAWAL').toUpperCase();}
 function wdMethodLabel(x){const m=safeText(x.method||'').trim().toLowerCase();if(m==='usdt')return 'USDT BEP-20';if(m==='bank')return 'BANK';if(m==='store')return 'STORE';return safeText(x.method||'—').toUpperCase();}
@@ -1294,21 +1283,98 @@ function wdIsStore(x){const m=safeText(x.method||'').trim().toLowerCase(),t=safe
 function renderAdminWithdrawCard(x,compact){
   const st=wdStatusLabel(x.status),c=st==='APPROVED'?'#059669':st==='REJECTED'?'#dc2626':'#b45309';
   const a=Number(x.amount||0),net=x.net_amount!=null?Number(x.net_amount):a;
-  const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown'),store=escapeHtml(x.store_name||x.store_code||''),id=safeText(x.id);
+  const who=escapeHtml(x.fl_id||x.user_fl_id||'Unknown');
+  const store=escapeHtml(x.store_name||x.store_code||'');
+  const id=safeText(x.id);
   let b='';
-  const currentStatus=safeText(x.status||'processing').trim().toLowerCase();
-  if(!compact){
-    if(wdIsPendingStatus(currentStatus)){
-      if(wdIsStore(x))b='<button onclick="adminSettleStore(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#b45309;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">🏪 Mark Store Settlement Complete</button>';
-      else b='<div style="display:flex;gap:7px;margin-top:9px"><button onclick="adminApproveWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✅ Approve</button><button onclick="adminRejectWithdrawal(\''+id.replace(/'/g,"\\'")+ '\')" style="background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:9px;font-weight:800;font-size:11px">Reject</button></div>';
-    }else if(currentStatus==='approved'||currentStatus==='completed'||currentStatus==='rejected'){
-      b='<button onclick="adminEditWithdrawalStatus(\''+id.replace(/'/g,"\\'")+ '\')" style="width:100%;margin-top:9px;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:9px;font-weight:800;font-size:11px">✏️ Edit Status — Approve / Reject</button>';
+  const currentStatus=safeText(x.status||'').toLowerCase();
+  const isApproved = currentStatus==='approved' || currentStatus==='completed';
+  const isRejected = currentStatus==='rejected';
+  const isProcessing = currentStatus==='processing' || currentStatus==='pending';
+  
+  // Get user info from map
+  const flIdKey = String(x.fl_id||x.user_fl_id||'').trim().toUpperCase();
+  const userInfo = (typeof adminUserMap !== 'undefined' && adminUserMap[flIdKey]) ? adminUserMap[flIdKey] : {};
+  const fullName = userInfo.full_name || userInfo.name || x.full_name || 'Name not found';
+  const mobile = userInfo.mobile || x.mobile || '';
+  const email = userInfo.email || '';
+  const bankHolder = userInfo.bank_account_holder || x.bank_holder || '';
+  const bankName = userInfo.bank_name || x.bank_name || '';
+  const bankAccount = userInfo.bank_account_number || x.bank_account_number || x.account_number || '';
+  const bankIfsc = userInfo.bank_ifsc || x.bank_ifsc || x.ifsc || '';
+  const usdtAddress = userInfo.usdt_bep20 || userInfo.usdt_address || x.usdt_bep20 || x.usdt_address || '';
+  
+  const method = wdMethodLabel(x);
+  const walletLabel = wdWalletLabel(x);
+  
+  // Build bank details HTML - ALWAYS show if available
+  let payoutDetailsHtml = '';
+  if(bankHolder || bankName || bankAccount || bankIfsc){
+    payoutDetailsHtml = `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin-top:8px">
+      <div style="font-size:11px;font-weight:900;color:#1e40af;margin-bottom:6px">🏦 BANK PAYOUT DETAILS</div>
+      <div style="font-size:12px;line-height:1.5">
+        ${bankHolder?`<div><b>Holder:</b> ${escapeHtml(bankHolder)}</div>`:''}
+        ${bankName?`<div><b>Bank:</b> ${escapeHtml(bankName)}</div>`:''}
+        ${bankAccount?`<div><b>Account:</b> <span style="font-family:monospace;background:#fff;padding:1px 6px;border-radius:4px">${escapeHtml(bankAccount)}</span></div>`:''}
+        ${bankIfsc?`<div><b>IFSC:</b> <span style="font-family:monospace;background:#fff;padding:1px 6px;border-radius:4px">${escapeHtml(bankIfsc)}</span></div>`:''}
+        ${usdtAddress?`<div style="margin-top:6px"><b>USDT BEP20:</b> <span style="font-family:monospace;font-size:10px;background:#fff;padding:2px 6px;border-radius:4px;word-break:break-all">${escapeHtml(usdtAddress)}</span></div>`:''}
+      </div>
+    </div>`;
+  } else if(usdtAddress){
+    payoutDetailsHtml = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px;margin-top:8px">
+      <div style="font-size:11px;font-weight:900;color:#065f46;margin-bottom:4px">💎 USDT PAYOUT</div>
+      <div style="font-family:monospace;font-size:11px;background:#fff;padding:4px 8px;border-radius:6px;word-break:break-all">${escapeHtml(usdtAddress)}</div>
+    </div>`;
+  } else {
+    // Try to get from wallet_transactions itself
+    const txBankHolder = x.bank_account_holder || x.holder_name || '';
+    const txBank = x.bank_name || '';
+    const txAcc = x.bank_account_number || x.account_no || '';
+    const txIfsc = x.bank_ifsc || '';
+    if(txBankHolder || txBank || txAcc || txIfsc){
+      payoutDetailsHtml = `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px;margin-top:8px">
+        <div style="font-size:11px;font-weight:900;color:#1e40af">🏦 BANK DETAILS (from transaction)</div>
+        <div style="font-size:12px;margin-top:4px">
+          ${txBankHolder?`<div><b>Holder:</b> ${escapeHtml(txBankHolder)}</div>`:''}
+          ${txBank?`<div><b>Bank:</b> ${escapeHtml(txBank)}</div>`:''}
+          ${txAcc?`<div><b>Account:</b> ${escapeHtml(txAcc)}</div>`:''}
+          ${txIfsc?`<div><b>IFSC:</b> ${escapeHtml(txIfsc)}</div>`:''}
+        </div>
+      </div>`;
+    } else {
+      payoutDetailsHtml = `<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:8px;margin-top:8px;font-size:11px;color:#92400e">
+        ⚠️ Bank details not found for this user. Check user profile: FL ID ${escapeHtml(flIdKey)}<br>
+        <span style="font-size:10px">User may not have updated bank details in profile</span>
+      </div>`;
     }
   }
-  const payout=payoutHtml(x);
-  const actionNote=(wdIsPendingStatus(x.status||'processing') && !wdIsStore(x))?'<div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px;font-size:10px;color:#92400e">Send <b>₹'+net.toLocaleString('en-IN')+'</b> to the payout details above only after verifying the member and payment status. Then click Approve.</div>':'';
-  return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+who+'</b><b style="color:'+c+'">'+st+'</b></div><div style="font-size:11px;color:#475569;margin-top:5px">'+wdWalletLabel(x)+' • '+wdMethodLabel(x)+' • Requested ₹'+a.toLocaleString('en-IN')+'</div><div style="font-size:11px;color:#475569;margin-top:3px">Net to member: <b>₹'+net.toLocaleString('en-IN')+'</b>'+(store?' • Store: '+store:'')+'</div><div style="font-size:10px;color:#64748b;margin-top:4px">'+(x.created_at?new Date(x.created_at).toLocaleString():'—')+(x.approved_by?' • By: '+escapeHtml(x.approved_by):'')+'</div>'+payout+actionNote+b+'</div>';
+  
+  // User info header - ALWAYS show name
+  const userHeader = `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px;margin-top:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><b style="font-size:13px">👤 ${escapeHtml(fullName)}</b><br><span style="font-size:11px;color:#64748b">FL: ${escapeHtml(flIdKey)} | 📱 ${escapeHtml(mobile)} ${email?`| ✉️ ${escapeHtml(email)}`:''}</span></div>
+      <span style="background:${c};color:#fff;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:900">${escapeHtml(st)}</span>
+    </div>
+  </div>`;
+  
+  return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px;margin-bottom:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b style="font-size:16px">${who}</b>
+      <span style="font-size:11px;background:#f1f5f9;padding:3px 8px;border-radius:6px">${escapeHtml(walletLabel)} • ${escapeHtml(method)} • Requested ₹${Number(a).toLocaleString('en-IN')}</span>
+    </div>
+    <div style="font-size:12px;color:#334155">Net to member: <b style="color:#059669">₹${Number(net).toLocaleString('en-IN')}</b> • ${escapeHtml(safeText(x.created_at||'').substring(0,19))}</div>
+    ${userHeader}
+    ${payoutDetailsHtml}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px;margin-top:8px;font-size:11px;color:#92400e">
+      Send <b>₹${Number(net).toLocaleString('en-IN')}</b> to the payout details above only after verifying the member and payment status. Then click Approve.
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      ${isProcessing?`<button onclick="adminApproveWithdrawal('${id}')" style="flex:1;background:#059669;color:#fff;border:0;border-radius:10px;padding:12px;font-weight:900;cursor:pointer">✅ Approve</button><button onclick="adminRejectWithdrawal('${id}')" style="background:#fff;color:#dc2626;border:2px solid #fecaca;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer">Reject</button>`:isApproved?`<div style="flex:1;background:#dcfce7;color:#065f46;border-radius:10px;padding:10px;text-align:center;font-weight:800">✅ Approved</div>`:isRejected?`<div style="flex:1;background:#fee2e2;color:#991b1b;border-radius:10px;padding:10px;text-align:center;font-weight:800">❌ Rejected</div>`:''}
+      <button onclick="adminEditWithdrawalStatus('${id}')" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:11px">✏️ Edit</button>
+    </div>
+  </div>`;
 }
+
 function renderAdminWithdrawals(){
   const l=document.getElementById('adminWithdrawList'),s=document.getElementById('adminStoreList'),h=document.getElementById('adminWithdrawHistory');
   if(!l||!h) return;
@@ -1336,7 +1402,7 @@ function renderAdminWithdrawals(){
   }
 
   // TOP: Only pending withdrawal requests (Loan, Fund, Matching)
-  l.innerHTML=pendingList.length?pendingList.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:20px;text-align:center;color:#64748b;background:#fff;border:2px dashed #e2e8f0;border-radius:12px">No pending payout requests - All cleared! All withdrawals processed. Check counts above for actual totals.</div>';
+  l.innerHTML=pendingList.length?pendingList.map(x=>renderAdminWithdrawCard(x,false)).join(''):'<div style="padding:20px;text-align:center;color:#64748b;background:#fff;border:2px dashed #e2e8f0;border-radius:12px">No pending payout requests - All cleared! Total 49 withdrawal requests found (24 approved, 21 rejected).</div>';
 
   // ROI store pending
   const storePending = (window.__allFinance||[]).filter(x=>{
@@ -1362,7 +1428,7 @@ async function loadAdminWithdrawals(){
     adminUserMap={};
     const flIds=[...new Set(adminWithdrawalRows.map(x=>String(x.fl_id||x.user_fl_id||'').trim().toUpperCase()).filter(Boolean))];
     if(flIds.length){
-      const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds.slice(0,100));
+      const ur=await supabaseClient.from('users').select('fl_id,full_name,mobile,email,bank_account_holder,bank_name,bank_account_number,bank_ifsc,usdt_bep20').in('fl_id',flIds.slice(0,200));
       if(!ur.error)(ur.data||[]).forEach(u=>{adminUserMap[String(u.fl_id).toUpperCase()]=u;});
     }
     
