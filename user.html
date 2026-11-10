@@ -2634,8 +2634,10 @@ async function loadLoanPanel(){
       var dbCredited=loanNum(firstVal(currentRoi,['total_credited','total_amount_credited','credited_amount'],0));
       var walletTotalCredited=0;
       try{ if(typeof syncTotal!=='undefined' && syncTotal>0) walletTotalCredited=syncTotal; else if(typeof roiSyncTxs!=='undefined' && roiSyncTxs.length){ walletTotalCredited=roiSyncTxs.reduce(function(s,tx){return s+loanNum(tx.amount);},0); } }catch(e){}
-      var credited=Math.max(dbCredited, walletTotalCredited);
-      if(credited===0 && done>0){ credited=daily*done; }
+      // DISPLAY ONLY: show the amount actually posted as successful ROI credits.
+      // Calendar progress must never be converted into money; this avoids showing
+      // an extra Rs.40 when one elapsed day has not yet been credited.
+      var credited=walletTotalCredited>0 ? walletTotalCredited : dbCredited;
       var lastRaw=firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],null);
       try{ if(!lastRaw && typeof syncLast!=='undefined' && syncLast && syncLast.created_at) lastRaw=syncLast.created_at; }catch(e){}
       currentRoi.__last_display = lastRaw;
