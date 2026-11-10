@@ -29,7 +29,12 @@ function showSec(id,fromPop){
  var tt=document.getElementById('topTitle');if(tt&&titleMap[id]) tt.innerText=titleMap[id];
  if(!fromPop)localStorage.setItem('flm_last_section',id);var menuItems=document.querySelectorAll('.menu-item');for(var mi=0;mi<menuItems.length;mi++){menuItems[mi].classList.remove('active');var oc=menuItems[mi].getAttribute('onclick')||'';if(oc.indexOf("showSec('"+id+"'")>=0)menuItems[mi].classList.add('active');}if(FLM_NAV_READY&&!fromPop) history.pushState({flmSection:id},'',window.location.href.split('#')[0]);
  if(id==='rewards') loadRewards();if(id==='dashboard')setTimeout(loadScrolls,0);
- if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){loadWalletData();loadWalletHistory();}if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans'){
+ if(id==='profile') loadProfile();if(id==='invite') loadInvite();if(id==='downline') loadDownline();if(id==='tokens') loadPins();if(id==='wallets'){
+   loadWalletData();loadWalletHistory();
+   /* Load the same authoritative ROI-cycle record used by Company Fund, then mirror it into My Wallets.
+      The standalone ROI RPC can be unavailable for legacy activations, so do not use it as the only source. */
+   Promise.resolve().then(function(){return loadLoanPanel();}).then(function(){flmMirrorRoiCycleToWallet();}).catch(function(e){console.log('Wallet ROI cycle display:',e.message||e);});
+  }if(id==='coupons'){loadRoiCouponsPage();}if(id==='loans'){
    // Company Fund release/sync can update wallets.loan_wallet during loadLoanPanel().
    // Read the wallet again immediately and paint the Fund Wallet card; the member
    // must NOT click Open Fund Wallet just to make the released amount appear.
@@ -1256,7 +1261,9 @@ function flmMirrorRoiCycleToWallet(){
              .replace(/font-size:11px/g,'font-size:10px');
     target.innerHTML='<b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b>'+html;
   }else if(source){
-    target.innerHTML='<b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b><div style="margin-top:5px">'+(source.innerText||'No ROI cycle found.')+'</div>';
+    target.innerHTML='<b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b><div style="margin-top:5px">'+(source.innerText||'ROI cycle details are not available yet.')+'</div>';
+  }else{
+    target.innerHTML='<b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b><div style="margin-top:5px">Loading ROI cycle details...</div>';
   }
 }
 function money(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
