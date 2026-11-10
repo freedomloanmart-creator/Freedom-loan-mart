@@ -234,7 +234,7 @@ body{background:#eef2f7;color:#0f172a}
     <div style="font-size:11px;opacity:.75;margin-top:4px">ROI + Matching Bonus + Fund Amount</div>
   </div>
   <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div onclick="openWalletAction('roi')" style="background:linear-gradient(135deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#1d4ed8;font-weight:700">ROI WALLET</div><div id="roiWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div style="font-size:10px;color:#475569;margin-top:5px">Tap to redeem • Min ₹1,000</div></div>
+    <div onclick="openWalletAction('roi')" style="grid-column:1 / -1;background:linear-gradient(135deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#1d4ed8;font-weight:700">ROI WALLET</div><div id="roiWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div style="font-size:10px;color:#475569;margin-top:5px">Tap to redeem • Min ₹1,000</div><div id="roiWalletCycleSummary" onclick="event.stopPropagation()" style="margin-top:10px;padding-top:10px;border-top:1px solid #bfdbfe;color:#475569;font-size:11px;line-height:1.45"><b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b><div style="margin-top:5px">Loading ROI cycle details...</div></div></div>
     <div onclick="openWalletAction('matching')" style="background:linear-gradient(135deg,#dcfce7,#f0fdf4);border:1px solid #bbf7d0;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#047857;font-weight:700">MATCHING INCOME</div><div id="matchingWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div id="matchingPairs" style="font-size:10px;color:#475569;margin-top:5px">0 pairs</div><div id="matchingBalanceNote" style="font-size:9px;color:#64748b;margin-top:4px"></div></div>
     <div onclick="openWalletAction('loan')" style="background:linear-gradient(135deg,#fef3c7,#fffbeb);border:1px solid #fde68a;border-radius:16px;padding:14px;cursor:pointer"><div style="font-size:11px;color:#b45309;font-weight:700">FUND WALLET</div><div id="loanWallet" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div id="loanEligible" style="font-size:10px;color:#475569;margin-top:5px">Eligible amount</div></div>
     <div style="background:linear-gradient(135deg,#ede9fe,#f5f3ff);border:1px solid #ddd6fe;border-radius:16px;padding:14px"><div style="font-size:11px;color:#6d28d9;font-weight:700">TOTAL WITHDRAWN</div><div id="totalWithdrawn" style="font-size:24px;font-weight:900;color:#0f172a;margin-top:5px">Rs. 0.00</div><div style="font-size:10px;color:#475569;margin-top:5px">ROI + Matching + Fund</div></div>
@@ -1243,6 +1243,22 @@ window.addEventListener('pageshow',function(){if(getFlId()){var saved=localStora
 <script>
 var FLM_LOAN_AVAILABLE=0, FLM_LOAN_LEVEL=0, FLM_LOAN_PREVIOUS=0, FLM_LOAN_GROSS=0;
 var FLM_WALLET={roi:0,matching:0,loan:0,total:0,totalWithdrawn:0,pairs:0,dailyPairs:0,dailyIncome:0,store:null};
+function flmMirrorRoiCycleToWallet(){
+  var source=document.getElementById('loanRoiCycleBox');
+  var target=document.getElementById('roiWalletCycleSummary');
+  if(!target)return;
+  if(source && source.innerHTML && source.innerText.trim()!=='No ROI cycle found.'){
+    var html=source.innerHTML;
+    // The wallet tile is full-width on mobile; keep the same figures in a compact layout.
+    html=html.replace(/grid-template-columns\s*:\s*1fr\s+1fr/g,'grid-template-columns:1fr 1fr')
+             .replace(/padding:10px/g,'padding:7px')
+             .replace(/font-size:10px/g,'font-size:9px')
+             .replace(/font-size:11px/g,'font-size:10px');
+    target.innerHTML='<b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b>'+html;
+  }else if(source){
+    target.innerHTML='<b style="color:#1d4ed8;font-size:12px">📅 CURRENT ROI CYCLE</b><div style="margin-top:5px">'+(source.innerText||'No ROI cycle found.')+'</div>';
+  }
+}
 function money(v){return 'Rs. '+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 async function refreshWalletSection(){
   if(!requireLogin()) return;
@@ -1330,6 +1346,7 @@ async function loadWalletData(){
   FLM_WALLET.total=Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0);
   var pendingTotal=pm+pl;var pe=document.getElementById('pendingWithdraw');if(pe)pe.innerText=money(pendingTotal);var ids={totalAmount:Number(FLM_WALLET.roi||0)+Number(FLM_WALLET.matching||0)+Number(FLM_WALLET.loan||0),roiWallet:ra,matchingWallet:ma,loanWallet:Number(FLM_WALLET.loan||0),totalWithdrawn:0};Object.keys(ids).forEach(function(k){var e=document.getElementById(k);if(e)e.innerText=money(ids[k]);});
   var mp=document.getElementById('matchingPairs');if(mp)mp.innerText=FLM_WALLET.pairs+' total pairs • '+FLM_WALLET.dailyPairs+'/25 today';var le=document.getElementById('loanEligible');if(le)le.innerText=Number(FLM_WALLET.loan||0)>0?'Released fund wallet: '+money(FLM_WALLET.loan):'Not currently eligible';var note=document.getElementById('matchingBalanceNote');if(note)note.innerText=pm?'₹'+pm.toLocaleString('en-IN')+' matching withdrawal pending • Available ₹'+ma.toLocaleString('en-IN'):'';
+  flmMirrorRoiCycleToWallet();
   try{var t=await supabaseClient.from('wallet_transactions').select('wallet_type,transaction_type,amount,status').eq('fl_id',flId).in('status',['approved','completed']);var sum=(t.data||[]).reduce(function(a,x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase();var isWithdrawal=(tt==='withdrawal'&&['roi','matching','loan'].indexOf(wt)>=0)||(tt==='roi_coupon'&&wt==='roi')||(tt==='pin_purchase'&&['matching','loan'].indexOf(wt)>=0);return isWithdrawal?a+Number(x.amount||0):a;},0);FLM_WALLET.totalWithdrawn=sum;var te=document.getElementById('totalWithdrawn');if(te)te.innerText=money(sum);}catch(e){}
  }catch(e){console.log('wallet load',e.message);}
 }
@@ -2616,6 +2633,7 @@ async function loadLoanPanel(){
       try{ if(!lastRaw && typeof syncLast!=='undefined' && syncLast && syncLast.created_at) lastRaw=syncLast.created_at; }catch(e){}
       currentRoi.__last_display = lastRaw;
       var remaining=Math.max(0,totalDays-done);rbbox.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+loanMoney(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+loanMoney(credited)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['start_date','started_at','created_at'],null)))+'<br>End: '+loanEsc(flmRoiIstDateOnly(firstVal(currentRoi,['end_date','ends_at'],null)))+'<br>Last Credit: '+loanEsc(currentRoi.__last_display||firstVal(currentRoi,['last_credited_date','last_credit_date','last_credited_at'],'—'))+'<br>Status: '+loanEsc(firstVal(currentRoi,['status'],'—'))+'<br><b>Self Renewal opens: '+loanEsc(flmRenewalUnlockText(firstVal(currentRoi,['start_date','started_at','created_at'],null)))+'</b></div>';}else rbbox.innerHTML='No ROI cycle found. The first ROI cycle starts only after the database records a valid initial loan cycle.';}
+    flmMirrorRoiCycleToWallet();
     // Show the released loan history separately from the NEXT eligible loan.
     // This makes it clear that the ₹1,000 Fund 1 release is already completed while
     // the next Fund 2 remains locked until 4:4.
@@ -3412,6 +3430,7 @@ async function claimReward(pairs, name){
       }
       var done=Math.min(totalDays,elapsedDays),remaining=Math.max(0,totalDays-done),creditTotal=credited;
       var rb=document.getElementById('loanRoiCycleBox');if(rb){rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+istDateOnly(start)+'<br>End: '+istDateOnly(cycle.end_date||cycle.ends_at||(start?new Date(new Date(start).getTime()+49*86400000):null))+'<br>Last Credit: '+istText(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';}
+      flmMirrorRoiCycleToWallet();
       var note=document.getElementById('selfRenewNote');var renewalDate=flmRenewalUnlockDate(start);var dateComplete=renewalDate ? Date.now()>=renewalDate.getTime() : false;if(note)note.innerText=!dateComplete?'🔒 Self Renewal is locked. You can renew on '+flmRenewalUnlockText(start)+' (50-day cycle from the start date).':'✅ 50 days completed from the ROI cycle start date. Self Renewal is available now with a valid unused PIN.';var renewBtn=document.getElementById('loanRenewBtn');if(renewBtn)renewBtn.disabled=!dateComplete;
     }catch(e){console.log('ROI reconcile:',e.message||e);}
   }
