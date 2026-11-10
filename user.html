@@ -3428,8 +3428,29 @@ async function claimReward(pairs, name){
       var cycle=Array.isArray(c.data)?(c.data[0]||{}):(c.data||{});if(c.error||!cycle||!Object.keys(cycle).length)return;
       var totalDays=Number(cycle.total_days||cycle.days||50)||50,daily=Number(cycle.daily_amount||cycle.amount_per_day||cycle.daily_roi||40)||40,start=cycle.start_date||cycle.started_at||cycle.created_at;
       var tx=await supabaseClient.from('wallet_transactions').select('amount,created_at,wallet_type,transaction_type,title,status').eq('fl_id',fl).in('status',['completed','approved']).order('created_at',{ascending:true});if(tx.error)return;
-      var startKey=istDayKey(start),days={},credited=0,last=null;
-      (tx.data||[]).forEach(function(x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);if(amt<=0||tt==='withdrawal')return;if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;var k=istDayKey(x.created_at);if(!k|| (startKey&&k<startKey))return;days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;});
+      var startKey=istDayKey(start),days={},credited=0,last=null,matchedCredits=0;
+      (tx.data||[]).forEach(function(x){
+        var wt=String(x.wallet_type||'').toLowerCase().trim();
+        var tt=String(x.transaction_type||'').toLowerCase().trim();
+        var title=String(x.title||'').toLowerCase().trim();
+        var remarks=String(x.remarks||'').toLowerCase().trim();
+        var amt=Number(x.amount||0);
+        var isWithdrawal=tt.indexOf('withdraw')>=0||title.indexOf('withdraw')>=0||remarks.indexOf('withdraw')>=0;
+        var isDeduction=tt.indexOf('deduction')>=0||title.indexOf('deduction')>=0||remarks.indexOf('deduction')>=0;
+        var isRoiCredit=wt.indexOf('roi')>=0||tt.indexOf('roi')>=0||
+          title.indexOf('roi')>=0||remarks.indexOf('roi')>=0;
+        if(amt<=0||isWithdrawal||isDeduction||!isRoiCredit)return;
+        var k=istDayKey(x.created_at);
+        if(!k||(startKey&&k<startKey))return;
+        days[k]=true;credited+=amt;matchedCredits++;
+        if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;
+      });
+      // Do not overwrite a valid Company Fund total with zero if this account's
+      // legacy transaction labels are not recognized by the display query.
+      if(matchedCredits===0){
+        console.log('ROI display: no matching credit transactions; keeping Company Fund value.');
+        return;
+      }
       var startDateObj=start?new Date(start):null, elapsedDays=0;
       if(startDateObj&&!isNaN(startDateObj.getTime())){
         var todayObj=new Date(), startIST=new Date(startDateObj.getTime()+330*60000), todayIST=new Date(todayObj.getTime()+330*60000);
