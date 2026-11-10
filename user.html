@@ -2308,23 +2308,18 @@ async function loadLoanPanel(){
         console.log('ROI transaction query:',roiSyncR.error.message);
       }
 
-      // If there is no ROI-cycle row and no ROI credit yet, the business rule is
-      // still a 50-day ROI cycle starting from the member's joining date.
-      // This is display-only and does not create/update any database row.
+      // Missing cycle fallback uses activation date only, never registration date.
       if(!currentRoi){
         try{
-          var memberJoinR=await supabaseClient.from('users').select('created_at').eq('fl_id',flId).single();
-          var memberJoin=memberJoinR.data&&memberJoinR.data.created_at;
-          var mj=memberJoin?new Date(memberJoin):null;
-          if(mj && !isNaN(mj.getTime())){
-            currentRoi={
-              daily_amount:40,total_days:50,days_completed:0,total_credited:0,
-              start_date:mj.toISOString(),
-              end_date:new Date(mj.getTime()+49*86400000).toISOString(),
-              last_credited_date:null,status:'active',__display_fallback:true,__joining_date_fallback:true
-            };
+          var memberActR=await supabaseClient.from('users').select('activated_at').eq('fl_id',flId).single();
+          var memberAct=memberActR.data&&memberActR.data.activated_at;
+          var ma=memberAct?new Date(memberAct):null;
+          if(ma && !isNaN(ma.getTime())){
+            currentRoi={daily_amount:40,total_days:50,days_completed:0,total_credited:0,
+              start_date:ma.toISOString(),end_date:new Date(ma.getTime()+49*86400000).toISOString(),
+              last_credited_date:null,status:'active',__display_fallback:true,__activation_date_fallback:true};
           }
-        }catch(joinDateErr){console.log('Joining-date ROI fallback:',joinDateErr.message);}
+        }catch(activationDateErr){console.log('Activation-date ROI fallback:',activationDateErr.message);}
       }
 
       // Last-resort cycle display from the released loan when both the cycle row
@@ -2345,20 +2340,18 @@ async function loadLoanPanel(){
       console.log('Final ROI display sync:',finalRoiSyncErr.message||finalRoiSyncErr);
     }
 
-    // BUSINESS RULE: when there is no loan_roi_cycles row, the visible 50-day
-    // ROI cycle starts from the member's joining/registration date, not from
-    // the date of the first ROI transaction. This is display-only.
+    // Without a cycle row, normalize display from users.activated_at only.
     if(!hasDbRoiCycle){
       try{
-        var joinR=await supabaseClient.from('users').select('created_at').eq('fl_id',flId).single();
-        var joinRaw=joinR.data&&joinR.data.created_at, joinDate=joinRaw?new Date(joinRaw):null;
-        if(joinDate && !isNaN(joinDate.getTime())){
+        var actR=await supabaseClient.from('users').select('activated_at').eq('fl_id',flId).single();
+        var actRaw=actR.data&&actR.data.activated_at, activationDate=actRaw?new Date(actRaw):null;
+        if(activationDate && !isNaN(activationDate.getTime())){
           if(!currentRoi) currentRoi={daily_amount:40,total_days:50,days_completed:0,total_credited:0,status:'active',__display_fallback:true};
-          currentRoi.start_date=joinDate.toISOString();
-          currentRoi.end_date=new Date(joinDate.getTime()+49*86400000).toISOString();
+          currentRoi.start_date=activationDate.toISOString();
+          currentRoi.end_date=new Date(activationDate.getTime()+49*86400000).toISOString();
           currentRoi.total_days=50;
         }
-      }catch(joinNormalizeErr){console.log('Joining-date ROI normalization:',joinNormalizeErr.message);}
+      }catch(activationNormalizeErr){console.log('Activation-date ROI normalization:',activationNormalizeErr.message);}
     }
 
     // Use exactly the same live tree calculation as the Binary Tree popup.
@@ -2593,19 +2586,20 @@ async function loadLoanPanel(){
     var end=firstVal(currentRoi,['end_date','ends_at'],null);
     var dbDone=loanNum(firstVal(currentRoi,['days_completed','days_paid','completed_days'],0));
     var totalDays=loanNum(firstVal(currentRoi,['total_days','days'],50))||50;
-    // --- FINAL FIX 2026-09-17 CREDIT-BASED ---
-    // User requirement: Register -> 0/50, after 1st credit -> 1/50, 49 remaining
-    // So done = MAX(DB days, actual credited unique days from wallet_transactions)
-    // Calendar days NOT counted until credit happens.
-    var walletDays=0;
-    try{
-      if(typeof roiSyncTxs!=='undefined' && roiSyncTxs && roiSyncTxs.length){
-        var _ud={}; roiSyncTxs.forEach(function(tx){ var d=new Date(tx.created_at); if(isNaN(d.getTime()))return; var dd=new Date(d.getTime()+330*60000); var k=dd.getUTCFullYear()+'-'+String(dd.getUTCMonth()+1).padStart(2,'0')+'-'+String(dd.getUTCDate()).padStart(2,'0'); _ud[k]=true; }); walletDays=Object.keys(_ud).length;
-      }
-    }catch(e){}
-    var done=Math.max(dbDone, walletDays);
-    if(done>totalDays) done=totalDays;
+    // Days elapsed are calendar days from ACTIVATION DATE in IST, inclusive.
+    // Actual ROI amount remains independently calculated from credited transactions.
     var cycleStart=firstVal(currentRoi,['start_date','started_at','created_at'],null);
+    var elapsedDays=0;
+    if(cycleStart){
+      var _start=new Date(cycleStart), _now=new Date();
+      if(!isNaN(_start.getTime())){
+        var _startIST=new Date(_start.getTime()+330*60000), _nowIST=new Date(_now.getTime()+330*60000);
+        var _startDay=Date.UTC(_startIST.getUTCFullYear(),_startIST.getUTCMonth(),_startIST.getUTCDate());
+        var _todayDay=Date.UTC(_nowIST.getUTCFullYear(),_nowIST.getUTCMonth(),_nowIST.getUTCDate());
+        elapsedDays=Math.max(0,Math.floor((_todayDay-_startDay)/86400000)+1);
+      }
+    }
+    var done=Math.min(totalDays,elapsedDays);
     var renewalDate=flmRenewalUnlockDate(cycleStart);
     var completed=renewalDate ? Date.now()>=renewalDate.getTime() : (roiStatus==='completed'||done>=totalDays||flmRoiEndDatePassed(end));
     if(note)note.innerText=currentRoi&&!completed?'🔒 Self Renewal is locked. Renewal opens on '+flmRenewalUnlockText(cycleStart)+' (50-day cycle from the start date).':'✅ 50-day ROI cycle completed. Self Renewal is available now with a valid unused PIN.';
@@ -3409,7 +3403,14 @@ async function claimReward(pairs, name){
       var tx=await supabaseClient.from('wallet_transactions').select('amount,created_at,wallet_type,transaction_type,title,status').eq('fl_id',fl).in('status',['completed','approved']).order('created_at',{ascending:true});if(tx.error)return;
       var startKey=istDayKey(start),days={},credited=0,last=null;
       (tx.data||[]).forEach(function(x){var wt=String(x.wallet_type||'').toLowerCase(),tt=String(x.transaction_type||'').toLowerCase(),title=String(x.title||'').toLowerCase(),amt=Number(x.amount||0);if(amt<=0||tt==='withdrawal')return;if(!(wt==='roi'||tt==='roi'||tt==='roi_credit'||tt==='daily_roi'||tt==='daily_roi_credit'||title==='roi'||title.indexOf('daily roi')>=0||title.indexOf('roi credit')>=0))return;var k=istDayKey(x.created_at);if(!k|| (startKey&&k<startKey))return;days[k]=true;credited+=amt;if(!last||new Date(x.created_at)>new Date(last))last=x.created_at;});
-      var done=Math.min(totalDays,Object.keys(days).length),remaining=Math.max(0,totalDays-done),creditTotal=credited||done*daily;
+      var startDateObj=start?new Date(start):null, elapsedDays=0;
+      if(startDateObj&&!isNaN(startDateObj.getTime())){
+        var todayObj=new Date(), startIST=new Date(startDateObj.getTime()+330*60000), todayIST=new Date(todayObj.getTime()+330*60000);
+        var startDay=Date.UTC(startIST.getUTCFullYear(),startIST.getUTCMonth(),startIST.getUTCDate());
+        var todayDay=Date.UTC(todayIST.getUTCFullYear(),todayIST.getUTCMonth(),todayIST.getUTCDate());
+        elapsedDays=Math.max(0,Math.floor((todayDay-startDay)/86400000)+1);
+      }
+      var done=Math.min(totalDays,elapsedDays),remaining=Math.max(0,totalDays-done),creditTotal=credited;
       var rb=document.getElementById('loanRoiCycleBox');if(rb){rb.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Daily ROI</div><b>'+money(daily)+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Progress</div><b>'+done+' / '+totalDays+' days</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Days Remaining</div><b>'+remaining+'</b></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px"><div style="font-size:10px;color:#64748b">Total ROI Credited</div><b>'+money(creditTotal)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#64748b">Start: '+istDateOnly(start)+'<br>End: '+istDateOnly(cycle.end_date||cycle.ends_at||(start?new Date(new Date(start).getTime()+49*86400000):null))+'<br>Last Credit: '+istText(last)+'<br>Status: '+String(cycle.status||'active')+'</div>';}
       var note=document.getElementById('selfRenewNote');var renewalDate=flmRenewalUnlockDate(start);var dateComplete=renewalDate ? Date.now()>=renewalDate.getTime() : false;if(note)note.innerText=!dateComplete?'🔒 Self Renewal is locked. You can renew on '+flmRenewalUnlockText(start)+' (50-day cycle from the start date).':'✅ 50 days completed from the ROI cycle start date. Self Renewal is available now with a valid unused PIN.';var renewBtn=document.getElementById('loanRenewBtn');if(renewBtn)renewBtn.disabled=!dateComplete;
     }catch(e){console.log('ROI reconcile:',e.message||e);}
